@@ -1,0 +1,1420 @@
+<!DOCTYPE html>
+<html lang="it" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>FilamentHub 3D - Gestione Bobine & Calibrazioni</title>
+  <link rel="manifest" href="/static/manifest.json">
+  <link rel="icon" type="image/svg+xml" href="/static/icon.svg">
+  <meta name="theme-color" content="#0f172a">
+
+  <!-- Immediate Auto Theme Detection before render (prefers-color-scheme) -->
+  <script>
+    (function() {
+      try {
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (!prefersDark) {
+          document.documentElement.classList.remove('dark');
+        } else {
+          document.documentElement.classList.add('dark');
+        }
+      } catch (_) {}
+    })();
+  </script>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              bg: '#0a0f1d',
+              card: '#131c31',
+              border: '#22304d',
+              indigo: '#6366f1',
+              emerald: '#10b981',
+              amber: '#f59e0b',
+              red: '#ef4444',
+              cyan: '#06b6d4',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Custom Adaptive Tech Styles -->
+  <link rel="stylesheet" href="/static/css/styles.css?v=1.1">
+</head>
+<body class="bg-slate-50 dark:bg-[#0a0f1d] text-slate-900 dark:text-slate-100 h-[100dvh] w-full overflow-hidden flex flex-col antialiased selection:bg-indigo-600 selection:text-white">
+
+  <!-- Native Camera & File Fallbacks for Mobile / AI Photo Upload -->
+  <input type="file" id="nativeCameraPhotoInput" accept="image/*" capture="environment" class="hidden" onchange="app.handleNativeCameraPhoto(event)">
+  <input type="file" id="spoolPhotoInput" accept="image/*" class="hidden" onchange="app.handleAiPhotoUpload(event)">
+
+  <!-- ========================================================================= -->
+  <!-- TOPBAR HEADER (COMPACT, OPAQUE & SOLID - NO TRANSLUCENT OVERLAYS) -->
+  <!-- ========================================================================= -->
+  <header class="shrink-0 z-30 solid-header pt-[env(safe-area-inset-top)] shadow-sm w-full">
+    <div class="max-w-5xl mx-auto px-3 sm:px-6">
+      
+      <!-- Row 1: Brand Logo + Primary Action Buttons (50px height) -->
+      <div class="flex items-center justify-between h-13 py-1 gap-2">
+        <!-- Logo & Title -->
+        <div class="flex items-center gap-2 cursor-pointer select-none" onclick="app.navToSpools()">
+          <img src="/static/icon.svg" alt="FilamentHub Logo" class="w-7 h-7 sm:w-8 sm:h-8">
+          <div>
+            <h1 class="text-base sm:text-lg font-black tracking-tight text-slate-900 dark:text-white leading-none">
+              FilamentHub
+            </h1>
+            <p class="text-[10px] text-slate-500 dark:text-slate-400 font-mono">Spool Database • v1.1</p>
+          </div>
+        </div>
+
+        <!-- 2 Primary Action Buttons: Foto AI & Nuova Bobina -->
+        <div class="flex items-center gap-2">
+          <!-- 1-Tap iOS Native Camera Photo AI Trigger -->
+          <label
+            for="nativeCameraPhotoInput"
+            title="Scatta foto all'etichetta per compilazione AI"
+            class="cursor-pointer px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 active:scale-95 border border-emerald-200 dark:border-emerald-500/50 text-emerald-700 dark:text-emerald-300 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 shrink-0 transition shadow-sm"
+          >
+            <i data-lucide="camera" class="w-4 h-4 text-emerald-500"></i>
+            <span>Foto AI</span>
+          </label>
+
+          <!-- + Nuova Bobina Button -->
+          <button
+            type="button"
+            onclick="app.openSpoolModal(null)"
+            title="Aggiungi Nuova Bobina"
+            class="px-3.5 sm:px-4 py-1.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 active:scale-95 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-indigo-600/30 flex items-center gap-1.5 transition"
+          >
+            <i data-lucide="plus" class="w-4 h-4 stroke-[2.5]"></i>
+            <span>Nuova</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Row 2: Search + Integrated Filters Popover (42px height) -->
+      <div class="flex items-center gap-2 pb-2 pt-0.5">
+        <!-- Search Input -->
+        <div class="flex-1 relative">
+          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
+            <i data-lucide="search" class="w-4 h-4"></i>
+          </div>
+          <input
+            type="search"
+            id="searchInput"
+            oninput="app.syncSearch(this.value)"
+            placeholder="Cerca marca, materiale, colore..."
+            class="w-full pl-9 pr-8 py-2 bg-white dark:bg-[#0b0f19] border border-slate-300 dark:border-slate-700 rounded-xl text-base sm:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition shadow-inner"
+          />
+          <button id="clearSearchBtn" class="hidden absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" onclick="app.syncSearch('')">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+        <!-- Filters Popover / Sheet Trigger -->
+        <button
+          type="button"
+          onclick="app.openFiltersSheet()"
+          id="filtersSheetTriggerBtn"
+          title="Filtra per Marca, Materiale o Ordina"
+          class="relative px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5 shrink-0 transition"
+        >
+          <i data-lucide="sliders-horizontal" class="w-4 h-4 text-indigo-500 dark:text-indigo-400"></i>
+          <span class="hidden sm:inline">Filtri</span>
+          <span id="activeFiltersDot" class="hidden w-2 h-2 rounded-full bg-indigo-500"></span>
+        </button>
+      </div>
+
+      <!-- Row 3: iOS Segmented Control State Tabs -->
+      <div class="pb-2">
+        <div class="segmented-container grid grid-cols-3 gap-1 text-[13px]">
+          <button
+            type="button"
+            onclick="app.setFilterStatus('all')"
+            id="filterStatusAll"
+            class="segmented-btn py-1.5 text-center font-bold active"
+          >
+            Tutte (<span id="countTotal">0</span>)
+          </button>
+          <button
+            type="button"
+            onclick="app.setFilterStatus('opened')"
+            id="filterStatusOpened"
+            class="segmented-btn py-1.5 text-center font-bold text-emerald-400"
+          >
+            🔓 Aperte (<span id="countOpened">0</span>)
+          </button>
+          <button
+            type="button"
+            onclick="app.setFilterStatus('new')"
+            id="filterStatusNew"
+            class="segmented-btn py-1.5 text-center font-bold text-blue-400"
+          >
+            📦 Nuove (<span id="countNew">0</span>)
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ========================================================================= -->
+  <!-- MAIN CONTENT CONTAINER -->
+  <!-- ========================================================================= -->
+  <!-- ========================================================================= -->
+  <!-- MAIN CONTENT CONTAINER (NATIVE APP SCROLL AREA) -->
+  <!-- ========================================================================= -->
+  <main id="mainScrollArea" class="flex-1 min-h-0 w-full overflow-y-auto overflow-x-hidden overscroll-y-contain">
+    <div class="max-w-5xl w-full mx-auto px-3 sm:px-6 py-3 space-y-3">
+
+      <!-- Active Filter Indicators (if any brand/material filter applied) -->
+      <div id="activeFilterTagsBar" class="hidden flex items-center gap-2 overflow-x-auto no-scrollbar text-xs py-1">
+        <span class="text-slate-400 text-[11px]">Filtri attivi:</span>
+        <span id="activeBrandTag" class="hidden px-2 py-0.5 rounded-lg bg-indigo-950 text-indigo-300 border border-indigo-800 font-mono flex items-center gap-1">
+          <span id="activeBrandTagText">Brand</span>
+          <button onclick="app.setBrandFilter('')" class="hover:text-white">✕</button>
+        </span>
+        <span id="activeMaterialTag" class="hidden px-2 py-0.5 rounded-lg bg-indigo-950 text-indigo-300 border border-indigo-800 font-mono flex items-center gap-1">
+          <span id="activeMaterialTagText">Material</span>
+          <button onclick="app.setMaterialFilter('')" class="hover:text-white">✕</button>
+        </span>
+        <button onclick="app.resetDropdownFilters()" class="text-slate-400 hover:text-white text-[11px] underline ml-auto">Reimposta</button>
+      </div>
+
+      <!-- Spools Swipe List View (iOS Native Swipe-to-Action) -->
+      <section id="listViewSection">
+        <div id="spoolListContainer" class="space-y-2.5">
+          <!-- Rendered via renderSpoolSwipeList() -->
+        </div>
+      </section>
+
+      <!-- Empty State -->
+      <div id="emptyGridState" class="hidden py-16 text-center text-slate-500">
+        <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-slate-900 border border-slate-800 text-slate-500 mb-3">
+          <i data-lucide="package-search" class="w-7 h-7"></i>
+        </div>
+        <p class="text-sm font-bold text-slate-300">Nessuna bobina trovata</p>
+        <p class="text-xs text-slate-500 mt-1">Modifica i filtri o aggiungi una nuova bobina.</p>
+        <button onclick="app.openSpoolModal(null)" class="mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow">
+          <i data-lucide="plus" class="w-4 h-4"></i> Aggiungi Bobina
+        </button>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ========================================================================= -->
+  <!-- NATIVE iOS FIXED BOTTOM BAR (3 SORT BUTTONS + MENU)                       -->
+  <!-- ========================================================================= -->
+  <nav class="shrink-0 z-30 bg-white dark:bg-[#0f172a] border-t border-slate-200 dark:border-slate-800/80 px-2 py-1.5 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] flex items-center justify-around shadow-2xl w-full">
+    
+    <!-- 1. Sort: Produttore -->
+    <button
+      type="button"
+      id="sortBtnBrand"
+      onclick="app.setQuickSort('brand_asc')"
+      class="quick-sort-btn flex flex-col items-center justify-center py-1 px-2 rounded-xl text-slate-400 dark:text-slate-400 hover:text-indigo-500 font-semibold transition flex-1 min-w-0"
+      title="Ordina per Produttore"
+    >
+      <i data-lucide="building-2" class="w-5 h-5 mb-0.5"></i>
+      <span class="text-[11px] truncate">Produttore</span>
+    </button>
+
+    <!-- 2. Sort: Filamento -->
+    <button
+      type="button"
+      id="sortBtnMaterial"
+      onclick="app.setQuickSort('material_asc')"
+      class="quick-sort-btn flex flex-col items-center justify-center py-1 px-2 rounded-xl text-slate-400 dark:text-slate-400 hover:text-indigo-500 font-semibold transition flex-1 min-w-0"
+      title="Ordina per Tipo di Filamento"
+    >
+      <i data-lucide="flask-conical" class="w-5 h-5 mb-0.5"></i>
+      <span class="text-[11px] truncate">Filamento</span>
+    </button>
+
+    <!-- 3. Sort: Scala Cromatica -->
+    <button
+      type="button"
+      id="sortBtnColor"
+      onclick="app.setQuickSort('color_chromatic')"
+      class="quick-sort-btn flex flex-col items-center justify-center py-1 px-2 rounded-xl text-slate-400 dark:text-slate-400 hover:text-indigo-500 font-semibold transition flex-1 min-w-0"
+      title="Ordina per Scala Cromatica"
+    >
+      <i data-lucide="palette" class="w-5 h-5 mb-0.5"></i>
+      <span class="text-[11px] truncate">Colore</span>
+    </button>
+
+    <!-- 4. Menu & Impostazioni -->
+    <button
+      type="button"
+      id="navTabMenu"
+      onclick="app.openMobileMenuSheet(event)"
+      class="flex flex-col items-center justify-center py-1 px-2 rounded-xl text-slate-400 dark:text-slate-400 hover:text-indigo-500 font-semibold transition flex-1 min-w-0 relative"
+      title="Menu e Impostazioni"
+    >
+      <i data-lucide="settings" class="w-5 h-5 mb-0.5"></i>
+      <span class="text-[11px] truncate">Menu</span>
+      <span id="navMenuDot" class="hidden absolute top-1 right-1/4 w-2 h-2 rounded-full bg-emerald-500"></span>
+    </button>
+  </nav>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL / SHEET: FILTRI AVANZATI (MARCA, MATERIALE, ORDINAMENTO) -->
+  <!-- ========================================================================= -->
+  <div id="filtersSheet" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm hidden" onclick="if(event.target===this)app.closeFiltersSheet()">
+    <div class="solid-modal w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl border-t sm:border border-slate-700 shadow-2xl p-5 space-y-4 mobile-sheet pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] text-xs" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h4 class="font-bold text-white text-sm flex items-center gap-2">
+          <i data-lucide="sliders-horizontal" class="w-4 h-4 text-indigo-400"></i>
+          <span>Filtri & Ordinamento</span>
+        </h4>
+        <button onclick="app.closeFiltersSheet()" class="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3">
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Materiale</label>
+          <select id="materialFilter" onchange="app.setMaterialFilter(this.value)" class="w-full bg-slate-900 border border-slate-700 text-xs text-slate-100 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500">
+            <option value="">Tutti i Materiali</option>
+            <option value="PLA">PLA</option>
+            <option value="PETG">PETG</option>
+            <option value="ABS">ABS</option>
+            <option value="ASA">ASA</option>
+            <option value="TPU">TPU</option>
+            <option value="PC">PC</option>
+            <option value="PA-CF">PA-CF</option>
+            <option value="PETG-CF">PETG-CF</option>
+            <option value="PLA-CF">PLA-CF</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Marca / Produttore</label>
+          <select id="brandFilter" onchange="app.setBrandFilter(this.value)" class="w-full bg-slate-900 border border-slate-700 text-xs text-slate-100 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500">
+            <option value="">Tutti i Brand</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Ordina Per</label>
+          <select id="sortSelector" onchange="app.setSorting(this.value)" class="w-full bg-slate-900 border border-slate-700 text-xs text-slate-100 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500">
+            <option value="in_use_desc">In Uso / Aperte prima</option>
+            <option value="status_desc">Stato (In Uso -> Aperte -> Nuove)</option>
+            <option value="net_desc">Grammi Residui (Massimo)</option>
+            <option value="net_asc">Grammi Residui (Minimo)</option>
+            <option value="brand_asc">Brand (A-Z)</option>
+            <option value="material_asc">Materiale (A-Z)</option>
+            <option value="uid_asc">UID (Crescente)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="pt-2 flex items-center justify-between gap-2 border-t border-slate-800">
+        <button onclick="app.resetDropdownFilters(); app.closeFiltersSheet();" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-medium">
+          Reimposta
+        </button>
+        <button onclick="app.closeFiltersSheet()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold">
+          Applica Filtri
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MOBILE ACTION MENU SHEET (iOS SETTINGS GROUPED STYLE) -->
+  <!-- ========================================================================= -->
+  <div id="mobileMenuSheet" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm hidden" onclick="if(event.target===this)app.closeMobileMenuSheet()">
+    <div class="solid-modal w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl border-t sm:border border-slate-200 dark:border-slate-800 shadow-2xl p-4 sm:p-5 space-y-4 mobile-sheet pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] text-xs" onclick="event.stopPropagation()">
+      
+      <!-- User Profile Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-600 text-white flex items-center justify-center font-black text-sm uppercase shadow-md shadow-indigo-500/20" id="mobileUserAvatar">U</div>
+          <div>
+            <h4 class="font-extrabold text-slate-900 dark:text-white text-base leading-tight" id="mobileUserFullName">Utente</h4>
+            <p class="text-xs text-slate-500 dark:text-slate-400 font-mono" id="mobileUserRole">Ruolo: editor</p>
+          </div>
+        </div>
+        <button onclick="app.closeMobileMenuSheet()" class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Group 1: Core Tools (iOS Settings Card) -->
+      <div class="rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 divide-y divide-slate-200 dark:divide-slate-800 overflow-hidden">
+        
+        <!-- Gemini Vision AI -->
+        <button onclick="app.closeMobileMenuSheet(); app.openSettingsModal();" class="w-full p-3.5 flex items-center justify-between text-left hover:bg-slate-100 dark:hover:bg-slate-800/60 transition group">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+              <i data-lucide="sparkles" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <div class="text-sm font-bold text-slate-800 dark:text-slate-100">Configura Gemini Vision AI</div>
+              <div class="text-[11px] text-slate-500 dark:text-slate-400">Riconoscimento etichette e colori da foto</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <span id="menuGeminiBadge" class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">Attiva</span>
+            <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition"></i>
+          </div>
+        </button>
+
+        <!-- A4 Label Print Queue -->
+        <a href="/print-a4" class="w-full p-3.5 flex items-center justify-between text-left hover:bg-slate-100 dark:hover:bg-slate-800/60 transition group">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-xl bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+              <i data-lucide="printer" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <div class="text-sm font-bold text-slate-800 dark:text-slate-100">Stampa Etichette Foglio A4</div>
+              <div class="text-[11px] text-slate-500 dark:text-slate-400">Griglia 24 etichette laser / termica</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <span id="mobileMenuA4Badge" class="bg-indigo-600 text-white font-bold text-xs px-2.5 py-0.5 rounded-full shadow-sm">0</span>
+            <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition"></i>
+          </div>
+        </a>
+
+        <!-- Admin Panel -->
+        <button id="mobileAdminMenuBtn" onclick="app.closeMobileMenuSheet(); app.openAdminModal();" class="w-full p-3.5 flex items-center justify-between text-left hover:bg-slate-100 dark:hover:bg-slate-800/60 transition group">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+              <i data-lucide="shield" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <div class="text-sm font-bold text-slate-800 dark:text-slate-100">Pannello Amministrazione</div>
+              <div class="text-[11px] text-slate-500 dark:text-slate-400">Utenti, Dizionario Tare, Token HA</div>
+            </div>
+          </div>
+          <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition"></i>
+        </button>
+      </div>
+
+      <!-- Group 2: Account & Session -->
+      <div class="rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 divide-y divide-slate-200 dark:divide-slate-800 overflow-hidden">
+        
+        <!-- Change Password -->
+        <button onclick="app.closeMobileMenuSheet(); app.openChangePasswordModal();" class="w-full p-3.5 flex items-center justify-between text-left hover:bg-slate-100 dark:hover:bg-slate-800/60 transition group">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center shrink-0">
+              <i data-lucide="key" class="w-4 h-4"></i>
+            </div>
+            <span class="text-sm font-bold text-slate-800 dark:text-slate-100">Cambia Password</span>
+          </div>
+          <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition"></i>
+        </button>
+
+        <!-- Logout -->
+        <button onclick="app.closeMobileMenuSheet(); app.logout();" class="w-full p-3.5 flex items-center justify-between text-left hover:bg-rose-50 dark:hover:bg-rose-950/30 transition group">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-xl bg-rose-500/15 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+              <i data-lucide="log-out" class="w-4 h-4"></i>
+            </div>
+            <span class="text-sm font-bold text-rose-600 dark:text-rose-400">Disconnetti</span>
+          </div>
+          <i data-lucide="chevron-right" class="w-4 h-4 text-rose-400/50 group-hover:translate-x-0.5 transition"></i>
+        </button>
+      </div>
+
+      <!-- App Version Info -->
+      <div class="text-center pt-2">
+        <p class="text-[11px] text-slate-400 dark:text-slate-500 font-mono">FilamentHub 3D v1.1</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL 1: LOGIN OVERLAY -->
+  <!-- ========================================================================= -->
+  <div id="loginModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md hidden">
+    <div class="solid-modal max-w-sm w-full rounded-2xl p-6 border border-slate-800 shadow-2xl">
+      <div class="text-center mb-6">
+        <img src="/static/icon.svg" alt="Logo" class="w-14 h-14 mx-auto mb-3">
+        <h2 class="text-xl font-bold bg-gradient-to-r from-indigo-400 to-emerald-400 bg-clip-text text-transparent">
+          FilamentHub 3D
+        </h2>
+        <p class="text-xs text-slate-400 mt-1">Accesso riservato</p>
+      </div>
+
+      <div id="loginRateLimitAlert" class="hidden mb-4 p-3 rounded-xl bg-red-950/60 border border-red-800 text-xs text-red-300 flex items-start gap-2">
+        <i data-lucide="shield-alert" class="w-4 h-4 shrink-0 text-red-400 mt-0.5"></i>
+        <span>Troppi tentativi falliti. Riprova tra 15 minuti.</span>
+      </div>
+
+      <div id="loginErrorAlert" class="hidden mb-4 p-3 rounded-xl bg-red-950/60 border border-red-800 text-xs text-red-300">
+        Credenziali non valide.
+      </div>
+
+      <form id="loginForm" onsubmit="app.handleLogin(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1">Nome Utente</label>
+          <input
+            type="text"
+            id="loginUsername"
+            required
+            autocomplete="username"
+            class="w-full px-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
+            placeholder="admin"
+          />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1">Password</label>
+          <input
+            type="password"
+            id="loginPassword"
+            required
+            autocomplete="current-password"
+            class="w-full px-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
+            placeholder="••••••••"
+          />
+        </div>
+        <button
+          type="submit"
+          id="loginSubmitBtn"
+          class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl text-sm transition shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2"
+        >
+          <span>Accedi al Sistema</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL 2: CREAZIONE / MODIFICA BOBINA (BOTTOM SHEET MOBILE) -->
+  <!-- ========================================================================= -->
+  <div id="spoolModal" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md hidden overflow-hidden">
+    <div class="solid-modal w-full sm:max-w-2xl rounded-t-3xl sm:rounded-2xl border-t sm:border border-slate-700 shadow-2xl overflow-hidden h-[94dvh] sm:h-auto sm:max-h-[92vh] flex flex-col mobile-sheet">
+      
+      <!-- Modal Header (Compact & Fixed at top) -->
+      <div class="px-4 py-2.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0 bg-slate-100 dark:bg-slate-950">
+        <div class="flex items-center gap-2">
+          <div class="w-7 h-7 rounded-lg bg-indigo-600/20 text-indigo-500 dark:text-indigo-400 flex items-center justify-center">
+            <i data-lucide="layers" class="w-3.5 h-3.5"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100" id="spoolModalTitle">Nuova Bobina</h3>
+            <p class="text-[10px] text-slate-500 dark:text-slate-400 font-mono" id="spoolModalSubtitle">Compila dati fisici e slicer</p>
+          </div>
+        </div>
+        <button onclick="app.closeSpoolModal()" class="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-800 transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Quick AI Actions: SOLO 2 Grandi Pulsanti Affiancati (Fotocamera AI & Galleria AI) -->
+      <div id="spoolModalAiBar" class="px-3 py-2 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shrink-0">
+        <div class="grid grid-cols-2 gap-2">
+          <!-- 1. AI Camera Photo -->
+          <label for="nativeCameraPhotoInput" class="cursor-pointer py-2.5 px-3 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 text-center transition shadow-md shadow-emerald-900/20">
+            <i data-lucide="camera" class="w-4 h-4"></i>
+            <span>Fotocamera AI</span>
+          </label>
+
+          <!-- 2. AI Gallery / File -->
+          <label for="spoolPhotoInput" class="cursor-pointer py-2.5 px-3 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 text-center transition shadow-md shadow-indigo-900/20">
+            <i data-lucide="image" class="w-4 h-4"></i>
+            <span>Galleria AI</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Tab Navigation (1. Dati Principali vs 2. Parametri Slicer) -->
+      <div class="px-4 pt-1.5 border-b border-slate-200 dark:border-slate-800 flex gap-4 shrink-0 bg-slate-50 dark:bg-slate-950 text-xs">
+        <button type="button" onclick="app.setSpoolModalTab(1)" id="tabBtn1" class="pb-2 border-b-2 border-indigo-500 text-indigo-400 font-bold flex items-center gap-1.5">
+          <i data-lucide="box" class="w-3.5 h-3.5"></i>
+          <span>1. Dati Principali & Pesi</span>
+        </button>
+        <button type="button" onclick="app.setSpoolModalTab(2)" id="tabBtn2" class="pb-2 border-b-2 border-transparent text-slate-400 hover:text-slate-200 font-semibold flex items-center gap-1.5">
+          <i data-lucide="sliders" class="w-3.5 h-3.5"></i>
+          <span>2. Slicer & Calibrazione</span>
+        </button>
+      </div>
+
+      <!-- Form Body with Fixed Footer Structure -->
+      <form id="spoolForm" onsubmit="app.handleSaveSpool(event)" class="flex flex-col flex-1 min-h-0 overflow-hidden w-full max-w-full">
+        <input type="hidden" id="spoolFormId" value="">
+
+        <!-- Scrollable Fields Container -->
+        <div class="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-3.5 text-xs w-full max-w-full box-border">
+
+        <!-- Banner Conferma Dati Estratti AI -->
+        <div id="aiExtractionBanner" class="hidden p-2.5 rounded-xl bg-emerald-950/80 border border-emerald-500/60 text-emerald-200 text-xs space-y-1">
+          <div class="flex items-center justify-between font-bold text-emerald-300">
+            <span class="flex items-center gap-1.5">
+              <i data-lucide="sparkles" class="w-4 h-4 text-emerald-400"></i>
+              <span id="aiExtractionTitle">Dati Estratti con Successo</span>
+            </span>
+            <button type="button" onclick="document.getElementById('aiExtractionBanner').classList.add('hidden')" class="text-emerald-400 hover:text-white">✕</button>
+          </div>
+          <p id="aiExtractionSummary" class="text-[11px] text-emerald-100 font-mono"></p>
+        </div>
+
+        <!-- Banner Wizard Campi Mancanti (Opzionale: Inserisci o Skippa) -->
+        <div id="aiMissingFieldsDialog" class="hidden p-3 rounded-xl bg-amber-950/70 border border-amber-500/70 text-amber-200 text-xs space-y-2.5">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-amber-300 flex items-center gap-1.5">
+              <i data-lucide="alert-circle" class="w-4 h-4 text-amber-400"></i>
+              <span>Completa Dati Mancanti (Opzionale)</span>
+            </span>
+            <button type="button" onclick="app.skipMissingFieldsPrompt()" class="text-amber-400 hover:text-white">✕</button>
+          </div>
+          <p class="text-[11px] text-amber-100">
+            Alcune informazioni non erano leggibili sull'etichetta. Puoi completarle ora con 1-tap oppure ignorarle:
+          </p>
+          
+          <div id="missingFieldsContainer" class="space-y-2">
+            <!-- Dynamically populated missing field pills/inputs -->
+          </div>
+
+          <div class="flex items-center justify-between gap-2 pt-1 border-t border-amber-900/50">
+            <button type="button" onclick="app.skipMissingFieldsPrompt()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-[11px]">
+              ⏭️ Salta / Skippa
+            </button>
+            <button type="button" onclick="app.applyMissingFieldsPrompt()" class="px-3.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-[11px] shadow">
+              ✅ Applica Dati
+            </button>
+          </div>
+        </div>
+
+        <!-- Mini-Barra Foto AI Compatta & Canvas (DENTRO L'AREA SCORREVOLE!) -->
+        <div id="aiCanvasBox" class="hidden p-2.5 bg-slate-900 border border-slate-700 rounded-xl space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+              <i data-lucide="image" class="w-3.5 h-3.5 text-indigo-400"></i>
+              <span>Foto Etichetta Acquisita</span>
+            </span>
+            <div class="flex items-center gap-2">
+              <button type="button" onclick="app.toggleCanvasExpand()" id="canvasExpandBtn" class="text-[11px] text-indigo-400 hover:text-indigo-300 flex items-center gap-1">
+                <i data-lucide="maximize-2" class="w-3 h-3"></i>
+                <span id="canvasExpandText">Ingrandisci Colore</span>
+              </button>
+              <button type="button" onclick="app.closeAiCanvasBox()" class="text-xs text-slate-400 hover:text-white">✕</button>
+            </div>
+          </div>
+
+          <!-- Thumbnail & Controls -->
+          <div class="flex items-center gap-2.5">
+            <div id="canvasWrapper" class="relative overflow-hidden rounded-lg bg-black border border-slate-700 shrink-0">
+              <canvas id="aiCanvas" class="h-20 w-auto max-w-[120px] object-contain cursor-crosshair"></canvas>
+            </div>
+            
+            <div class="flex-1 min-w-0 space-y-1.5">
+              <div id="geminiStatusText" class="text-[11px] text-slate-300 font-mono">Pronta per analisi</div>
+              <div class="flex items-center gap-1.5">
+                <span class="w-3.5 h-3.5 rounded-full inline-block color-swatch-ring" id="eyedropperMiniSwatch" style="background: #10b981;"></span>
+                <span class="font-mono text-[10px] text-slate-400" id="eyedropperHex">#10B981</span>
+              </div>
+              <div class="flex items-center gap-1.5 pt-0.5">
+                <button id="geminiAnalyzeBtn" type="button" onclick="app.analyzeImageWithGemini()" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-bold flex items-center gap-1">
+                  <i data-lucide="cpu" class="w-3 h-3"></i>
+                  <span>Rianalizza AI</span>
+                </button>
+                <button type="button" onclick="app.applyEyedropperColor()" class="px-2 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[10px] font-semibold">
+                  Usa Colore
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============================== -->
+        <!-- TAB 1: DATI PRINCIPALI & PESI  -->
+        <!-- ============================== -->
+        <div id="spoolTab1Content" class="space-y-3.5">
+
+          <!-- Brand Pills & Presets (DENTRO L'AREA SCORREVOLE!) -->
+          <div id="spoolModalCatalogBox" class="p-2.5 bg-slate-900 border border-slate-800 rounded-xl space-y-2">
+            <div class="flex items-center gap-1 overflow-x-auto no-scrollbar flex-nowrap">
+              <span class="text-[10px] text-slate-400 mr-1 font-semibold shrink-0">Scelta Rapida:</span>
+              <button type="button" onclick="app.quickSelectBrand('Bambu Lab', 250)" class="brand-pill-btn px-2.5 py-1 rounded-lg text-xs font-bold text-emerald-300 shrink-0">
+                🌿 Bambu Lab (250g)
+              </button>
+              <button type="button" onclick="app.quickSelectBrand('Sunlu', 195)" class="brand-pill-btn px-2.5 py-1 rounded-lg text-xs font-bold text-orange-300 shrink-0">
+                ☀️ Sunlu (195g)
+              </button>
+              <button type="button" onclick="app.quickSelectBrand('eSUN', 240)" class="brand-pill-btn px-2.5 py-1 rounded-lg text-xs font-medium text-slate-200 shrink-0">
+                eSUN
+              </button>
+              <button type="button" onclick="app.quickSelectBrand('Polymaker', 140)" class="brand-pill-btn px-2.5 py-1 rounded-lg text-xs font-medium text-slate-200 shrink-0">
+                Polymaker
+              </button>
+              <button type="button" onclick="app.quickSelectBrand('Elegoo', 160)" class="brand-pill-btn px-2.5 py-1 rounded-lg text-xs font-medium text-slate-200 shrink-0">
+                Elegoo
+              </button>
+              <button type="button" onclick="app.quickSelectBrand('Creality', 200)" class="brand-pill-btn px-2.5 py-1 rounded-lg text-xs font-medium text-slate-200 shrink-0">
+                Creality
+              </button>
+            </div>
+
+            <!-- Ricerca Dinamica Catalogo Produttori -->
+            <div class="relative w-full min-w-0" id="catalogSearchWrapper">
+              <div class="relative flex items-center w-full">
+                <i data-lucide="search" class="w-4 h-4 text-indigo-400 absolute left-3 pointer-events-none"></i>
+                <input
+                  type="text"
+                  id="catalogSearchInput"
+                  autocomplete="off"
+                  placeholder="Cerca nel catalogo (es. Bambu PLA Matte, Sunlu...)"
+                  onfocus="app.openCatalogDropdown()"
+                  oninput="app.filterCatalogDropdown(this.value)"
+                  class="w-full min-w-0 pl-9 pr-8 py-2 bg-white dark:bg-[#0b0f19] border border-indigo-500/40 focus:border-indigo-500 rounded-xl text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none transition"
+                />
+                <button
+                  type="button"
+                  id="clearCatalogSearchBtn"
+                  onclick="app.clearCatalogSearch()"
+                  class="hidden absolute right-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-white"
+                >
+                  <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+
+              <!-- Dropdown Lista Filamenti (Larga ESATTAMENTE quanto il campo di ricerca: left-0 right-0 w-full) -->
+              <div
+                id="catalogDropdownList"
+                class="hidden absolute left-0 right-0 top-full mt-1 w-full max-h-56 overflow-y-auto rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 shadow-2xl z-30 divide-y divide-slate-100 dark:divide-slate-800/80"
+              >
+                <!-- Popolato dinamicamente da filterCatalogDropdown() -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Stato Bobina: 2 Pulsanti Toggle (Nuova vs Aperta) -->
+          <div class="p-3 bg-slate-900 border border-slate-800 rounded-xl space-y-2">
+            <label class="block font-bold text-slate-200 text-xs">Stato Bobina</label>
+            <div class="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                id="statusBtnNew"
+                onclick="app.setModalStatusChoice('new')"
+                class="py-2.5 px-3 rounded-xl border font-bold text-xs flex items-center justify-center gap-1.5 transition bg-blue-950/80 border-blue-500 text-blue-300"
+              >
+                <span>📦 Nuova</span>
+              </button>
+              <button
+                type="button"
+                id="statusBtnOpened"
+                onclick="app.setModalStatusChoice('opened')"
+                class="py-2.5 px-3 rounded-xl border font-bold text-xs flex items-center justify-center gap-1.5 transition bg-slate-900 border-slate-700 text-slate-400"
+              >
+                <span>🔓 Aperta</span>
+              </button>
+            </div>
+            <input type="hidden" id="spoolInitialStatus" value="new">
+          </div>
+
+          <!-- Marca -->
+          <div>
+            <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Marca *</label>
+            <input
+              type="text"
+              id="spoolBrand"
+              required
+              onchange="app.handleBrandSelect(this.value)"
+              placeholder="es. Bambu Lab, Sunlu..."
+              class="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
+            />
+          </div>
+
+          <!-- Materiale * e Finitura / Subtype (Affiancati sulla stessa riga) -->
+          <div class="grid grid-cols-2 gap-2.5 w-full">
+            <div class="min-w-0">
+              <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1 text-xs">Materiale *</label>
+              <input
+                type="text"
+                id="spoolMaterial"
+                required
+                placeholder="es. PLA, PETG, ABS, TPU..."
+                class="w-full min-w-0 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+            <div class="min-w-0">
+              <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1 text-xs">Finitura / Subtype</label>
+              <input
+                type="text"
+                id="spoolSubtype"
+                placeholder="es. Basic, Matte, Silk..."
+                class="w-full min-w-0 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+          </div>
+
+          <!-- Nome Colore * e Colore Primario Hex (Affiancati sulla stessa riga) -->
+          <div class="grid grid-cols-2 gap-2.5 w-full">
+            <div class="min-w-0">
+              <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1 text-xs">Nome Colore *</label>
+              <input
+                type="text"
+                id="spoolColorName"
+                required
+                placeholder="es. Charcoal Black, White..."
+                class="w-full min-w-0 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+            <div class="min-w-0">
+              <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1 text-xs">Colore Hex</label>
+              <div class="flex items-center gap-1.5 w-full min-w-0">
+                <input
+                  type="color"
+                  id="spoolColorPicker"
+                  value="#10b981"
+                  oninput="document.getElementById('spoolColorHex').value = this.value"
+                  class="w-9 h-9 rounded-lg cursor-pointer bg-transparent border border-slate-300 dark:border-slate-700 p-0.5 shrink-0"
+                />
+                <input
+                  type="text"
+                  id="spoolColorHex"
+                  value="#10b981"
+                  maxlength="7"
+                  required
+                  oninput="if(/^#[0-9A-Fa-f]{6}$/.test(this.value)) document.getElementById('spoolColorPicker').value = this.value"
+                  class="w-full min-w-0 flex-1 px-2.5 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl font-mono uppercase text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Pesi: Calcolo Automatico Netto Residuo -->
+          <div class="p-3 bg-slate-900 border border-slate-800 rounded-xl space-y-2.5">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-slate-200 text-xs">Pesi & Calcolo Netto Residuo</span>
+              <span class="text-[10px] text-slate-400">Netto = Lordo - Tara</span>
+            </div>
+            
+            <div class="grid grid-cols-3 gap-2">
+              <div>
+                <label class="block text-[11px] text-slate-400 mb-0.5">Netto Iniziale (g)</label>
+                <input
+                  type="number"
+                  id="spoolNetInitial"
+                  value="1000"
+                  oninput="app.recalculateNetWeight()"
+                  class="w-full px-2.5 py-1.5 bg-[#0b0f19] border border-slate-700 rounded-xl font-mono text-white text-xs"
+                />
+              </div>
+              <div>
+                <label class="block text-[11px] text-slate-400 mb-0.5">Tara Spool (g)</label>
+                <input
+                  type="number"
+                  id="spoolTare"
+                  value="250"
+                  oninput="app.recalculateNetWeight()"
+                  class="w-full px-2.5 py-1.5 bg-[#0b0f19] border border-slate-700 rounded-xl font-mono text-white text-xs"
+                />
+              </div>
+              <div>
+                <label class="block text-[11px] text-slate-400 mb-0.5">Peso Lordo (g)</label>
+                <input
+                  type="number"
+                  id="spoolGross"
+                  value="1250"
+                  oninput="app.recalculateNetWeight()"
+                  class="w-full px-2.5 py-1.5 bg-[#0b0f19] border border-slate-700 rounded-xl font-mono text-white text-xs"
+                />
+              </div>
+            </div>
+
+            <!-- Calculated Net Residue Banner -->
+            <div id="spoolNetCalculatedBadge" class="p-2.5 bg-emerald-950/60 border border-emerald-800 rounded-xl font-mono flex items-center justify-between">
+              <span class="text-sm font-bold text-emerald-300">1000 g</span>
+              <span class="text-xs text-emerald-400">100% residuo</span>
+            </div>
+          </div>
+
+          <!-- Temperature Essenziali -->
+          <div class="grid grid-cols-3 gap-2">
+            <div>
+              <label class="block text-[11px] text-slate-400 mb-0.5">Nozzle Min (°C)</label>
+              <input type="number" id="spoolNozzleMin" placeholder="200" class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs font-mono">
+            </div>
+            <div>
+              <label class="block text-[11px] text-slate-400 mb-0.5">Nozzle Max (°C)</label>
+              <input type="number" id="spoolNozzleMax" placeholder="220" class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs font-mono">
+            </div>
+            <div>
+              <label class="block text-[11px] text-slate-400 mb-0.5">Bed Temp (°C)</label>
+              <input type="number" id="spoolBedTemp" placeholder="60" class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs font-mono">
+            </div>
+          </div>
+
+          <!-- Barcode SKU (Gestito via Vision AI) -->
+          <input type="hidden" id="spoolBarcode" value="">
+
+        </div>
+
+        <!-- ============================== -->
+        <!-- TAB 2: SLICER & CALIBRAZIONE   -->
+        <!-- ============================== -->
+        <div id="spoolTab2Content" class="hidden space-y-3.5">
+          <!-- Slicer Dynamics -->
+          <div class="p-3 bg-slate-900 border border-slate-800 rounded-xl space-y-2.5">
+            <h4 class="font-bold text-slate-200 text-xs flex items-center gap-1.5">
+              <i data-lucide="zap" class="w-3.5 h-3.5 text-indigo-400"></i> Parametri Slicer
+            </h4>
+            <div class="grid grid-cols-3 gap-2">
+              <div>
+                <label class="block text-[10px] text-slate-400 mb-0.5">K-Factor</label>
+                <input type="number" step="0.001" id="spoolKFactor" placeholder="0.022" class="w-full px-2.5 py-1.5 bg-[#0b0f19] border border-slate-700 rounded-xl font-mono text-white text-xs">
+              </div>
+              <div>
+                <label class="block text-[10px] text-slate-400 mb-0.5">Flow Ratio</label>
+                <input type="number" step="0.001" id="spoolFlowRatio" placeholder="0.980" class="w-full px-2.5 py-1.5 bg-[#0b0f19] border border-slate-700 rounded-xl font-mono text-white text-xs">
+              </div>
+              <div>
+                <label class="block text-[10px] text-slate-400 mb-0.5">Max Vol. Speed</label>
+                <input type="number" step="0.1" id="spoolMVS" placeholder="21.0" class="w-full px-2.5 py-1.5 bg-[#0b0f19] border border-slate-700 rounded-xl font-mono text-white text-xs">
+              </div>
+            </div>
+          </div>
+
+          <!-- Posizione, Prezzo & Soglia Scorta -->
+          <div class="grid grid-cols-3 gap-2">
+            <div>
+              <label class="block text-[11px] text-slate-400 mb-0.5">Posizione</label>
+              <input type="text" id="spoolLocationShelf" placeholder="Scaffale A-1" class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs">
+            </div>
+            <div>
+              <label class="block text-[11px] text-slate-400 mb-0.5">Prezzo (€)</label>
+              <input type="number" step="0.01" id="spoolPrice" placeholder="19.99" class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs font-mono">
+            </div>
+            <div>
+              <label class="block text-[11px] text-slate-400 mb-0.5">Soglia Scorta (g)</label>
+              <input type="number" id="spoolLowStockThreshold" value="150" class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs font-mono">
+            </div>
+          </div>
+
+          <!-- Note -->
+          <div>
+            <label class="block font-medium text-slate-300 mb-1">Note Libere</label>
+            <textarea id="spoolNotes" rows="2" placeholder="Note su calibrazione o test di stampa..." class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white"></textarea>
+          </div>
+        </div>
+
+        </div> <!-- End Scrollable Fields Container -->
+
+        <!-- Modal Footer Actions (FIXED OUTSIDE SCROLL AREA - ZERO OVERLAPS) -->
+        <div class="shrink-0 px-4 py-3 bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] flex items-center gap-2.5 z-10 w-full max-w-full">
+          <button
+            type="button"
+            id="spoolDeleteBtn"
+            onclick="app.handleDeleteCurrentSpool()"
+            class="hidden px-3.5 py-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800/80 font-bold text-sm flex items-center justify-center gap-1.5 shrink-0 transition"
+          >
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+            <span>Elimina</span>
+          </button>
+          <button
+            type="button"
+            onclick="app.closeSpoolModal()"
+            class="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-sm shrink-0 transition"
+          >
+            Annulla
+          </button>
+          <button
+            type="submit"
+            id="spoolSubmitBtn"
+            class="flex-1 py-2.5 px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-sm shadow-md shadow-indigo-600/25 flex items-center justify-center gap-1.5 transition"
+          >
+            <i data-lucide="check" class="w-4 h-4"></i>
+            <span>Salva</span>
+          </button>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: READ-ONLY TECH SHEET (SCHEDA DETTAGLIO BOBINA)                    -->
+  <!-- ========================================================================= -->
+  <div id="spoolDetailModal" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md hidden" onclick="if(event.target===this)app.closeSpoolDetailModal()">
+    <div class="solid-modal w-full sm:max-w-md max-h-[90vh] rounded-t-3xl sm:rounded-2xl border-t sm:border border-slate-700 shadow-2xl flex flex-col mobile-sheet overflow-hidden" onclick="event.stopPropagation()">
+      <!-- Header -->
+      <div class="p-4 border-b border-slate-800 flex items-center justify-between shrink-0 bg-slate-900/50">
+        <div class="flex items-center gap-3">
+          <div id="detailSpoolSwatch" class="w-8 h-8 rounded-xl border border-slate-600 shadow-sm shrink-0 flex items-center justify-center text-xs"></div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 id="detailSpoolTitle" class="text-sm sm:text-base font-bold text-white leading-tight">Filamento</h3>
+              <span id="detailSpoolStatusBadge" class="text-[10px] px-2 py-0.5 rounded-full font-bold"></span>
+            </div>
+            <p id="detailSpoolSubtitle" class="text-xs text-slate-400 font-mono mt-0.5">Brand &bull; SP-0000</p>
+          </div>
+        </div>
+        <button type="button" onclick="app.closeSpoolDetailModal()" class="p-1.5 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Scrollable Content -->
+      <div class="flex-1 overflow-y-auto p-4 space-y-4 text-xs">
+        <!-- Weight & Capacity Card -->
+        <div class="p-3.5 bg-slate-900/80 rounded-2xl border border-slate-800 space-y-2.5">
+          <div class="flex justify-between items-baseline">
+            <span class="text-slate-400 font-semibold uppercase tracking-wider text-[10px]">Stato Peso Residuo</span>
+            <span id="detailSpoolPercent" class="font-bold text-emerald-400 text-sm">--%</span>
+          </div>
+          <div class="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden">
+            <div id="detailSpoolProgressBar" class="bg-emerald-500 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+          </div>
+          <div class="grid grid-cols-3 gap-2 pt-1 text-center">
+            <div class="p-2 bg-slate-950/50 rounded-xl border border-slate-800/80">
+              <span class="block text-[10px] text-slate-400">Residuo Netto</span>
+              <span id="detailSpoolNetG" class="font-black text-slate-100 text-xs sm:text-sm">--g</span>
+            </div>
+            <div class="p-2 bg-slate-950/50 rounded-xl border border-slate-800/80">
+              <span class="block text-[10px] text-slate-400">Peso Lordo</span>
+              <span id="detailSpoolGrossG" class="font-bold text-slate-300 text-xs sm:text-sm">--g</span>
+            </div>
+            <div class="p-2 bg-slate-950/50 rounded-xl border border-slate-800/80">
+              <span class="block text-[10px] text-slate-400">Tara Spool</span>
+              <span id="detailSpoolTareG" class="font-bold text-slate-400 text-xs sm:text-sm">--g</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Temperature & Printer Settings -->
+        <div class="p-3.5 bg-slate-900/80 rounded-2xl border border-slate-800 space-y-2">
+          <span class="text-slate-400 font-semibold uppercase tracking-wider text-[10px]">Temperature Consigliate</span>
+          <div class="grid grid-cols-2 gap-2 text-center">
+            <div class="p-2 bg-slate-950/50 rounded-xl border border-slate-800/80 flex items-center justify-around">
+              <div class="flex items-center gap-1.5 text-amber-400 font-bold">
+                <i data-lucide="flame" class="w-4 h-4"></i>
+                <span class="text-[11px]">Ugello</span>
+              </div>
+              <span id="detailSpoolNozzleTemp" class="font-bold text-slate-200">--</span>
+            </div>
+            <div class="p-2 bg-slate-950/50 rounded-xl border border-slate-800/80 flex items-center justify-around">
+              <div class="flex items-center gap-1.5 text-rose-400 font-bold">
+                <i data-lucide="thermometer" class="w-4 h-4"></i>
+                <span class="text-[11px]">Piatto</span>
+              </div>
+              <span id="detailSpoolBedTemp" class="font-bold text-slate-200">--</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Slicer Calibration Parameters -->
+        <div class="p-3.5 bg-slate-900/80 rounded-2xl border border-slate-800 space-y-2">
+          <span class="text-slate-400 font-semibold uppercase tracking-wider text-[10px]">Parametri di Calibrazione Slicer</span>
+          <div class="grid grid-cols-3 gap-2 text-center">
+            <div class="p-2 bg-slate-950/50 rounded-xl border border-slate-800/80">
+              <span class="block text-[10px] text-slate-400">K-Factor / PA</span>
+              <span id="detailSpoolKFactor" class="font-mono font-bold text-indigo-400 text-xs">--</span>
+            </div>
+            <div class="p-2 bg-slate-950/50 rounded-xl border border-slate-800/80">
+              <span class="block text-[10px] text-slate-400">Flow Ratio</span>
+              <span id="detailSpoolFlowRatio" class="font-mono font-bold text-cyan-400 text-xs">--</span>
+            </div>
+            <div class="p-2 bg-slate-950/50 rounded-xl border border-slate-800/80">
+              <span class="block text-[10px] text-slate-400">Max Vol Speed</span>
+              <span id="detailSpoolMvs" class="font-mono font-bold text-emerald-400 text-xs">--</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Logistics, Storage & Barcode -->
+        <div class="p-3.5 bg-slate-900/80 rounded-2xl border border-slate-800 space-y-2">
+          <span class="text-slate-400 font-semibold uppercase tracking-wider text-[10px]">Posizione & Magazzino</span>
+          <div class="grid grid-cols-2 gap-2">
+            <div class="p-2 bg-slate-950/50 rounded-xl border border-slate-800/80">
+              <span class="text-[10px] text-slate-400 block">Posizione / Slot</span>
+              <span id="detailSpoolLocation" class="font-medium text-slate-200">--</span>
+            </div>
+            <div class="p-2 bg-slate-950/50 rounded-xl border border-slate-800/80">
+              <span class="text-[10px] text-slate-400 block">Prezzo Acquisto</span>
+              <span id="detailSpoolPrice" class="font-medium text-slate-200">--</span>
+            </div>
+          </div>
+          <div id="detailSpoolBarcodeBox" class="p-2 bg-slate-950/50 rounded-xl border border-slate-800/80 flex items-center justify-between">
+            <span class="text-[10px] text-slate-400">Barcode EAN/UPC</span>
+            <span id="detailSpoolBarcode" class="font-mono font-bold text-slate-300">--</span>
+          </div>
+          <div id="detailSpoolNotesBox" class="p-2.5 bg-slate-950/50 rounded-xl border border-slate-800/80 space-y-1">
+            <span class="text-[10px] text-slate-400 font-semibold block">Note</span>
+            <p id="detailSpoolNotes" class="text-slate-300 text-[11px] leading-relaxed whitespace-pre-wrap"></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Footer (Pesa, Etichetta, Modifica) -->
+      <div class="p-3 border-t border-slate-800 bg-slate-900/60 shrink-0 flex items-center gap-2 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
+        <button
+          type="button"
+          id="detailBtnWeigh"
+          class="flex-1 py-2.5 px-3 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition shadow"
+        >
+          <i data-lucide="scale" class="w-4 h-4"></i>
+          <span>Pesa</span>
+        </button>
+        <button
+          type="button"
+          id="detailBtnLabel"
+          class="flex-1 py-2.5 px-3 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 border border-slate-700 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition shadow"
+        >
+          <i data-lucide="printer" class="w-4 h-4 text-cyan-400"></i>
+          <span>Etichetta</span>
+        </button>
+        <button
+          type="button"
+          id="detailBtnEdit"
+          class="flex-1 py-2.5 px-3 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition shadow shadow-indigo-600/30"
+        >
+          <i data-lucide="edit" class="w-4 h-4"></i>
+          <span>Modifica</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL 3: QUICK WEIGH (PESA ORA) -->
+  <!-- ========================================================================= -->
+  <div id="quickWeighModal" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md hidden" onclick="if(event.target===this)app.closeQuickWeighModal()">
+    <div class="solid-modal w-full sm:max-w-sm rounded-t-3xl sm:rounded-2xl p-5 border-t sm:border border-slate-700 shadow-2xl space-y-4 mobile-sheet pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-emerald-600/20 text-emerald-400 flex items-center justify-center">
+            <i data-lucide="scale" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-white" id="quickWeighTitle">Pesa Bobina</h3>
+            <p class="text-xs text-slate-400 font-mono" id="quickWeighUid">SP-0001</p>
+          </div>
+        </div>
+        <button onclick="app.closeQuickWeighModal()" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-300 mb-1">Peso Lordo Bilancia (g)</label>
+        <div class="relative">
+          <input
+            type="number"
+            step="any"
+            id="quickWeighInput"
+            oninput="app.updateQuickWeighDelta()"
+            class="w-full px-4 py-3 bg-[#0b0f19] border border-slate-700 rounded-xl font-mono text-2xl font-bold text-white focus:outline-none focus:border-emerald-500"
+          />
+          <span class="absolute right-4 top-4 text-slate-500 font-mono text-sm">grammi</span>
+        </div>
+      </div>
+
+      <!-- Quick +/- Buttons -->
+      <div class="grid grid-cols-4 gap-1.5 text-xs font-mono">
+        <button type="button" onclick="app.adjustQuickWeigh(-50)" class="py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-xl text-slate-300 font-bold">-50g</button>
+        <button type="button" onclick="app.adjustQuickWeigh(-10)" class="py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-xl text-slate-300 font-bold">-10g</button>
+        <button type="button" onclick="app.adjustQuickWeigh(+10)" class="py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-xl text-slate-300 font-bold">+10g</button>
+        <button type="button" onclick="app.adjustQuickWeigh(+50)" class="py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-xl text-slate-300 font-bold">+50g</button>
+      </div>
+
+      <!-- Live Delta & Net Display -->
+      <div class="p-3 bg-[#0b0f19] rounded-xl border border-slate-800 text-xs space-y-1.5 font-mono">
+        <div class="flex justify-between text-slate-400">
+          <span>Tara Spool:</span>
+          <span id="quickWeighTare">250 g</span>
+        </div>
+        <div class="flex justify-between text-slate-400">
+          <span>Nuovo Peso Netto:</span>
+          <span id="quickWeighNewNet" class="font-bold text-white">1000 g</span>
+        </div>
+        <div class="flex justify-between text-xs pt-1 border-t border-slate-800 font-semibold" id="quickWeighDeltaRow">
+          <span>Delta Consumo:</span>
+          <span id="quickWeighDelta" class="text-emerald-400">0 g</span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 pt-1">
+        <button type="button" onclick="app.closeQuickWeighModal()" class="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium">Annulla</button>
+        <button type="button" onclick="app.saveQuickWeigh()" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-1.5">
+          <i data-lucide="check" class="w-4 h-4"></i>
+          <span>Salva Pesata</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL 4: LABEL PRINTING PREVIEW (BROTHER & A4) -->
+  <!-- ========================================================================= -->
+  <div id="labelModal" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md hidden" onclick="if(event.target===this)app.closeLabelModal()">
+    <div class="solid-modal w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl p-5 border-t sm:border border-slate-700 shadow-2xl space-y-4 mobile-sheet pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-indigo-600/20 text-indigo-400 flex items-center justify-center">
+            <i data-lucide="printer" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-white">Stampa Etichetta Spool</h3>
+            <p class="text-xs text-slate-400 font-mono" id="labelSpoolUid">SP-0001</p>
+          </div>
+        </div>
+        <button onclick="app.closeLabelModal()" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Controls: Tape Width & Code Type -->
+      <div class="grid grid-cols-2 gap-2 text-xs">
+        <div>
+          <label class="block text-slate-400 mb-1">Nastro Brother</label>
+          <div class="flex bg-slate-900 p-1 rounded-xl border border-slate-800">
+            <button onclick="app.setLabelTape(12)" id="tape12Btn" class="flex-1 py-1 rounded-lg text-center font-mono">12mm</button>
+            <button onclick="app.setLabelTape(18)" id="tape18Btn" class="flex-1 py-1 rounded-lg text-center font-mono">18mm</button>
+            <button onclick="app.setLabelTape(24)" id="tape24Btn" class="flex-1 py-1 rounded-lg text-center font-mono bg-indigo-600 text-white font-bold">24mm</button>
+          </div>
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">Tipo Codice</label>
+          <div class="flex bg-slate-900 p-1 rounded-xl border border-slate-800">
+            <button onclick="app.setLabelCodeType('barcode')" id="codeBarcodeBtn" class="flex-1 py-1 rounded-lg text-center bg-indigo-600 text-white font-bold">Barcode</button>
+            <button onclick="app.setLabelCodeType('qr')" id="codeQrBtn" class="flex-1 py-1 rounded-lg text-center text-slate-400">QR Code</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Label Preview -->
+      <div class="p-3 bg-white rounded-xl shadow-inner flex items-center justify-center min-h-[90px] overflow-hidden">
+        <img id="labelPreviewImg" src="" alt="Anteprima Etichetta" class="max-h-24 object-contain shadow-sm border border-gray-300">
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="space-y-2 pt-1 text-xs">
+        <button onclick="app.shareOrDownloadBrotherLabel()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30 transition">
+          <i data-lucide="share-2" class="w-4 h-4"></i>
+          <span>Invia a Brother Bluetooth / Scarica PNG</span>
+        </button>
+
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="app.addCurrentSpoolToA4Queue()" class="py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 rounded-xl font-semibold flex items-center justify-center gap-1.5 transition">
+            <i data-lucide="plus-circle" class="w-4 h-4 text-emerald-400"></i>
+            <span>Aggiungi a Coda A4</span>
+          </button>
+          <a id="labelNfcLink" href="#" target="_blank" class="py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 rounded-xl font-semibold flex items-center justify-center gap-1.5 transition">
+            <i data-lucide="external-link" class="w-4 h-4 text-cyan-400"></i>
+            <span>Scheda NFC (/s/...)</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL 5: PANNELLO ADMIN (UTENTI, TOKENS HA, TARE, AUDIT LOGS) -->
+  <!-- ========================================================================= -->
+  <div id="adminModal" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md hidden overflow-y-auto" onclick="if(event.target===this)app.closeAdminModal()">
+    <div class="solid-modal w-full sm:max-w-3xl rounded-t-3xl sm:rounded-2xl border-t sm:border border-slate-700 shadow-2xl overflow-hidden h-[90dvh] sm:h-auto sm:max-h-[92vh] flex flex-col mobile-sheet" onclick="event.stopPropagation()">
+      <div class="px-5 py-4 border-b border-slate-800 flex items-center justify-between shrink-0 bg-slate-950">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-indigo-600/20 text-indigo-400 flex items-center justify-center">
+            <i data-lucide="shield" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-white">Pannello Amministrazione</h3>
+            <p class="text-xs text-slate-400 font-mono">Gestione Utenti, Token e Tare</p>
+          </div>
+        </div>
+        <button onclick="app.closeAdminModal()" class="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="px-4 pt-2 border-b border-slate-800 flex gap-4 shrink-0 bg-slate-950 text-xs">
+        <button onclick="app.setAdminTab('users')" id="adminTabUsersBtn" class="pb-2 border-b-2 border-indigo-500 text-indigo-400 font-bold">Utenti</button>
+        <button onclick="app.setAdminTab('tokens')" id="adminTabTokensBtn" class="pb-2 border-b-2 border-transparent text-slate-400 font-semibold">Token HA</button>
+        <button onclick="app.setAdminTab('tares')" id="adminTabTaresBtn" class="pb-2 border-b-2 border-transparent text-slate-400 font-semibold">Dizionario Tare</button>
+      </div>
+
+      <div class="p-4 overflow-y-auto flex-1 text-xs space-y-4">
+        <!-- Tab 1: Utenti -->
+        <div id="adminTabUsersContent" class="space-y-4">
+          <form onsubmit="app.handleCreateUser(event)" class="p-3 bg-slate-900 border border-slate-800 rounded-xl space-y-2">
+            <h4 class="font-bold text-slate-200">Nuovo Utente</h4>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <input type="text" id="newUsername" required placeholder="Username" class="px-3 py-2 bg-[#0b0f19] border border-slate-700 rounded-xl text-white">
+              <input type="password" id="newUserPassword" required placeholder="Password" class="px-3 py-2 bg-[#0b0f19] border border-slate-700 rounded-xl text-white">
+              <button type="submit" class="py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold">Crea Utente</button>
+            </div>
+          </form>
+          <div class="overflow-x-auto border border-slate-800 rounded-xl">
+            <table class="w-full text-left font-mono">
+              <thead class="bg-slate-950 text-slate-400 text-[11px]">
+                <tr>
+                  <th class="p-2.5">Utente</th>
+                  <th class="p-2.5">Ruolo</th>
+                  <th class="p-2.5 text-right">Azioni</th>
+                </tr>
+              </thead>
+              <tbody id="adminUsersTableBody" class="divide-y divide-slate-800"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tab 2: Token HA -->
+        <div id="adminTabTokensContent" class="hidden space-y-4">
+          <form onsubmit="app.handleCreateToken(event)" class="p-3 bg-slate-900 border border-slate-800 rounded-xl flex gap-2">
+            <input type="text" id="newTokenName" required placeholder="Nome Token (es. Home Assistant)" class="flex-1 px-3 py-2 bg-[#0b0f19] border border-slate-700 rounded-xl text-white">
+            <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold">Genera</button>
+          </form>
+          <div id="newSecretAlert" class="hidden p-3 bg-emerald-950/60 border border-emerald-800 rounded-xl space-y-1.5">
+            <span class="font-bold text-emerald-400">Token Generato:</span>
+            <input type="text" id="newSecretValue" readonly class="w-full px-3 py-1.5 bg-black border border-emerald-700 rounded-lg font-mono text-xs text-emerald-300">
+          </div>
+          <div class="overflow-x-auto border border-slate-800 rounded-xl">
+            <table class="w-full text-left font-mono">
+              <tbody id="adminTokensTableBody" class="divide-y divide-slate-800"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tab 3: Tare -->
+        <div id="adminTabTaresContent" class="hidden space-y-4">
+          <form onsubmit="app.handleCreateTare(event)" class="p-3 bg-slate-900 border border-slate-800 rounded-xl flex gap-2">
+            <input type="text" id="newTareBrand" required placeholder="Brand" class="flex-1 px-3 py-2 bg-[#0b0f19] border border-slate-700 rounded-xl text-white">
+            <input type="number" id="newTareWeight" required placeholder="Tara (g)" class="w-24 px-3 py-2 bg-[#0b0f19] border border-slate-700 rounded-xl text-white font-mono">
+            <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold">Aggiungi</button>
+          </form>
+          <div class="overflow-x-auto border border-slate-800 rounded-xl">
+            <table class="w-full text-left font-mono">
+              <tbody id="adminTaresTableBody" class="divide-y divide-slate-800"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL 6: CAMBIO PASSWORD -->
+  <!-- ========================================================================= -->
+  <div id="changePasswordModal" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md hidden" onclick="if(event.target===this)app.closeChangePasswordModal()">
+    <div class="solid-modal w-full sm:max-w-sm rounded-t-3xl sm:rounded-2xl p-5 border-t sm:border border-slate-700 shadow-2xl space-y-4 mobile-sheet pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+          <i data-lucide="key" class="w-4 h-4 text-emerald-400"></i> Cambia Password
+        </h3>
+        <button onclick="app.closeChangePasswordModal()" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form onsubmit="app.handleChangePassword(event)" class="space-y-3 text-xs">
+        <div>
+          <label class="block text-slate-400 mb-1">Password Attuale</label>
+          <input type="password" id="changePassCurrent" required class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white">
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">Nuova Password</label>
+          <input type="password" id="changePassNew" required minlength="8" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white">
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">Conferma Nuova Password</label>
+          <input type="password" id="changePassConfirm" required minlength="8" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white">
+        </div>
+        <div class="pt-2 flex justify-end gap-2">
+          <button type="button" onclick="app.closeChangePasswordModal()" class="px-3 py-2 bg-slate-800 rounded-xl text-slate-300">Annulla</button>
+          <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold">Aggiorna</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL 7: IMPOSTAZIONI & GEMINI AI -->
+  <!-- ========================================================================= -->
+  <div id="settingsModal" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md hidden" onclick="if(event.target===this)app.closeSettingsModal()">
+    <div class="solid-modal w-full sm:max-w-lg rounded-t-3xl sm:rounded-2xl border-t sm:border border-slate-700 shadow-2xl p-5 space-y-4 mobile-sheet pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-emerald-600/20 text-emerald-400 flex items-center justify-center">
+            <i data-lucide="sparkles" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-white">Impostazioni & Gemini AI</h3>
+            <p class="text-[11px] text-slate-400 font-mono">Vision AI e preferenze</p>
+          </div>
+        </div>
+        <button onclick="app.closeSettingsModal()" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form onsubmit="app.handleSaveSettings(event)" class="space-y-3.5 text-xs">
+        <div class="p-3 bg-[#0b0f19] border border-slate-800 rounded-xl space-y-1.5">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-white">Google Gemini Vision API</span>
+            <span id="settingsGeminiBadge" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-950 text-amber-400 border border-amber-800">
+              Non configurata
+            </span>
+          </div>
+          <p class="text-[11px] text-slate-400">
+            Abilita l'estrazione automatica di brand, materiale, colore e barcode dalle foto delle etichette.
+          </p>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Chiave API Google Gemini</label>
+          <div class="relative">
+            <input
+              type="password"
+              id="settingsGeminiApiKey"
+              placeholder="Incolla chiave API (AIzaSy...)"
+              class="w-full px-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl font-mono text-white text-xs"
+            />
+          </div>
+          <!-- Quick Guide to get free Gemini API key -->
+          <div class="mt-2 p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 text-[11px] text-slate-400 space-y-1.5">
+            <div class="flex items-center gap-1.5 font-bold text-slate-300">
+              <i data-lucide="info" class="w-3.5 h-3.5 text-indigo-400"></i>
+              <span>Come ottenere la chiave gratuita:</span>
+            </div>
+            <ol class="list-decimal list-inside space-y-1 text-slate-400">
+              <li>Accedi a <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" class="text-indigo-400 underline font-semibold hover:text-indigo-300">Google AI Studio</a> con il tuo account Google.</li>
+              <li>Clicca su <strong class="text-slate-300">"Create API key"</strong>.</li>
+              <li>Copia la stringa che inizia per <code class="bg-slate-950 px-1 py-0.5 rounded text-indigo-300 font-mono">AIzaSy...</code> e incollala qui sopra.</li>
+            </ol>
+            <p class="text-[10px] text-slate-500">Il piano gratuito offre fino a 15 richieste al minuto, ampiamente sufficiente per la scansione delle bobine.</p>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Modello Gemini</label>
+          <select id="settingsGeminiModel" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs">
+            <option value="gemini-3.5-flash-lite" selected>gemini-3.5-flash-lite (Consigliato - Ultra Veloce e Preciso)</option>
+            <option value="gemini-flash-lite-latest">gemini-flash-lite-latest (Automatico Lite)</option>
+            <option value="gemini-3.8-flash">gemini-3.8-flash (Gemini 3.8 Flash)</option>
+            <option value="gemini-2.5-flash">gemini-2.5-flash (Legacy)</option>
+          </select>
+        </div>
+
+        <div class="pt-2 flex justify-end gap-2 border-t border-slate-800">
+          <button type="button" onclick="app.closeSettingsModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-semibold">Annulla</button>
+          <button type="submit" id="settingsSaveBtn" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold shadow-md">Salva Impostazioni</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- Application Logic -->
+  <script src="/static/js/app.js?v=1.1"></script>
+</body>
+</html>
