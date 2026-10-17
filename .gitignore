@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment and sensitive credentials
+.env
+!.env.example
+
+# Local SQLite databases and logs
+data/*.db
+data/*.db-wal
+data/*.db-shm
+data/*.db-journal
+data/*.log
+*.sqlite
+*.sqlite3
+
+# Operating System files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE & Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Temporary artifacts
+temp/
+tmp/
+*.tmp
+
+# Preserve scripts and templates
+!scripts/*
+!.env.example
