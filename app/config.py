@@ -15,7 +15,7 @@ else:
     load_dotenv()
 
 # App server settings
-APP_VERSION: str = "1.1"
+APP_VERSION: str = "1.4"
 APP_PORT: int = int(os.getenv("APP_PORT", "8085"))
 
 # Security and Auth settings
@@ -30,10 +30,7 @@ INITIAL_ADMIN_PASSWORD: str = os.getenv("INITIAL_ADMIN_PASSWORD", "CambiaSubitoQ
 
 # Google Gemini Vision API
 GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "").strip()
-GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash").strip() or "gemini-2.5-flash"
-
-# Home Assistant Webhook URL
-HA_WEBHOOK_URL: str = os.getenv("HA_WEBHOOK_URL", "").strip()
+GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite").strip() or "gemini-3.5-flash-lite"
 
 # Storage and Database paths
 DATA_DIR: Path = Path(os.getenv("DATA_DIR", str(BASE_DIR / "data"))).resolve()

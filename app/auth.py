@@ -132,11 +132,6 @@ def verify_password(password_hash: str, password: str) -> bool:
         return False
 
 
-def hash_api_token(raw_token: str) -> str:
-    """Hash raw API token using SHA-256."""
-    return hashlib.sha256(raw_token.strip().encode("utf-8")).hexdigest()
-
-
 def create_access_token(data: dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
     """Create a signed JWT access token."""
     to_encode = data.copy()
@@ -163,8 +158,7 @@ def get_current_user(
     request: Request,
     db: Any = Depends(get_db),
 ) -> dict[str, Any]:
-    """FastAPI dependency to authenticate requests via JWT Cookie or X-API-Key header."""
-    # 1. Check HttpOnly Cookie first
+    """FastAPI dependency to authenticate requests via JWT Cookie."""
     cookie_token = request.cookies.get(JWT_COOKIE_NAME)
     if cookie_token:
         payload = decode_access_token(cookie_token)
@@ -193,44 +187,6 @@ def get_current_user(
             "auth_type": "jwt",
         }
 
-    # 2. Check X-API-Key Header fallback
-    api_key_header = request.headers.get("X-API-Key")
-    if api_key_header:
-        token_hash = hash_api_token(api_key_header)
-        cursor = db.execute(
-            "SELECT id, name, role FROM api_tokens WHERE token_hash = ?;",
-            (token_hash,),
-        )
-        token_row = cursor.fetchone()
-        if token_row:
-            # Update last_used_at with parameterized query
-            db.execute(
-                "UPDATE api_tokens SET last_used_at = datetime('now') WHERE id = ?;",
-                (token_row["id"],),
-            )
-            db.commit()
-            return {
-                "id": token_row["id"],
-                "username": token_row["name"],
-                "role": token_row["role"],
-                "auth_type": "api_key",
-            }
-        else:
-            client_ip = get_client_ip(request)
-            log_security_event(
-                db,
-                client_ip,
-                "api_key",
-                "API_AUTH_FAIL",
-                "invalid_api_key",
-                is_auth_fail=True,
-            )
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="API Key non valida",
-            )
-
-    # 3. No credentials provided
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Autenticazione richiesta",
@@ -251,5 +207,5 @@ def require_role(allowed_roles: list[str]) -> Callable[..., dict[str, Any]]:
 
 
 require_viewer = require_role(["viewer", "editor", "admin"])
-require_editor = require_role(["editor", "admin"])
+require_editor = require_role(["viewer", "editor", "admin"])
 require_admin = require_role(["admin"])

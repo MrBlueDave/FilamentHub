@@ -69,7 +69,10 @@ def get_brother_label(
     Supports 12mm, 18mm, and 24mm tape widths, with linear Code128 or QR code.
     """
     clean_code = uid_code.strip().upper()
-    cur = db.execute("SELECT * FROM spools WHERE UPPER(uid_code) = UPPER(?);", (clean_code,))
+    cur = db.execute(
+        "SELECT * FROM spools WHERE user_id = ? AND UPPER(uid_code) = UPPER(?);",
+        (_user["id"], clean_code),
+    )
     row = cur.fetchone()
     if not row:
         raise HTTPException(
@@ -99,19 +102,23 @@ def get_a4_label_data(
 ) -> Dict[str, Any]:
     """
     Returns spool data and generated base64 barcode/QR images for the A4 sticker grid page (/print-a4).
-    If uid_codes is empty, returns all spools ordered by UID.
+    If uid_codes is empty, returns all spools for the current user ordered by UID.
     """
     spools: List[Dict[str, Any]] = []
+    user_id = _user["id"]
 
     if req.uid_codes and len(req.uid_codes) > 0:
         clean_uids = [u.strip().upper() for u in req.uid_codes if u.strip()]
         placeholders = ", ".join(["?"] * len(clean_uids))
         cur = db.execute(
-            f"SELECT * FROM spools WHERE UPPER(uid_code) IN ({placeholders}) ORDER BY uid_code ASC;",
-            clean_uids,
+            f"SELECT * FROM spools WHERE user_id = ? AND UPPER(uid_code) IN ({placeholders}) ORDER BY uid_code ASC;",
+            [user_id, *clean_uids],
         )
     else:
-        cur = db.execute("SELECT * FROM spools ORDER BY uid_code ASC;")
+        cur = db.execute(
+            "SELECT * FROM spools WHERE user_id = ? ORDER BY uid_code ASC;",
+            (user_id,),
+        )
 
     rows = cur.fetchall()
     code_format = (req.code_type or "barcode").lower()

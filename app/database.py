@@ -16,7 +16,6 @@ from app.config import (
     INITIAL_ADMIN_PASSWORD,
     GEMINI_API_KEY,
     GEMINI_MODEL,
-    HA_WEBHOOK_URL,
 )
 from app.catalog_seed import BRANDS_TARE_SEED, FILAMENT_CATALOG_SEED
 
@@ -41,7 +40,8 @@ def get_db() -> Generator[sqlite3.Connection, None, None]:
 
 def get_setting(key: str, default: str = "") -> str:
     """
-    Reads setting from system_settings table, falling back to app.config env variable if empty.
+    Reads setting from system_settings table.
+    Note: gemini_api_key and gemini_model are stored per-user in the users table and never read from system_settings.
     """
     val: str = ""
     try:
@@ -59,14 +59,7 @@ def get_setting(key: str, default: str = "") -> str:
     if val:
         return val
 
-    # Fallback to app.config / env defaults
-    if key == "gemini_api_key":
-        return (GEMINI_API_KEY or default).strip()
-    elif key == "gemini_model":
-        return (GEMINI_MODEL or default).strip() or "gemini-2.5-flash"
-    elif key == "ha_webhook_url":
-        return (HA_WEBHOOK_URL or default).strip()
-    elif key == "show_ams_cockpit":
+    if key == "show_ams_cockpit":
         return default or "false"
 
     return default
@@ -95,9 +88,6 @@ def set_setting(key: str, value: str) -> None:
 
     # Sync into runtime environment variables
     env_key_map = {
-        "gemini_api_key": "GEMINI_API_KEY",
-        "gemini_model": "GEMINI_MODEL",
-        "ha_webhook_url": "HA_WEBHOOK_URL",
         "show_ams_cockpit": "SHOW_AMS_COCKPIT",
     }
     env_var = env_key_map.get(key, key.upper())
@@ -114,7 +104,6 @@ def set_setting(key: str, value: str) -> None:
                 new_content = content.rstrip() + f"\n{env_var}={value}\n"
             ENV_PATH.write_text(new_content, encoding="utf-8")
     except Exception:
-        # Even if .env cannot be written, system_settings in SQLite holds the persistent truth
         pass
 
 
@@ -142,30 +131,16 @@ def init_db() -> None:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT UNIQUE NOT NULL,
                 password_hash TEXT NOT NULL,
-                role TEXT NOT NULL CHECK(role IN ('viewer', 'editor', 'admin')) DEFAULT 'viewer',
-                is_active INTEGER NOT NULL DEFAULT 1,
-                created_at TEXT NOT NULL DEFAULT (datetime('now'))
-            );
-            """
-        )
-
-        # 3. api_tokens table
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS api_tokens (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                token_hash TEXT UNIQUE NOT NULL,
-                token_prefix TEXT NOT NULL,
                 role TEXT NOT NULL CHECK(role IN ('viewer', 'editor', 'admin')) DEFAULT 'editor',
-                created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
-                last_used_at TEXT,
+                is_active INTEGER NOT NULL DEFAULT 1,
+                gemini_api_key TEXT NOT NULL DEFAULT '',
+                gemini_model TEXT NOT NULL DEFAULT 'gemini-3.5-flash-lite',
                 created_at TEXT NOT NULL DEFAULT (datetime('now'))
             );
             """
         )
 
-        # 4. brands_tare table
+        # 3. brands_tare table
         cursor.execute(
             """
             CREATE TABLE IF NOT EXISTS brands_tare (
@@ -179,7 +154,7 @@ def init_db() -> None:
             """
         )
 
-        # 5. filament_catalog table
+        # 4. filament_catalog table
         cursor.execute(
             """
             CREATE TABLE IF NOT EXISTS filament_catalog (
@@ -206,11 +181,12 @@ def init_db() -> None:
             """
         )
 
-        # 6. spools table (with status column)
+        # 5. spools table (with user_id and status columns)
         cursor.execute(
             """
             CREATE TABLE IF NOT EXISTS spools (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL DEFAULT 1 REFERENCES users(id) ON DELETE CASCADE,
                 uid_code TEXT UNIQUE NOT NULL,
                 barcode TEXT DEFAULT '',
                 brand TEXT NOT NULL,
@@ -250,7 +226,7 @@ def init_db() -> None:
             """
         )
 
-        # 7. weight_history table
+        # 6. weight_history table
         cursor.execute(
             """
             CREATE TABLE IF NOT EXISTS weight_history (
@@ -265,7 +241,7 @@ def init_db() -> None:
             """
         )
 
-        # 8. audit_logs table
+        # 7. audit_logs table
         cursor.execute(
             """
             CREATE TABLE IF NOT EXISTS audit_logs (
@@ -279,14 +255,91 @@ def init_db() -> None:
             """
         )
 
-        # Safe schema migration for spools: add status column if existing table lacks it
+        # Seed initial admin user if users table is empty (before migrations that reference users)
+        cursor.execute("SELECT COUNT(*) AS count FROM users;")
+        user_count = cursor.fetchone()["count"]
+        if user_count == 0:
+            hasher = PasswordHasher()
+            admin_pwd_hash = hasher.hash(INITIAL_ADMIN_PASSWORD)
+            placeholder_keys = ("", "la_tua_api_key_gemini", "YOUR_API_KEY", "your_gemini_api_key")
+            init_key = GEMINI_API_KEY.strip() if GEMINI_API_KEY and GEMINI_API_KEY.strip() not in placeholder_keys else ""
+            init_model = (GEMINI_MODEL or "gemini-3.5-flash-lite").strip() or "gemini-3.5-flash-lite"
+            cursor.execute(
+                """
+                INSERT INTO users (username, password_hash, role, is_active)
+                VALUES (?, ?, 'admin', 1);
+                """,
+                (INITIAL_ADMIN_USER, admin_pwd_hash),
+            )
+            print(f"[FilamentHub DB] Created initial admin user '{INITIAL_ADMIN_USER}'.", flush=True)
+            # We will set init_key/init_model once columns are verified below
+            if init_key:
+                cursor.execute(
+                    "INSERT OR REPLACE INTO system_settings (key, value) VALUES ('gemini_api_key', ?);",
+                    (init_key,),
+                )
+            if init_model:
+                cursor.execute(
+                    "INSERT OR REPLACE INTO system_settings (key, value) VALUES ('gemini_model', ?);",
+                    (init_model,),
+                )
+
+        # Safe schema migration for users: gemini_api_key, gemini_model, and viewer -> editor role migration
+        cursor.execute("PRAGMA table_info(users);")
+        user_columns = [row["name"] for row in cursor.fetchall()]
+        added_gemini_key_col = False
+        if "gemini_api_key" not in user_columns:
+            cursor.execute("ALTER TABLE users ADD COLUMN gemini_api_key TEXT NOT NULL DEFAULT '';")
+            added_gemini_key_col = True
+            print("[FilamentHub DB] Migrated: added 'gemini_api_key' column to users table.", flush=True)
+
+        if "gemini_model" not in user_columns:
+            cursor.execute("ALTER TABLE users ADD COLUMN gemini_model TEXT NOT NULL DEFAULT 'gemini-3.5-flash-lite';")
+            print("[FilamentHub DB] Migrated: added 'gemini_model' column to users table.", flush=True)
+
+        # Migrate existing system_settings gemini_api_key to initial admin user if newly added or present in system_settings, then remove from system_settings
+        cursor.execute("SELECT value FROM system_settings WHERE key = 'gemini_api_key';")
+        sys_key_row = cursor.fetchone()
+        if added_gemini_key_col or sys_key_row is not None:
+            placeholder_keys = ("", "la_tua_api_key_gemini", "YOUR_API_KEY", "your_gemini_api_key")
+            legacy_key = (sys_key_row["value"].strip() if sys_key_row and sys_key_row["value"] else "")
+            if legacy_key and legacy_key not in placeholder_keys:
+                cursor.execute(
+                    """
+                    UPDATE users
+                    SET gemini_api_key = ?
+                    WHERE id = (SELECT id FROM users ORDER BY id ASC LIMIT 1)
+                      AND (gemini_api_key IS NULL OR gemini_api_key = '');
+                    """,
+                    (legacy_key,),
+                )
+        cursor.execute("DELETE FROM system_settings WHERE key IN ('gemini_api_key', 'gemini_model', 'ha_webhook_url');")
+
+        # Migrate any existing users with role = 'viewer' to role = 'editor'
+        cursor.execute("UPDATE users SET role = 'editor' WHERE role = 'viewer';")
+
+        # Safe schema migration for spools: add status and user_id columns if existing table lacks them
         cursor.execute("PRAGMA table_info(spools);")
         spool_columns = [row["name"] for row in cursor.fetchall()]
         if "status" not in spool_columns:
             cursor.execute("ALTER TABLE spools ADD COLUMN status TEXT NOT NULL DEFAULT 'new';")
             print("[FilamentHub DB] Migrated: added 'status' column to spools table.", flush=True)
 
+        if "user_id" not in spool_columns:
+            cursor.execute("ALTER TABLE spools ADD COLUMN user_id INTEGER NOT NULL DEFAULT 1;")
+            print("[FilamentHub DB] Migrated: added 'user_id' column to spools table.", flush=True)
+
+        # Ensure any spools with NULL or 0 user_id belong to the first admin user
+        cursor.execute(
+            """
+            UPDATE spools
+            SET user_id = COALESCE((SELECT id FROM users WHERE role = 'admin' ORDER BY id ASC LIMIT 1), 1)
+            WHERE user_id IS NULL OR user_id = 0;
+            """
+        )
+
         # Useful indexes
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_spools_user_id ON spools(user_id);")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_spools_barcode ON spools(barcode);")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_spools_in_use ON spools(in_use, slot_location);")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_spools_uid ON spools(uid_code);")
@@ -294,7 +347,6 @@ def init_db() -> None:
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_spools_brand_material ON spools(brand, material);")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_weight_history_spool_id ON weight_history(spool_id);")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON audit_logs(timestamp);")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_api_tokens_token_hash ON api_tokens(token_hash);")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_catalog_brand_mat ON filament_catalog(brand, material);")
 
         conn.commit()
@@ -327,11 +379,8 @@ def init_db() -> None:
             """
         )
 
-        # Seed system_settings with defaults
+        # Seed system_settings with defaults (only non-user settings)
         default_settings = [
-            ("gemini_api_key", GEMINI_API_KEY or ""),
-            ("gemini_model", GEMINI_MODEL or "gemini-2.5-flash"),
-            ("ha_webhook_url", HA_WEBHOOK_URL or ""),
             ("show_ams_cockpit", "false"),
         ]
         cursor.executemany(
@@ -341,21 +390,6 @@ def init_db() -> None:
             """,
             default_settings,
         )
-
-        # Seed initial admin user if users table is empty
-        cursor.execute("SELECT COUNT(*) AS count FROM users;")
-        user_count = cursor.fetchone()["count"]
-        if user_count == 0:
-            hasher = PasswordHasher()
-            admin_pwd_hash = hasher.hash(INITIAL_ADMIN_PASSWORD)
-            cursor.execute(
-                """
-                INSERT INTO users (username, password_hash, role, is_active)
-                VALUES (?, ?, 'admin', 1);
-                """,
-                (INITIAL_ADMIN_USER, admin_pwd_hash),
-            )
-            print(f"[FilamentHub DB] Created initial admin user '{INITIAL_ADMIN_USER}'.", flush=True)
 
         # Always INSERT OR IGNORE all entries from BRANDS_TARE_SEED
         cursor.executemany(

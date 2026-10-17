@@ -37,36 +37,13 @@ class UserOut(BaseModel):
 class UserCreateRequest(BaseModel):
     username: str = Field(..., min_length=3, max_length=50)
     password: str = Field(..., min_length=6, max_length=128)
-    role: Literal["viewer", "editor", "admin"] = "viewer"
+    role: str = "editor"
 
 
 class UserUpdateRequest(BaseModel):
-    role: Optional[Literal["viewer", "editor", "admin"]] = None
+    role: Optional[str] = None
     is_active: Optional[bool] = None
-    password: Optional[str] = Field(None, min_length=6, max_length=128)
-
-
-class ApiTokenCreateRequest(BaseModel):
-    name: str = Field(..., min_length=1, max_length=100)
-    role: Literal["viewer", "editor", "admin"] = "editor"
-
-
-class ApiTokenCreatedOut(BaseModel):
-    id: int
-    name: str
-    token_prefix: str
-    role: str
-    created_at: str
-    raw_token: str
-
-
-class ApiTokenOut(BaseModel):
-    id: int
-    name: str
-    token_prefix: str
-    role: str
-    last_used_at: Optional[str] = None
-    created_at: str
+    password: Optional[str] = Field(None, max_length=128)
 
 
 class BrandTareCreate(BaseModel):
@@ -100,7 +77,6 @@ class AuditLogOut(BaseModel):
 class SettingsUpdateRequest(BaseModel):
     gemini_api_key: Optional[str] = None
     gemini_model: Optional[str] = None
-    ha_webhook_url: Optional[str] = None
     show_ams_cockpit: Optional[bool] = None
 
 
@@ -108,7 +84,6 @@ class SettingsOut(BaseModel):
     gemini_configured: bool
     gemini_api_key_masked: str
     gemini_model: str
-    ha_webhook_url: str
     show_ams_cockpit: bool
 
 

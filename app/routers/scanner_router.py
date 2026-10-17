@@ -208,16 +208,20 @@ def lookup_code(
 ) -> Dict[str, Any]:
     """
     Look up a scanned barcode or UID code:
-    1. Exact match on an existing spool's uid_code (e.g. SP-0001).
-    2. Exact or partial match on existing spools by manufacturer barcode.
+    1. Exact match on an existing spool's uid_code (e.g. SP-0001) owned by current user.
+    2. Exact or partial match on existing spools by manufacturer barcode owned by current user.
     3. Exact match in the built-in filament catalog presets.
     4. Smart pattern matching for Sunlu and Bambu Lab internal factory codes & SKUs.
     5. Returns 'not_found' if unknown.
     """
     clean_code = code.strip()
+    user_id = _user["id"]
 
-    # 1. Exact match on spool uid_code (case-insensitive)
-    cur = db.execute("SELECT * FROM spools WHERE UPPER(uid_code) = UPPER(?);", (clean_code,))
+    # 1. Exact match on spool uid_code (case-insensitive) for current user
+    cur = db.execute(
+        "SELECT * FROM spools WHERE user_id = ? AND UPPER(uid_code) = UPPER(?);",
+        (user_id, clean_code),
+    )
     spool_row = cur.fetchone()
     if spool_row:
         spool_dict = row_to_spool_dict(spool_row)
@@ -227,8 +231,11 @@ def lookup_code(
             "spool": spool_dict,
         }
 
-    # 2. Match on existing spools by barcode
-    cur = db.execute("SELECT * FROM spools WHERE barcode = ? ORDER BY id DESC;", (clean_code,))
+    # 2. Match on existing spools by barcode for current user
+    cur = db.execute(
+        "SELECT * FROM spools WHERE user_id = ? AND barcode = ? ORDER BY id DESC;",
+        (user_id, clean_code),
+    )
     spool_rows = cur.fetchall()
     if spool_rows:
         spool_list = [row_to_spool_dict(r) for r in spool_rows]
@@ -317,10 +324,10 @@ def search_catalog(
 async def scan_label_vision(
     request: Request,
     db: sqlite3.Connection = Depends(get_db),
-    _user: Dict[str, Any] = Depends(require_editor),
+    editor_user: Dict[str, Any] = Depends(require_editor),
 ) -> Dict[str, Any]:
     """
-    Analyzes a filament spool label photo using Gemini 2.5 Flash Vision.
+    Analyzes a filament spool label photo using Gemini Vision with the current user's personal API key.
     Accepts either multipart form-data (file upload) or JSON with base64 encoded image.
     Enriches the extracted data with recommended tare weight from the database.
     """
@@ -362,8 +369,22 @@ async def scan_label_vision(
             detail="Nessuna immagine valida fornita nella richiesta (richiesto file multipart o image_base64 JSON)",
         )
 
+    # Fetch user's personal Gemini API Key and preferred model
+    user_cur = db.execute(
+        "SELECT gemini_api_key, gemini_model FROM users WHERE id = ?;",
+        (editor_user["id"],),
+    )
+    user_row = user_cur.fetchone()
+    user_api_key = (user_row["gemini_api_key"] if user_row and user_row["gemini_api_key"] else "").strip()
+    user_model = (user_row["gemini_model"] if user_row and user_row["gemini_model"] else "").strip() or "gemini-3.5-flash-lite"
+
     # Call Gemini Vision service
-    result = await analyze_spool_image(image_bytes=image_bytes, mime_type=mime_type)
+    result = await analyze_spool_image(
+        image_bytes=image_bytes,
+        mime_type=mime_type,
+        api_key=user_api_key,
+        preferred_model=user_model,
+    )
     if not result.get("success"):
         return result
 

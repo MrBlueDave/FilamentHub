@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==============================================================================
-# FilamentHub 3D v1.3 - Master Installation Script
+# FilamentHub 3D v1.4 - Master Installation Script
 # Unified launcher for Proxmox LXC and Docker environments
 # ==============================================================================
 set -e
@@ -17,7 +17,7 @@ NC='\033[0m'
 
 echo -e "${CYAN}${BOLD}"
 echo "======================================================================="
-echo "                🧵 FilamentHub 3D v1.3 - Installazione                 "
+echo "                🧵 FilamentHub 3D v1.4 - Installazione                 "
 echo "======================================================================="
 echo -e "${NC}"
 

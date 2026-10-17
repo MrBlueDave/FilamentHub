@@ -2,7 +2,7 @@
 Manages CRUD operations, multi-quantity batch creation, spool cloning,
 quick status transitions ('new', 'opened', 'in_use', 'empty'),
 quick weigh, slot assignments (Rule #4), and drying updates.
-All database queries use strictly parameterized SQLite placeholders (?).
+All database queries use strictly parameterized SQLite placeholders (?) and are isolated per-user.
 """
 
 import re
@@ -23,7 +23,6 @@ from app.models import (
     SpoolUpdate,
     row_to_spool_dict,
 )
-from app.services.webhooks import send_ha_webhook
 
 router = APIRouter(prefix="/api/spools", tags=["Spools"])
 
@@ -56,24 +55,35 @@ def _generate_next_uid_code(db: sqlite3.Connection, offset: int = 1) -> str:
 
 def _enforce_slot_exclusivity(
     db: sqlite3.Connection,
+    user_id: int,
     slot_location: str,
-    spool_id: int
+    exclude_spool_id: Optional[int] = None,
 ) -> None:
     """
-    Enforces Rule #4 (Esclusività Slot Stampante):
+    Enforces Rule #4 (Esclusività Slot Stampante) per user:
     When a spool is placed into a slot ('Slot 1', 'Slot 2', 'Slot 3', 'Slot 4', 'Esterno'),
-    any other spool previously occupying that slot is automatically unmounted (in_use = 0, slot_location = '').
+    any other spool belonging to the same user previously occupying that slot is automatically unmounted.
     """
     clean_slot = slot_location.strip()
     if clean_slot:
-        db.execute(
-            """
-            UPDATE spools
-            SET in_use = 0, slot_location = '', status = 'opened', updated_at = datetime('now')
-            WHERE slot_location = ? AND id != ?;
-            """,
-            (clean_slot, spool_id),
-        )
+        if exclude_spool_id is not None:
+            db.execute(
+                """
+                UPDATE spools
+                SET in_use = 0, slot_location = '', status = 'opened', updated_at = datetime('now')
+                WHERE user_id = ? AND slot_location = ? AND id != ?;
+                """,
+                (user_id, clean_slot, exclude_spool_id),
+            )
+        else:
+            db.execute(
+                """
+                UPDATE spools
+                SET in_use = 0, slot_location = '', status = 'opened', updated_at = datetime('now')
+                WHERE user_id = ? AND slot_location = ?;
+                """,
+                (user_id, clean_slot),
+            )
 
 
 @router.get("", response_model=List[Dict[str, Any]])
@@ -88,11 +98,11 @@ def list_spools(
     sort_by: Optional[str] = Query("updated_at", description="Field to sort by"),
     sort_dir: Optional[str] = Query("desc", description="Sort direction (asc or desc)"),
     db: sqlite3.Connection = Depends(get_db),
-    _user: Dict[str, Any] = Depends(require_viewer),
+    current_user: Dict[str, Any] = Depends(require_viewer),
 ) -> List[Dict[str, Any]]:
-    """List all spools with optional filters, search, status filtering, and sorting."""
-    query = "SELECT * FROM spools WHERE 1=1"
-    params: List[Any] = []
+    """List all spools for the authenticated user with optional filters, search, status filtering, and sorting."""
+    query = "SELECT * FROM spools WHERE user_id = ?"
+    params: List[Any] = [current_user["id"]]
 
     if search and search.strip():
         term = f"%{search.strip()}%"
@@ -165,10 +175,13 @@ def list_spools(
 def get_spool_by_uid(
     uid_code: str,
     db: sqlite3.Connection = Depends(get_db),
-    _user: Dict[str, Any] = Depends(require_viewer),
+    current_user: Dict[str, Any] = Depends(require_viewer),
 ) -> Dict[str, Any]:
-    """Get a single spool by its UID code (e.g. SP-0001) along with its recent weight history."""
-    cursor = db.execute("SELECT * FROM spools WHERE UPPER(uid_code) = UPPER(?);", (uid_code.strip(),))
+    """Get a single spool by its UID code (e.g. SP-0001) owned by the current user along with its recent weight history."""
+    cursor = db.execute(
+        "SELECT * FROM spools WHERE user_id = ? AND UPPER(uid_code) = UPPER(?);",
+        (current_user["id"], uid_code.strip()),
+    )
     row = cursor.fetchone()
     if not row:
         raise HTTPException(
@@ -198,10 +211,13 @@ def get_spool_by_uid(
 def get_spool_by_id(
     spool_id: int,
     db: sqlite3.Connection = Depends(get_db),
-    _user: Dict[str, Any] = Depends(require_viewer),
+    current_user: Dict[str, Any] = Depends(require_viewer),
 ) -> Dict[str, Any]:
-    """Get a single spool by its primary ID along with its recent weight history."""
-    cursor = db.execute("SELECT * FROM spools WHERE id = ?;", (spool_id,))
+    """Get a single spool by its primary ID owned by the current user along with its recent weight history."""
+    cursor = db.execute(
+        "SELECT * FROM spools WHERE id = ? AND user_id = ?;",
+        (spool_id, current_user["id"]),
+    )
     row = cursor.fetchone()
     if not row:
         raise HTTPException(
@@ -234,9 +250,10 @@ async def create_spool(
     current_user: Dict[str, Any] = Depends(require_editor),
 ) -> Dict[str, Any]:
     """
-    Create one or more new spools (multi-quantity support 1 to 50),
-    enforce slot exclusivity, record initial weight history, and notify Home Assistant.
+    Create one or more new spools (multi-quantity support 1 to 50) for the current user,
+    enforce per-user slot exclusivity, and record initial weight history.
     """
+    user_id = current_user["id"]
     quantity = max(1, min(50, spool_in.quantity))
 
     # Tare auto-suggestion if not provided or 0
@@ -286,14 +303,14 @@ async def create_spool(
         cursor = db.execute(
             """
             INSERT INTO spools (
-                uid_code, barcode, brand, material, subtype, color_name, color_hex, color_hex_secondary,
+                user_id, uid_code, barcode, brand, material, subtype, color_name, color_hex, color_hex_secondary,
                 initial_net_weight_g, tare_weight_g, current_gross_g, low_stock_threshold_g, price_eur,
                 location_shelf, status, in_drybox, in_use, slot_location, k_factor, flow_ratio,
                 max_volumetric_speed, retraction_length_mm, retraction_speed_mms, nozzle_temp_min,
                 nozzle_temp_max, bed_temp, chamber_temp, opened_at, last_dried_at, drying_temp_c,
                 drying_hours, humidity_alert, notes, created_at, updated_at
             ) VALUES (
-                ?, ?, ?, ?, ?, ?, ?, ?,
+                ?, ?, ?, ?, ?, ?, ?, ?, ?,
                 ?, ?, ?, ?, ?,
                 ?, ?, ?, ?, ?, ?, ?,
                 ?, ?, ?, ?,
@@ -302,6 +319,7 @@ async def create_spool(
             );
             """,
             (
+                user_id,
                 uid_code,
                 spool_in.barcode or "",
                 spool_in.brand.strip(),
@@ -341,9 +359,9 @@ async def create_spool(
         if i == 0:
             first_spool_id = spool_id
 
-        # Apply Rule #4: Slot exclusivity for mounted spool
+        # Apply Rule #4: Slot exclusivity for mounted spool (scoped to user_id)
         if this_in_use and this_slot:
-            _enforce_slot_exclusivity(db, this_slot, spool_id)
+            _enforce_slot_exclusivity(db, user_id, this_slot, spool_id)
 
         # Record initial weight in weight_history
         initial_net = max(0.0, spool_in.current_gross_g - tare_weight)
@@ -391,13 +409,10 @@ async def create_spool(
     db.commit()
 
     # Retrieve created primary record
-    created_cur = db.execute("SELECT * FROM spools WHERE id = ?;", (first_spool_id,))
+    created_cur = db.execute("SELECT * FROM spools WHERE id = ? AND user_id = ?;", (first_spool_id, user_id))
     spool_data = row_to_spool_dict(created_cur.fetchone())
     spool_data["created_count"] = quantity
     spool_data["created_uids"] = created_uids
-
-    # Send HA Webhook asynchronously
-    await send_ha_webhook("spool_created", spool_data)
 
     return spool_data
 
@@ -409,8 +424,9 @@ async def update_spool(
     db: sqlite3.Connection = Depends(get_db),
     current_user: Dict[str, Any] = Depends(require_editor),
 ) -> Dict[str, Any]:
-    """Full update of an existing spool, with status synchronization, slot exclusivity, and weight delta tracking."""
-    cur = db.execute("SELECT * FROM spools WHERE id = ?;", (spool_id,))
+    """Full update of an existing spool owned by current user, with status synchronization, slot exclusivity, and weight delta tracking."""
+    user_id = current_user["id"]
+    cur = db.execute("SELECT * FROM spools WHERE id = ? AND user_id = ?;", (spool_id, user_id))
     existing = cur.fetchone()
     if not existing:
         raise HTTPException(
@@ -455,7 +471,7 @@ async def update_spool(
         if fields_dict.get("status") == "in_use":
             fields_dict["status"] = "opened"
     elif target_slot and target_slot.strip():
-        _enforce_slot_exclusivity(db, target_slot, spool_id)
+        _enforce_slot_exclusivity(db, user_id, target_slot, spool_id)
         if "status" not in fields_dict:
             fields_dict["status"] = "in_use"
 
@@ -485,15 +501,14 @@ async def update_spool(
             params.append(val)
 
     set_clauses.append("updated_at = datetime('now')")
-    params.append(spool_id)
+    params.extend([spool_id, user_id])
 
-    db.execute(f"UPDATE spools SET {', '.join(set_clauses)} WHERE id = ?;", params)
+    db.execute(f"UPDATE spools SET {', '.join(set_clauses)} WHERE id = ? AND user_id = ?;", params)
     db.commit()
 
-    updated_cur = db.execute("SELECT * FROM spools WHERE id = ?;", (spool_id,))
+    updated_cur = db.execute("SELECT * FROM spools WHERE id = ? AND user_id = ?;", (spool_id, user_id))
     updated_spool = row_to_spool_dict(updated_cur.fetchone())
 
-    await send_ha_webhook("spool_updated", updated_spool)
     return updated_spool
 
 
@@ -503,8 +518,9 @@ async def delete_spool(
     db: sqlite3.Connection = Depends(get_db),
     current_user: Dict[str, Any] = Depends(require_editor),
 ) -> Dict[str, Any]:
-    """Delete a spool and its weight history (via cascade delete)."""
-    cur = db.execute("SELECT id, uid_code FROM spools WHERE id = ?;", (spool_id,))
+    """Delete a spool owned by current user and its weight history (via cascade delete)."""
+    user_id = current_user["id"]
+    cur = db.execute("SELECT id, uid_code FROM spools WHERE id = ? AND user_id = ?;", (spool_id, user_id))
     row = cur.fetchone()
     if not row:
         raise HTTPException(
@@ -513,10 +529,8 @@ async def delete_spool(
         )
 
     uid_code = row["uid_code"]
-    db.execute("DELETE FROM spools WHERE id = ?;", (spool_id,))
+    db.execute("DELETE FROM spools WHERE id = ? AND user_id = ?;", (spool_id, user_id))
     db.commit()
-
-    await send_ha_webhook("spool_deleted", {"id": spool_id, "uid_code": uid_code})
 
     return {"status": "deleted", "id": spool_id, "uid_code": uid_code}
 
@@ -530,9 +544,10 @@ async def quick_status_spool(
 ) -> Dict[str, Any]:
     """
     Transitions spool status directly to 'new', 'opened', 'in_use', or 'empty'.
-    Automatically updates opened_at, handles slot exclusivity, and resets gross weight when empty.
+    Automatically updates opened_at, handles per-user slot exclusivity, and resets gross weight when empty.
     """
-    cur = db.execute("SELECT * FROM spools WHERE id = ?;", (spool_id,))
+    user_id = current_user["id"]
+    cur = db.execute("SELECT * FROM spools WHERE id = ? AND user_id = ?;", (spool_id, user_id))
     row = cur.fetchone()
     if not row:
         raise HTTPException(
@@ -548,9 +563,9 @@ async def quick_status_spool(
             """
             UPDATE spools
             SET status = 'new', in_use = 0, slot_location = '', opened_at = '', updated_at = datetime('now')
-            WHERE id = ?;
+            WHERE id = ? AND user_id = ?;
             """,
-            (spool_id,),
+            (spool_id, user_id),
         )
     elif target_status == "opened":
         db.execute(
@@ -561,13 +576,13 @@ async def quick_status_spool(
                 slot_location = '',
                 opened_at = CASE WHEN opened_at IS NULL OR opened_at = '' THEN ? ELSE opened_at END,
                 updated_at = datetime('now')
-            WHERE id = ?;
+            WHERE id = ? AND user_id = ?;
             """,
-            (today_str, spool_id),
+            (today_str, spool_id, user_id),
         )
     elif target_status == "in_use":
         slot = (req.slot_location or "").strip() or "Esterno"
-        _enforce_slot_exclusivity(db, slot, spool_id)
+        _enforce_slot_exclusivity(db, user_id, slot, spool_id)
         db.execute(
             """
             UPDATE spools
@@ -576,9 +591,9 @@ async def quick_status_spool(
                 slot_location = ?,
                 opened_at = CASE WHEN opened_at IS NULL OR opened_at = '' THEN ? ELSE opened_at END,
                 updated_at = datetime('now')
-            WHERE id = ?;
+            WHERE id = ? AND user_id = ?;
             """,
-            (slot, today_str, spool_id),
+            (slot, today_str, spool_id, user_id),
         )
     elif target_status == "empty":
         tare = float(row["tare_weight_g"])
@@ -590,17 +605,16 @@ async def quick_status_spool(
                 slot_location = '',
                 current_gross_g = ?,
                 updated_at = datetime('now')
-            WHERE id = ?;
+            WHERE id = ? AND user_id = ?;
             """,
-            (tare, spool_id),
+            (tare, spool_id, user_id),
         )
 
     db.commit()
 
-    updated_cur = db.execute("SELECT * FROM spools WHERE id = ?;", (spool_id,))
+    updated_cur = db.execute("SELECT * FROM spools WHERE id = ? AND user_id = ?;", (spool_id, user_id))
     updated_spool = row_to_spool_dict(updated_cur.fetchone())
 
-    await send_ha_webhook("spool_updated", updated_spool)
     return {"spool": updated_spool}
 
 
@@ -612,10 +626,11 @@ async def clone_spool(
     current_user: Dict[str, Any] = Depends(require_editor),
 ) -> Dict[str, Any]:
     """
-    Duplicates an existing spool specification into one or more new spools in 1 click.
+    Duplicates an existing spool specification into one or more new spools for the current user in 1 click.
     Generates new sequential UIDs, calculates gross weight, and seeds initial weight history.
     """
-    cur = db.execute("SELECT * FROM spools WHERE id = ?;", (spool_id,))
+    user_id = current_user["id"]
+    cur = db.execute("SELECT * FROM spools WHERE id = ? AND user_id = ?;", (spool_id, user_id))
     source = cur.fetchone()
     if not source:
         raise HTTPException(
@@ -644,14 +659,14 @@ async def clone_spool(
         ins_cur = db.execute(
             """
             INSERT INTO spools (
-                uid_code, barcode, brand, material, subtype, color_name, color_hex, color_hex_secondary,
+                user_id, uid_code, barcode, brand, material, subtype, color_name, color_hex, color_hex_secondary,
                 initial_net_weight_g, tare_weight_g, current_gross_g, low_stock_threshold_g, price_eur,
                 location_shelf, status, in_drybox, in_use, slot_location, k_factor, flow_ratio,
                 max_volumetric_speed, retraction_length_mm, retraction_speed_mms, nozzle_temp_min,
                 nozzle_temp_max, bed_temp, chamber_temp, opened_at, last_dried_at, drying_temp_c,
                 drying_hours, humidity_alert, notes, created_at, updated_at
             ) VALUES (
-                ?, ?, ?, ?, ?, ?, ?, ?,
+                ?, ?, ?, ?, ?, ?, ?, ?, ?,
                 ?, ?, ?, ?, ?,
                 ?, ?, ?, 0, '', ?, ?,
                 ?, ?, ?, ?,
@@ -660,6 +675,7 @@ async def clone_spool(
             );
             """,
             (
+                user_id,
                 uid,
                 source["barcode"] or "",
                 source["brand"],
@@ -718,8 +734,9 @@ async def quick_weigh_spool(
     db: sqlite3.Connection = Depends(get_db),
     current_user: Dict[str, Any] = Depends(require_editor),
 ) -> Dict[str, Any]:
-    """Quickly weigh a spool: computes consumption delta, updates record, and triggers webhooks."""
-    cur = db.execute("SELECT * FROM spools WHERE id = ?;", (spool_id,))
+    """Quickly weigh a spool: computes consumption delta and updates record."""
+    user_id = current_user["id"]
+    cur = db.execute("SELECT * FROM spools WHERE id = ? AND user_id = ?;", (spool_id, user_id))
     row = cur.fetchone()
     if not row:
         raise HTTPException(
@@ -739,9 +756,9 @@ async def quick_weigh_spool(
         """
         UPDATE spools
         SET current_gross_g = ?, updated_at = datetime('now')
-        WHERE id = ?;
+        WHERE id = ? AND user_id = ?;
         """,
-        (new_gross, spool_id),
+        (new_gross, spool_id, user_id),
     )
 
     db.execute(
@@ -753,14 +770,8 @@ async def quick_weigh_spool(
     )
     db.commit()
 
-    updated_cur = db.execute("SELECT * FROM spools WHERE id = ?;", (spool_id,))
+    updated_cur = db.execute("SELECT * FROM spools WHERE id = ? AND user_id = ?;", (spool_id, user_id))
     updated_spool = row_to_spool_dict(updated_cur.fetchone())
-
-    # Check for low stock notification
-    if updated_spool["is_low_stock"]:
-        await send_ha_webhook("spool_low_stock", updated_spool)
-
-    await send_ha_webhook("spool_weighed", {"spool": updated_spool, "delta_g": delta_g})
 
     return {"spool": updated_spool, "delta_g": delta_g}
 
@@ -774,9 +785,10 @@ async def quick_slot_spool(
 ) -> Dict[str, Any]:
     """
     Assigns or unmounts a spool to/from a printer slot (Slot 1, 2, 3, 4, Esterno).
-    Enforces Rule #4 (Esclusività Slot Stampante).
+    Enforces Rule #4 (Esclusività Slot Stampante) per user.
     """
-    cur = db.execute("SELECT * FROM spools WHERE id = ?;", (spool_id,))
+    user_id = current_user["id"]
+    cur = db.execute("SELECT * FROM spools WHERE id = ? AND user_id = ?;", (spool_id, user_id))
     row = cur.fetchone()
     if not row:
         raise HTTPException(
@@ -786,44 +798,40 @@ async def quick_slot_spool(
 
     target_slot = (req.slot_location or "").strip()
     if req.in_use and target_slot:
-        _enforce_slot_exclusivity(db, target_slot, spool_id)
+        _enforce_slot_exclusivity(db, user_id, target_slot, spool_id)
         db.execute(
             """
             UPDATE spools
             SET in_use = 1, slot_location = ?, status = 'in_use', updated_at = datetime('now')
-            WHERE id = ?;
+            WHERE id = ? AND user_id = ?;
             """,
-            (target_slot, spool_id),
+            (target_slot, spool_id, user_id),
         )
     else:
         db.execute(
             """
             UPDATE spools
             SET in_use = 0, slot_location = '', status = 'opened', updated_at = datetime('now')
-            WHERE id = ?;
+            WHERE id = ? AND user_id = ?;
             """,
-            (spool_id,),
+            (spool_id, user_id),
         )
 
     db.commit()
 
-    updated_cur = db.execute("SELECT * FROM spools WHERE id = ?;", (spool_id,))
+    updated_cur = db.execute("SELECT * FROM spools WHERE id = ? AND user_id = ?;", (spool_id, user_id))
     updated_spool = row_to_spool_dict(updated_cur.fetchone())
 
-    # Fetch all active slots for cockpit response
+    # Fetch all active slots for cockpit response (scoped to current user)
     active_cur = db.execute(
         """
         SELECT * FROM spools
-        WHERE in_use = 1 AND slot_location != ''
+        WHERE user_id = ? AND in_use = 1 AND slot_location != ''
         ORDER BY slot_location ASC;
-        """
+        """,
+        (user_id,),
     )
     active_slots = [row_to_spool_dict(r) for r in active_cur.fetchall()]
-
-    await send_ha_webhook(
-        "slot_changed",
-        {"spool": updated_spool, "active_slots": active_slots},
-    )
 
     return {"spool": updated_spool, "active_slots": active_slots}
 
@@ -835,8 +843,9 @@ async def quick_dry_spool(
     db: sqlite3.Connection = Depends(get_db),
     current_user: Dict[str, Any] = Depends(require_editor),
 ) -> Dict[str, Any]:
-    """Marks a spool as dried today, clears humidity alert, and updates drying parameters."""
-    cur = db.execute("SELECT * FROM spools WHERE id = ?;", (spool_id,))
+    """Marks a spool owned by current user as dried today, clears humidity alert, and updates drying parameters."""
+    user_id = current_user["id"]
+    cur = db.execute("SELECT * FROM spools WHERE id = ? AND user_id = ?;", (spool_id, user_id))
     row = cur.fetchone()
     if not row:
         raise HTTPException(
@@ -856,13 +865,11 @@ async def quick_dry_spool(
         clauses.append("drying_hours = ?")
         params.append(req.drying_hours)
 
-    params.append(spool_id)
-    db.execute(f"UPDATE spools SET {', '.join(clauses)} WHERE id = ?;", params)
+    params.extend([spool_id, user_id])
+    db.execute(f"UPDATE spools SET {', '.join(clauses)} WHERE id = ? AND user_id = ?;", params)
     db.commit()
 
-    updated_cur = db.execute("SELECT * FROM spools WHERE id = ?;", (spool_id,))
+    updated_cur = db.execute("SELECT * FROM spools WHERE id = ? AND user_id = ?;", (spool_id, user_id))
     updated_spool = row_to_spool_dict(updated_cur.fetchone())
-
-    await send_ha_webhook("spool_dried", updated_spool)
 
     return updated_spool

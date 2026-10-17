@@ -14,7 +14,6 @@ from fastapi.staticfiles import StaticFiles
 from app.database import get_db_connection, init_db
 from app.routers.admin_router import router as admin_router
 from app.routers.auth_router import router as auth_router
-from app.routers.ha_router import router as ha_router
 from app.routers.labels_router import router as labels_router
 from app.routers.scanner_router import router as scanner_router
 from app.routers.spools_router import router as spools_router
@@ -24,34 +23,43 @@ STATIC_DIR = BASE_DIR / "app" / "static"
 
 
 def _seed_demo_spools() -> None:
-    """Seeds 4 realistic demo spools and weight histories if the database is newly initialized."""
+    """Seeds 4 realistic demo spools and weight histories only if the database is completely brand new."""
     conn = get_db_connection()
     try:
         cursor = conn.cursor()
         cursor.execute("SELECT COUNT(*) AS count FROM spools;")
-        count = cursor.fetchone()["count"]
-        if count == 0:
+        spool_count = cursor.fetchone()["count"]
+        cursor.execute("SELECT COUNT(*) AS count FROM users;")
+        user_count = cursor.fetchone()["count"]
+        cursor.execute("SELECT COUNT(*) AS count FROM audit_logs;")
+        audit_count = cursor.fetchone()["count"]
+
+        if spool_count == 0 and user_count <= 1 and audit_count == 0:
+            cursor.execute("SELECT id FROM users ORDER BY id ASC LIMIT 1;")
+            admin_row = cursor.fetchone()
+            admin_user_id = admin_row["id"] if admin_row else 1
+
             demo_spools = [
                 (
-                    "SP-0001", "6975337030117", "Bambu Lab", "PLA", "Matte", "Charcoal",
+                    admin_user_id, "SP-0001", "6975337030117", "Bambu Lab", "PLA", "Matte", "Charcoal",
                     "#1c1d21", "", 1000.0, 250.0, 1120.0, 150.0, 19.99, "AMS 1", "in_use", 0, 1, "Slot 1",
                     0.022, 0.98, 21.0, 0.8, 30.0, 190, 220, 55, 0,
                     "2026-10-01", "2026-10-01", 55, 6, 0, "Bobina demo Bambu Lab montata nello Slot 1"
                 ),
                 (
-                    "SP-0002", "6975337030224", "Bambu Lab", "PETG", "HF", "Emerald Green",
+                    admin_user_id, "SP-0002", "6975337030224", "Bambu Lab", "PETG", "HF", "Emerald Green",
                     "#10b981", "", 1000.0, 250.0, 850.0, 150.0, 22.99, "AMS 1", "in_use", 0, 1, "Slot 2",
                     0.035, 0.96, 16.0, 0.8, 30.0, 230, 250, 75, 0,
                     "2026-10-05", "2026-10-05", 65, 8, 0, "Bobina demo PETG HF montata nello Slot 2"
                 ),
                 (
-                    "SP-0003", "6922572219151", "eSUN", "PLA+", "Standard", "Fire Engine Red",
+                    admin_user_id, "SP-0003", "6922572219151", "eSUN", "PLA+", "Standard", "Fire Engine Red",
                     "#dc2626", "", 1000.0, 240.0, 780.0, 150.0, 18.50, "A1", "opened", 0, 0, "",
                     0.024, 0.98, 18.0, 0.8, 30.0, 205, 225, 60, 0,
                     "2026-09-20", "2026-09-20", 50, 6, 0, "Stoccata a magazzino scaffale A1"
                 ),
                 (
-                    "SP-0004", "8402542001004", "Polymaker", "ASA", "PolyLite", "Black",
+                    admin_user_id, "SP-0004", "8402542001004", "Polymaker", "ASA", "PolyLite", "Black",
                     "#1e1e1e", "", 1000.0, 140.0, 270.0, 150.0, 27.00, "Drybox 1", "opened", 1, 0, "",
                     0.040, 0.95, 14.0, 1.0, 25.0, 240, 260, 95, 45,
                     "2026-08-15", "2026-08-15", 70, 8, 1, "Bobina con avviso umidità elevata e scorta residua bassa"
@@ -61,14 +69,14 @@ def _seed_demo_spools() -> None:
             cursor.executemany(
                 """
                 INSERT INTO spools (
-                    uid_code, barcode, brand, material, subtype, color_name, color_hex, color_hex_secondary,
+                    user_id, uid_code, barcode, brand, material, subtype, color_name, color_hex, color_hex_secondary,
                     initial_net_weight_g, tare_weight_g, current_gross_g, low_stock_threshold_g, price_eur,
                     location_shelf, status, in_drybox, in_use, slot_location, k_factor, flow_ratio,
                     max_volumetric_speed, retraction_length_mm, retraction_speed_mms, nozzle_temp_min,
                     nozzle_temp_max, bed_temp, chamber_temp, opened_at, last_dried_at, drying_temp_c,
                     drying_hours, humidity_alert, notes, created_at, updated_at
                 ) VALUES (
-                    ?, ?, ?, ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?, ?, ?, ?, ?,
                     ?, ?, ?, ?, ?,
                     ?, ?, ?, ?, ?, ?, ?,
                     ?, ?, ?, ?,
@@ -108,7 +116,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="FilamentHub 3D",
-    version="1.3",
+    version="1.4",
     description="3D Printing Filament & Slicer Calibration Inventory Management",
     lifespan=lifespan,
 )
@@ -137,7 +145,7 @@ async def security_headers_middleware(request: Request, call_next):
 @app.get("/api/health", tags=["Health"])
 def health_check() -> Dict[str, str]:
     """Health check endpoint for Docker container checks, monitors, and load balancers."""
-    return {"status": "ok", "app": "FilamentHub 3D", "version": "1.3"}
+    return {"status": "ok", "app": "FilamentHub 3D", "version": "1.4"}
 
 
 # Include API Routers
@@ -146,7 +154,6 @@ app.include_router(admin_router)
 app.include_router(spools_router)
 app.include_router(scanner_router)
 app.include_router(labels_router)
-app.include_router(ha_router)
 
 # Mount static files directory if present
 if STATIC_DIR.exists():

@@ -10,9 +10,6 @@ import re
 from typing import Any, Dict, List
 import httpx
 
-from app.config import GEMINI_API_KEY, GEMINI_MODEL
-from app.database import get_setting
-
 logger = logging.getLogger("filamenthub.vision")
 
 SYSTEM_PROMPT = (
@@ -73,27 +70,34 @@ def _get_candidate_models(preferred_model: str) -> List[str]:
     return candidates
 
 
-async def analyze_spool_image(image_bytes: bytes, mime_type: str = "image/jpeg") -> Dict[str, Any]:
+async def analyze_spool_image(
+    image_bytes: bytes,
+    mime_type: str = "image/jpeg",
+    api_key: str = "",
+    preferred_model: str = "",
+) -> Dict[str, Any]:
     """
     Analyzes a spool label or barcode photo using Google Gemini Vision API with automatic multi-model fallback.
-    Never overwrites form fields with fake defaults on failure.
+    Uses the per-user api_key and preferred_model without falling back to global .env keys.
     """
-    api_key = get_setting("gemini_api_key", GEMINI_API_KEY).strip()
+    clean_key = (api_key or "").strip()
     placeholder_keys = ("", "la_tua_api_key_gemini", "YOUR_API_KEY", "your_gemini_api_key")
 
-    if not api_key or api_key in placeholder_keys:
-        logger.info("Gemini Vision API called without a configured API key.")
+    if not clean_key or clean_key in placeholder_keys:
+        logger.info("Gemini Vision API called without a configured user API key.")
         return {
-            "error": "GEMINI_API_KEY non configurata. Inserisci la chiave nelle Impostazioni per attivare il riconoscimento AI.",
+            "error": "GEMINI_API_KEY non configurata sul tuo profilo.",
             "configured": False,
             "success": False,
         }
+
+    api_key = clean_key
 
     if not mime_type or mime_type == "application/octet-stream":
         mime_type = "image/jpeg"
 
     b64_image = base64.b64encode(image_bytes).decode("utf-8")
-    preferred_model = get_setting("gemini_model", GEMINI_MODEL).strip() or "gemini-3.5-flash-lite"
+    preferred_model = (preferred_model or "").strip() or "gemini-3.5-flash-lite"
     candidate_models = _get_candidate_models(preferred_model)
 
     payload = {
