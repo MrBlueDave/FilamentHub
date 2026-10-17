@@ -2,4 +2,4 @@
 Progressive Web App for 3D printing filament management.
 """
 
-__version__ = "1.1"
+__version__ = "1.2"

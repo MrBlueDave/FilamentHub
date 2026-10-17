@@ -51,6 +51,7 @@ class FilamentHubApp {
   async init() {
     this.initThemeListener();
     this.updateA4QueueBadge();
+    this.updateSettingsUi();
     this.setupEventListeners();
     this.initSwipeGestures();
     this.updateQuickSortUi();
@@ -106,10 +107,12 @@ class FilamentHubApp {
       });
     }
 
-    // Global Paste Listener (Ctrl+V) for AI Label Photo
+    // Global Paste Listener (Ctrl+V) for AI Label Photo (only when Gemini API key is configured)
     window.addEventListener('paste', async (e) => {
+      if (!this.settings?.gemini_configured) return;
       const spoolModal = document.getElementById('spoolModal');
       if (!spoolModal || spoolModal.classList.contains('hidden')) return;
+      if (this.currentEditingSpool) return;
 
       if (e.clipboardData && e.clipboardData.items) {
         for (let i = 0; i < e.clipboardData.items.length; i++) {
@@ -301,17 +304,64 @@ class FilamentHubApp {
       if (res.ok) {
         const data = await res.json();
         this.settings = { ...this.settings, ...data };
-        this.updateSettingsUi();
       }
     } catch (err) {
-      console.warn('Impossibile caricare impostazioni da backend, fallback locale:', err);
+      console.warn('Impossibile caricare impostazioni da backend:', err);
+    } finally {
+      this.updateSettingsUi();
     }
   }
 
   updateSettingsUi() {
+    const isConfigured = Boolean(this.settings && this.settings.gemini_configured);
+
+    // 1. Enable / Disable all AI Photo buttons & file inputs
+    const aiBtnIds = ['topbarAiPhotoBtn', 'modalAiCameraBtn', 'modalAiGalleryBtn', 'geminiAnalyzeBtn'];
+    aiBtnIds.forEach((id) => {
+      const btn = document.getElementById(id);
+      if (btn) {
+        btn.disabled = !isConfigured;
+        btn.title = isConfigured
+          ? 'Scatta o carica foto etichetta per compilazione AI'
+          : 'Funzione disattivata: specifica prima una API Key Gemini valida nelle Impostazioni';
+      }
+    });
+
+    const camInput = document.getElementById('nativeCameraPhotoInput');
+    if (camInput) camInput.disabled = !isConfigured;
+
+    const galleryInput = document.getElementById('spoolPhotoInput');
+    if (galleryInput) galleryInput.disabled = !isConfigured;
+
+    // 2. Hint banner inside New Spool modal
+    const disabledHint = document.getElementById('spoolModalAiDisabledHint');
+    if (disabledHint) {
+      disabledHint.classList.toggle('hidden', isConfigured);
+    }
+
+    // 3. Mobile menu badge & bottom nav dot
+    const menuBadge = document.getElementById('menuGeminiBadge');
+    if (menuBadge) {
+      if (isConfigured) {
+        menuBadge.className = 'text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800';
+        menuBadge.textContent = 'Attiva';
+      } else {
+        menuBadge.className = 'text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800';
+        menuBadge.textContent = 'Non attiva';
+      }
+    }
+
+    const navDot = document.getElementById('navMenuDot');
+    if (navDot) {
+      navDot.classList.remove('hidden');
+      navDot.className = isConfigured
+        ? 'absolute top-1 right-1/4 w-2 h-2 rounded-full bg-emerald-500'
+        : 'absolute top-1 right-1/4 w-2 h-2 rounded-full bg-amber-500 animate-pulse';
+    }
+
     const dot = document.getElementById('geminiStatusDot');
     if (dot) {
-      if (this.settings.gemini_configured) {
+      if (isConfigured) {
         dot.className = 'w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400';
         dot.title = 'Gemini AI Configurato e Attivo';
       } else {
@@ -321,10 +371,33 @@ class FilamentHubApp {
     }
   }
 
+  triggerCameraAiPhoto() {
+    if (!this.settings?.gemini_configured) {
+      this.showToast('Inserisci prima una API Key Gemini valida nelle Impostazioni.', 'warning');
+      return;
+    }
+    const input = document.getElementById('nativeCameraPhotoInput');
+    if (input && !input.disabled) {
+      input.click();
+    }
+  }
+
+  triggerGalleryAiPhoto() {
+    if (!this.settings?.gemini_configured) {
+      this.showToast('Inserisci prima una API Key Gemini valida nelle Impostazioni.', 'warning');
+      return;
+    }
+    const input = document.getElementById('spoolPhotoInput');
+    if (input && !input.disabled) {
+      input.click();
+    }
+  }
+
   openSettingsModal() {
     const badge = document.getElementById('settingsGeminiBadge');
     const keyInput = document.getElementById('settingsGeminiApiKey');
     const modelSelect = document.getElementById('settingsGeminiModel');
+    const clearBtn = document.getElementById('settingsClearKeyBtn');
 
     if (badge) {
       if (this.settings.gemini_configured) {
@@ -334,6 +407,10 @@ class FilamentHubApp {
         badge.className = 'px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-950 text-amber-400 border border-amber-800';
         badge.textContent = 'Non configurata';
       }
+    }
+
+    if (clearBtn) {
+      clearBtn.classList.toggle('hidden', !this.settings.gemini_configured);
     }
 
     if (keyInput) keyInput.value = '';
@@ -356,12 +433,23 @@ class FilamentHubApp {
     e.preventDefault();
     const keyInput = document.getElementById('settingsGeminiApiKey')?.value.trim();
     const model = document.getElementById('settingsGeminiModel')?.value || 'gemini-3.5-flash-lite';
+    const saveBtn = document.getElementById('settingsSaveBtn');
+
+    if (keyInput && (!keyInput.startsWith('AIza') || keyInput.length < 30)) {
+      this.showToast("Chiave API non valida: deve iniziare con 'AIza' ed essere completa.", 'error');
+      return;
+    }
 
     const payload = {
       gemini_model: model
     };
     if (keyInput) {
       payload.gemini_api_key = keyInput;
+    }
+
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Verifica in corso...';
     }
 
     try {
@@ -378,18 +466,35 @@ class FilamentHubApp {
         this.closeSettingsModal();
         this.showToast('Impostazioni salvate con successo!', 'success');
       } else {
-        if (keyInput) {
-          this.settings.gemini_configured = true;
-          this.settings.gemini_api_key_masked = keyInput.slice(0, 6) + '...' + keyInput.slice(-4);
-        }
-        this.settings.gemini_model = model;
-        this.updateSettingsUi();
-        this.closeSettingsModal();
-        this.showToast('Impostazioni salvate localmente', 'info');
+        const err = await res.json().catch(() => ({}));
+        this.showToast(this.formatError(err, 'Chiave API Gemini non valida'), 'error');
       }
     } catch (err) {
-      this.closeSettingsModal();
-      this.showToast('Impostazioni salvate', 'info');
+      this.showToast(this.formatError(err, 'Errore durante il salvataggio delle impostazioni'), 'error');
+    } finally {
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Salva Impostazioni';
+      }
+    }
+  }
+
+  async handleClearGeminiKey() {
+    try {
+      const res = await fetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gemini_api_key: '__clear__' })
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        this.settings = { ...this.settings, ...updated };
+        this.updateSettingsUi();
+        this.openSettingsModal();
+        this.showToast('Chiave API Gemini rimossa. Funzioni Foto AI disattivate.', 'info');
+      }
+    } catch (err) {
+      this.showToast('Errore durante la rimozione della chiave API', 'error');
     }
   }
 
@@ -1903,6 +2008,7 @@ class FilamentHubApp {
 
     const aiBar = document.getElementById('spoolModalAiBar');
     if (aiBar) aiBar.classList.toggle('hidden', isEdit);
+    this.updateSettingsUi();
 
     const catalogBox = document.getElementById('spoolModalCatalogBox');
     if (catalogBox) catalogBox.classList.toggle('hidden', isEdit);
@@ -2427,6 +2533,11 @@ class FilamentHubApp {
   // 17. AI VISION (GEMINI 3.5 FLASH LITE PHOTO CAPTURE)
   // =========================================================================
   async handleNativeCameraPhoto(event) {
+    if (!this.settings?.gemini_configured) {
+      if (event.target) event.target.value = '';
+      this.showToast('Inserisci prima una API Key Gemini valida nelle Impostazioni.', 'warning');
+      return;
+    }
     const file = event.target.files && event.target.files[0];
     if (!file) return;
 
@@ -2441,6 +2552,11 @@ class FilamentHubApp {
   }
 
   async handleAiPhotoUpload(event) {
+    if (!this.settings?.gemini_configured) {
+      if (event.target) event.target.value = '';
+      this.showToast('Inserisci prima una API Key Gemini valida nelle Impostazioni.', 'warning');
+      return;
+    }
     const file = event.target.files && event.target.files[0];
     if (!file) return;
     this.showToast('Foto caricata! Avvio analisi con Gemini Flash...', 'info');
@@ -2541,6 +2657,11 @@ class FilamentHubApp {
   }
 
   async analyzeImageWithGemini() {
+    if (!this.settings?.gemini_configured) {
+      this.showToast('API Gemini non configurata! Specifica una chiave valida nelle Impostazioni.', 'warning');
+      return;
+    }
+
     if (!this.aiImageBase64) {
       const canvas = document.getElementById('aiCanvas');
       if (canvas && canvas.width > 0) {
@@ -2575,6 +2696,8 @@ class FilamentHubApp {
         const data = await res.json();
 
         if (data.configured === false) {
+          this.settings.gemini_configured = false;
+          this.updateSettingsUi();
           this.showToast('API Gemini non configurata! Inserisci la tua chiave gratuita.', 'warning');
           this.openSettingsModal();
           return;
@@ -2586,7 +2709,9 @@ class FilamentHubApp {
       } else {
         const err = await res.json().catch(() => ({}));
         if (res.status === 400 && String(err.detail).includes('GEMINI_API_KEY')) {
-          this.showToast('Chiave Gemini mancante! Clicca su Impostazioni.', 'warning');
+          this.settings.gemini_configured = false;
+          this.updateSettingsUi();
+          this.showToast('Chiave Gemini mancante o non valida! Clicca su Impostazioni.', 'warning');
           this.openSettingsModal();
         } else {
           this.showToast(this.formatError(err, 'Impossibile estrarre i dati dall\'etichetta'), 'warning');
@@ -2596,7 +2721,7 @@ class FilamentHubApp {
       this.showToast(this.formatError(e, 'Errore di comunicazione con il servizio Vision AI'), 'error');
     } finally {
       if (btn) {
-        btn.disabled = false;
+        btn.disabled = !this.settings?.gemini_configured;
         btn.innerHTML = '<i data-lucide="cpu" class="w-3 h-3"></i><span>Rianalizza AI</span>';
         lucide.createIcons();
       }

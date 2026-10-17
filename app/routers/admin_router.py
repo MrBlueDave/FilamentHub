@@ -6,6 +6,7 @@ Enforces RBAC with require_admin (or require_editor / require_viewer where appro
 import secrets
 import sqlite3
 from typing import Any, List
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.auth import (
@@ -421,14 +422,49 @@ def get_audit_logs(
 # System Settings (Viewer / Editor / Admin)
 # ==========================================
 
+PLACEHOLDER_GEMINI_KEYS = (
+    "",
+    "la_tua_api_key_gemini",
+    "YOUR_API_KEY",
+    "your_gemini_api_key",
+)
+
+
+def _is_valid_gemini_key_format(key: str) -> bool:
+    """Return True only if the key looks like a real unmasked Google Gemini API key."""
+    clean = (key or "").strip()
+    if not clean or clean in PLACEHOLDER_GEMINI_KEYS:
+        return False
+    if "..." in clean or "*" in clean:
+        return False
+    if not clean.startswith("AIza") or len(clean) < 30:
+        return False
+    return True
+
+
+def _verify_gemini_key_online(key: str) -> bool:
+    """Verify the Gemini API key against Google AI Studio models endpoint."""
+    if not _is_valid_gemini_key_format(key):
+        return False
+    url = f"https://generativelanguage.googleapis.com/v1beta/models?key={key.strip()}"
+    try:
+        with httpx.Client(timeout=6.0) as client:
+            resp = client.get(url)
+            if resp.status_code == 200:
+                return True
+            if resp.status_code in (400, 401, 403):
+                return False
+            # On 5xx or transient network issue, fallback to strict format validation
+            return True
+    except httpx.RequestError:
+        return _is_valid_gemini_key_format(key)
+
+
 def _mask_api_key(key: str) -> str:
     """Mask sensitive API keys for safe display in UI."""
     clean = (key or "").strip()
-    placeholder_keys = ("", "la_tua_api_key_gemini", "YOUR_API_KEY", "your_gemini_api_key")
-    if not clean or clean in placeholder_keys:
+    if not _is_valid_gemini_key_format(clean):
         return ""
-    if len(clean) <= 8:
-        return "********"
     return f"{clean[:6]}...{clean[-4:]}"
 
 
@@ -438,12 +474,11 @@ def get_system_settings(
 ) -> dict[str, Any]:
     """Retrieve system settings with masked API keys. Accessible to all authenticated users."""
     gemini_key = get_setting("gemini_api_key", "").strip()
-    placeholder_keys = ("", "la_tua_api_key_gemini", "YOUR_API_KEY", "your_gemini_api_key")
-    is_configured = bool(gemini_key and gemini_key not in placeholder_keys)
+    is_configured = _is_valid_gemini_key_format(gemini_key)
 
     return {
         "gemini_configured": is_configured,
-        "gemini_api_key_masked": _mask_api_key(gemini_key),
+        "gemini_api_key_masked": _mask_api_key(gemini_key) if is_configured else "",
         "gemini_model": get_setting("gemini_model", "gemini-2.5-flash").strip() or "gemini-2.5-flash",
         "ha_webhook_url": get_setting("ha_webhook_url", "").strip(),
         "show_ams_cockpit": get_setting("show_ams_cockpit", "false").strip().lower() in ("true", "1", "yes"),
@@ -463,8 +498,20 @@ def update_system_settings(
 
     if req.gemini_api_key is not None:
         raw_key = req.gemini_api_key.strip()
-        # Only update if user entered a real key and not the masked placeholder
-        if raw_key and not raw_key.startswith("***") and raw_key != "__keep__":
+        if raw_key == "__clear__":
+            set_setting("gemini_api_key", "")
+            updated_fields.append("gemini_api_key_cleared")
+        elif raw_key and not raw_key.startswith("***") and raw_key != "__keep__":
+            if not _is_valid_gemini_key_format(raw_key):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Formato chiave API Gemini non valido. Deve iniziare con 'AIza' ed essere una chiave Google AI Studio completa.",
+                )
+            if not _verify_gemini_key_online(raw_key):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Chiave API Gemini rifiutata da Google (API_KEY_INVALID). Verifica di aver copiato una chiave valida da Google AI Studio.",
+                )
             set_setting("gemini_api_key", raw_key)
             updated_fields.append("gemini_api_key")
 
@@ -490,12 +537,11 @@ def update_system_settings(
     )
 
     gemini_key = get_setting("gemini_api_key", "").strip()
-    placeholder_keys = ("", "la_tua_api_key_gemini", "YOUR_API_KEY", "your_gemini_api_key")
-    is_configured = bool(gemini_key and gemini_key not in placeholder_keys)
+    is_configured = _is_valid_gemini_key_format(gemini_key)
 
     return {
         "gemini_configured": is_configured,
-        "gemini_api_key_masked": _mask_api_key(gemini_key),
+        "gemini_api_key_masked": _mask_api_key(gemini_key) if is_configured else "",
         "gemini_model": get_setting("gemini_model", "gemini-2.5-flash").strip() or "gemini-2.5-flash",
         "ha_webhook_url": get_setting("ha_webhook_url", "").strip(),
         "show_ams_cockpit": get_setting("show_ams_cockpit", "false").strip().lower() in ("true", "1", "yes"),
