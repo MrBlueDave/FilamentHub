@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="it" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stampa Foglio Adesivo A4 - FilamentHub 3D</title>
+  <link rel="icon" type="image/svg+xml" href="/static/icon.svg">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- JsBarcode for client-side sharp vector barcodes -->
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+
+  <style>
+    /* Screen styling */
+    body {
+      background-color: #0b0f19;
+      color: #f9fafb;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    /* Print sheet preview */
+    .sheet-preview-a4 {
+      width: 210mm;
+      min-height: 297mm;
+      background: white;
+      color: black;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
+      margin: 0 auto;
+      box-sizing: border-box;
+      position: relative;
+    }
+
+    /* Interactive Mini Map */
+    .mini-cell {
+      cursor: pointer;
+      transition: all 0.15s ease-in-out;
+    }
+    .mini-cell:hover {
+      border-color: #6366f1 !important;
+      transform: scale(1.04);
+    }
+    .mini-cell-active {
+      background: #1e1b4b;
+      border-color: #6366f1 !important;
+      color: #c7d2fe;
+    }
+    .mini-cell-disabled {
+      background: #111827;
+      border-color: #374151 !important;
+      color: #4b5563;
+      opacity: 0.5;
+    }
+
+    /* Sticker Print Layout */
+    .label-card {
+      box-sizing: border-box;
+      border: 1px dashed #d1d5db; /* subtle cutting line on screen, removed on print if desired */
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow: hidden;
+      background: white;
+      color: black;
+    }
+
+    /* EXACT PRINT MEDIA QUERY */
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 0;
+      }
+      html, body {
+        width: 210mm;
+        height: 297mm;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #ffffff !important;
+        color: #000000 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .sheet-preview-a4 {
+        box-shadow: none !important;
+        margin: 0 !important;
+        width: 210mm !important;
+        height: 297mm !important;
+        page-break-after: avoid;
+        page-break-inside: avoid;
+      }
+      .label-card {
+        border: none !important; /* In print, no cutting borders */
+      }
+    }
+  </style>
+</head>
+<body class="p-4 sm:p-6 min-h-screen flex flex-col items-center">
+
+  <!-- ========================================================================= -->
+  <!-- SCREEN CONTROLS & CONFIGURATION PANEL (HIDDEN ON PRINT) -->
+  <!-- ========================================================================= -->
+  <div class="no-print max-w-5xl w-full mb-6 space-y-4">
+    <!-- Top Navigation -->
+    <div class="flex items-center justify-between border-b border-gray-800 pb-4">
+      <div class="flex items-center gap-3">
+        <a href="/" class="p-2 rounded-xl bg-gray-900 border border-gray-800 hover:border-gray-700 text-gray-400 hover:text-gray-100 transition">
+          <i data-lucide="arrow-left" class="w-5 h-5"></i>
+        </a>
+        <div>
+          <h1 class="text-lg font-bold text-gray-100 flex items-center gap-2">
+            <i data-lucide="printer" class="w-5 h-5 text-indigo-400"></i>
+            Stampa Foglio Adesivo A4
+          </h1>
+          <p class="text-xs text-gray-400 font-mono">Ottimizzazione layout laser e selettore "Salva-Foglio"</p>
+        </div>
+      </div>
+
+      <!-- Main Print Trigger -->
+      <div class="flex items-center gap-2">
+        <button onclick="window.print()" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-emerald-600/30 flex items-center gap-2 transition">
+          <i data-lucide="printer" class="w-4 h-4"></i>
+          <span>Stampa Ora (Ctrl+P)</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Configuration Options Card -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-900/90 border border-gray-800 rounded-2xl p-4 text-xs">
+      
+      <!-- Preset Selection -->
+      <div class="space-y-2">
+        <label class="block font-semibold text-gray-300 uppercase tracking-wider text-[11px]">Preset Foglio Adesivo</label>
+        <select id="presetSelect" onchange="a4App.applyPreset(this.value)" class="w-full px-3 py-2 bg-gray-950 border border-gray-700 rounded-xl text-gray-100 focus:outline-none focus:border-indigo-500">
+          <option value="3x8">Standard 3x8 (24 etichette - 70 x 37 mm)</option>
+          <option value="3x7">Standard 3x7 (21 etichette - 70 x 42.3 mm)</option>
+          <option value="2x7">Compatto 2x7 (14 etichette - 105 x 42.3 mm)</option>
+        </select>
+        <p class="text-[11px] text-gray-500">I preset configurano automaticamente colonne, righe e margini tipici dei fogli Avery/Herma.</p>
+      </div>
+
+      <!-- Quick Fill Options -->
+      <div class="space-y-2">
+        <label class="block font-semibold text-gray-300 uppercase tracking-wider text-[11px]">Gestione Contenuto</label>
+        <div class="flex flex-wrap gap-2">
+          <button onclick="a4App.fillWithQueue()" class="px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 border border-indigo-500/30 rounded-xl font-medium flex items-center gap-1.5 transition">
+            <i data-lucide="list-ordered" class="w-3.5 h-3.5"></i>
+            <span>Coda A4 (<span id="queueCountSpan">0</span>)</span>
+          </button>
+          <button onclick="a4App.openSpoolSelectorModal()" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-700 rounded-xl font-medium flex items-center gap-1.5 transition">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+            <span>Aggiungi Bobina</span>
+          </button>
+          <button onclick="a4App.clearQueue()" class="px-2.5 py-1.5 bg-red-950/40 hover:bg-red-900/40 text-red-400 border border-red-800/60 rounded-xl font-medium transition" title="Svuota Coda">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+        <p class="text-[11px] text-gray-500">Puoi anche cliccare qualsiasi casella nel mini-selettore sottostante.</p>
+      </div>
+
+      <!-- Salva Foglio Feature info -->
+      <div class="space-y-1.5 bg-gray-950/60 border border-gray-800 p-3 rounded-xl">
+        <h4 class="font-bold text-amber-400 flex items-center gap-1 text-[11px] uppercase">
+          <i data-lucide="scissors" class="w-3.5 h-3.5"></i> Funzione Salva-Foglio
+        </h4>
+        <p class="text-[11px] text-gray-400">
+          Hai un foglio adesivo parzialmente usato? Clicca sul mini-foglio per selezionare la <b>casella di partenza</b> (es. casella #7) per non sprecare le etichette già staccate!
+        </p>
+      </div>
+
+    </div>
+
+    <!-- Interactive Mini-Sheet Selector ("Salva-Foglio") -->
+    <div class="bg-gray-900/90 border border-gray-800 rounded-2xl p-4 text-xs space-y-3">
+      <div class="flex items-center justify-between">
+        <span class="font-semibold text-gray-300 flex items-center gap-1.5">
+          <i data-lucide="grid" class="w-4 h-4 text-indigo-400"></i>
+          Selettore Interattivo Caselle (Clicca per attivare/disattivare o imposta inizio)
+        </span>
+        <div class="flex items-center gap-2">
+          <button onclick="a4App.selectAllCells(true)" class="text-indigo-400 hover:underline">Attiva Tutte</button>
+          <span class="text-gray-600">•</span>
+          <button onclick="a4App.selectAllCells(false)" class="text-gray-400 hover:underline">Disattiva Tutte</button>
+        </div>
+      </div>
+
+      <!-- Mini Grid Container -->
+      <div id="miniSheetGrid" class="grid gap-1.5 max-w-sm mx-auto p-3 bg-black rounded-xl border border-gray-800 font-mono text-[10px]">
+        <!-- Rendered via JS -->
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- A4 PRINTABLE SHEET (EXACT 210mm x 297mm) -->
+  <!-- ========================================================================= -->
+  <div id="printableA4Sheet" class="sheet-preview-a4" style="padding: 10mm 5mm 10mm 5mm;">
+    <div id="labelsGrid" style="display: grid; width: 100%; height: 100%; box-sizing: border-box;">
+      <!-- Labels injected via JS -->
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: SELEZIONA BOBINA DALL'INVENTARIO -->
+  <!-- ========================================================================= -->
+  <div id="spoolSelectModal" class="no-print fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md hidden">
+    <div class="max-w-md w-full bg-gray-900 border border-gray-800 rounded-2xl p-5 shadow-2xl space-y-4 max-h-[85vh] flex flex-col">
+      <div class="flex items-center justify-between border-b border-gray-800 pb-3 shrink-0">
+        <h3 class="text-sm font-bold text-gray-100 flex items-center gap-2">
+          <i data-lucide="package" class="w-4 h-4 text-indigo-400"></i> Scegli Bobina da Stampare
+        </h3>
+        <button onclick="document.getElementById('spoolSelectModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-200">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <input
+        type="text"
+        id="spoolSearchInput"
+        placeholder="Cerca per brand, materiale, colore..."
+        oninput="a4App.filterSpoolCatalog(this.value)"
+        class="w-full px-3 py-2 bg-gray-950 border border-gray-700 rounded-xl text-xs text-gray-100"
+      />
+
+      <div id="spoolCatalogList" class="overflow-y-auto flex-1 space-y-2 text-xs">
+        <!-- Rendered via JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- A4 App Logic -->
+  <script>
+    class A4PrintApp {
+      constructor() {
+        this.spools = [];
+        this.queueUids = JSON.parse(localStorage.getItem('filamenthub_a4_queue') || '[]');
+        this.targetCellForCustomSpool = null;
+
+        // Sheet Preset Configuration
+        this.presets = {
+          '3x8': { cols: 3, rows: 8, labelW: 70, labelH: 37, marginTop: 9, marginBottom: 9, marginLeft: 0, marginRight: 0, gapX: 0, gapY: 0 },
+          '3x7': { cols: 3, rows: 7, labelW: 70, labelH: 42.3, marginTop: 0.5, marginBottom: 0.5, marginLeft: 0, marginRight: 0, gapX: 0, gapY: 0 },
+          '2x7': { cols: 2, rows: 7, labelW: 105, labelH: 42.3, marginTop: 0.5, marginBottom: 0.5, marginLeft: 0, marginRight: 0, gapX: 0, gapY: 0 }
+        };
+        this.currentPresetKey = '3x8';
+
+        // Cells Array: each item is { active: bool, spool: object | null }
+        this.cells = [];
+
+        document.addEventListener('DOMContentLoaded', () => this.init());
+      }
+
+      async init() {
+        await this.loadSpools();
+        this.applyPreset(this.currentPresetKey);
+        this.fillWithQueue();
+      }
+
+      async loadSpools() {
+        try {
+          const res = await fetch('/api/spools');
+          if (res.ok) {
+            this.spools = await res.json();
+          }
+        } catch (e) {
+          console.warn('Errore caricamento spools per A4:', e);
+        }
+      }
+
+      applyPreset(presetKey) {
+        this.currentPresetKey = presetKey;
+        const conf = this.presets[presetKey];
+        const total = conf.cols * conf.rows;
+
+        // Initialize cells
+        this.cells = Array.from({ length: total }, (_, i) => {
+          return this.cells[i] || { active: true, spool: null };
+        });
+
+        // Set Printable Sheet styling
+        const sheet = document.getElementById('printableA4Sheet');
+        const grid = document.getElementById('labelsGrid');
+
+        sheet.style.padding = `${conf.marginTop}mm ${conf.marginRight}mm ${conf.marginBottom}mm ${conf.marginLeft}mm`;
+        grid.style.gridTemplateColumns = `repeat(${conf.cols}, ${conf.labelW}mm)`;
+        grid.style.gridTemplateRows = `repeat(${conf.rows}, ${conf.labelH}mm)`;
+        grid.style.columnGap = `${conf.gapX}mm`;
+        grid.style.rowGap = `${conf.gapY}mm`;
+
+        this.renderMiniSheet();
+        this.renderPrintableGrid();
+      }
+
+      fillWithQueue() {
+        // Clear all cells
+        this.cells.forEach(c => c.spool = null);
+
+        // Map queue items to active cells
+        let queueIdx = 0;
+        for (let i = 0; i < this.cells.length; i++) {
+          if (this.cells[i].active && queueIdx < this.queueUids.length) {
+            const uid = this.queueUids[queueIdx];
+            const found = this.spools.find(s => s.uid_code === uid);
+            this.cells[i].spool = found || { uid_code: uid, brand: 'FilamentHub', material: 'PLA', tare_weight_g: 250 };
+            queueIdx++;
+          }
+        }
+
+        const countSpan = document.getElementById('queueCountSpan');
+        if (countSpan) countSpan.textContent = this.queueUids.length;
+
+        this.renderMiniSheet();
+        this.renderPrintableGrid();
+      }
+
+      clearQueue() {
+        if (!confirm('Svuotare la coda di stampa A4?')) return;
+        this.queueUids = [];
+        localStorage.setItem('filamenthub_a4_queue', JSON.stringify([]));
+        this.fillWithQueue();
+      }
+
+      renderMiniSheet() {
+        const conf = this.presets[this.currentPresetKey];
+        const mini = document.getElementById('miniSheetGrid');
+        if (!mini) return;
+
+        mini.style.gridTemplateColumns = `repeat(${conf.cols}, minmax(0, 1fr))`;
+        mini.innerHTML = this.cells.map((cell, idx) => {
+          const isAct = cell.active;
+          const hasSpool = cell.spool !== null;
+          return `
+            <div
+              onclick="a4App.toggleCell(${idx})"
+              oncontextmenu="a4App.setStartCell(event, ${idx})"
+              class="mini-cell p-2 rounded border text-center ${isAct ? 'mini-cell-active' : 'mini-cell-disabled'}"
+              title="Casella #${idx + 1} - Clicca per attivare/disattivare, tasto destro per 'Inizia da qui'"
+            >
+              <div class="font-bold text-[10px]">#${idx + 1}</div>
+              <div class="truncate text-[9px] mt-0.5">${hasSpool ? cell.spool.uid_code : (isAct ? 'Vuota' : 'Saltata')}</div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      toggleCell(idx) {
+        this.cells[idx].active = !this.cells[idx].active;
+        if (!this.cells[idx].active) {
+          this.cells[idx].spool = null;
+        }
+        this.renderMiniSheet();
+        this.renderPrintableGrid();
+      }
+
+      setStartCell(event, startIdx) {
+        event.preventDefault();
+        // Skip all cells before startIdx
+        for (let i = 0; i < this.cells.length; i++) {
+          this.cells[i].active = i >= startIdx;
+        }
+        this.fillWithQueue();
+      }
+
+      selectAllCells(active) {
+        this.cells.forEach(c => c.active = active);
+        if (active) this.fillWithQueue();
+        else {
+          this.renderMiniSheet();
+          this.renderPrintableGrid();
+        }
+      }
+
+      openSpoolSelectorModal(targetCellIdx = null) {
+        this.targetCellForCustomSpool = targetCellIdx;
+        this.filterSpoolCatalog('');
+        document.getElementById('spoolSelectModal').classList.remove('hidden');
+      }
+
+      filterSpoolCatalog(query) {
+        const container = document.getElementById('spoolCatalogList');
+        if (!container) return;
+        const q = query.toLowerCase().trim();
+        const filtered = this.spools.filter(s => !q || `${s.uid_code} ${s.brand} ${s.material} ${s.color_name || ''}`.toLowerCase().includes(q));
+
+        container.innerHTML = filtered.map(s => `
+          <div onclick="a4App.addSpoolToLabels(${s.id})" class="p-2.5 bg-gray-950 hover:bg-indigo-950/60 border border-gray-800 hover:border-indigo-500 rounded-xl flex items-center justify-between cursor-pointer transition">
+            <div class="flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full inline-block" style="background: ${s.color_hex};"></span>
+              <div>
+                <span class="font-bold text-gray-200">${s.uid_code} • ${s.brand}</span>
+                <span class="text-gray-400">${s.material} ${s.subtype || ''} (${s.color_name || ''})</span>
+              </div>
+            </div>
+            <span class="font-mono font-bold text-emerald-400">${Math.round(s.net_remaining_g || 0)}g</span>
+          </div>
+        `).join('');
+      }
+
+      addSpoolToLabels(spoolId) {
+        const spool = this.spools.find(s => s.id === spoolId);
+        if (!spool) return;
+
+        // If target cell specified, assign there; else find first active empty cell
+        if (this.targetCellForCustomSpool !== null) {
+          this.cells[this.targetCellForCustomSpool].spool = spool;
+          this.cells[this.targetCellForCustomSpool].active = true;
+        } else {
+          const emptyCell = this.cells.find(c => c.active && !c.spool);
+          if (emptyCell) {
+            emptyCell.spool = spool;
+          } else {
+            // Push to queue
+            this.queueUids.push(spool.uid_code);
+            localStorage.setItem('filamenthub_a4_queue', JSON.stringify(this.queueUids));
+            this.fillWithQueue();
+          }
+        }
+
+        document.getElementById('spoolSelectModal').classList.add('hidden');
+        this.renderMiniSheet();
+        this.renderPrintableGrid();
+      }
+
+      renderPrintableGrid() {
+        const grid = document.getElementById('labelsGrid');
+        if (!grid) return;
+
+        grid.innerHTML = this.cells.map((cell, idx) => {
+          if (!cell.active || !cell.spool) {
+            // Completely empty cell (no print ink, no border on print)
+            return `<div class="label-card" style="visibility: hidden;"></div>`;
+          }
+
+          const s = cell.spool;
+          const barcodeSvgId = `barcode_${idx}`;
+
+          return `
+            <div class="label-card p-2 flex flex-col justify-between" style="border: 1px dashed #e5e7eb;">
+              
+              <!-- Header Row: UID + Material + Subtype -->
+              <div class="flex items-center justify-between border-b border-black/80 pb-1">
+                <div class="font-black text-sm tracking-tight text-black">${s.uid_code}</div>
+                <div class="font-extrabold text-xs text-black uppercase">${s.material} ${s.subtype || ''}</div>
+              </div>
+
+              <!-- Middle Row: Barcode (Left) + Details (Right) -->
+              <div class="flex items-center justify-between gap-1 my-1">
+                <div class="shrink-0 flex items-center justify-center">
+                  <svg id="${barcodeSvgId}" style="height: 30px; max-width: 120px;"></svg>
+                </div>
+                <div class="text-right leading-tight min-w-0 flex-1">
+                  <div class="font-bold text-xs truncate text-black">${s.brand}</div>
+                  <div class="text-[10px] text-gray-800 truncate flex items-center justify-end gap-1">
+                    <span class="inline-block w-2.5 h-2.5 rounded-full border border-black/40" style="background-color: ${s.color_hex || '#000'};"></span>
+                    <span>${s.color_name || 'N/D'}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Footer Row: Temps, K-Factor, Flow & Tara -->
+              <div class="border-t border-black/80 pt-0.5 flex items-center justify-between text-[9px] font-mono font-bold text-black">
+                <span>${s.nozzle_temp_min || 200}-${s.nozzle_temp_max || 230}° / ${s.bed_temp || 60}°C</span>
+                <span>K:${s.k_factor !== null && s.k_factor !== undefined ? s.k_factor : '0.020'}</span>
+                <span>F:${s.flow_ratio !== null && s.flow_ratio !== undefined ? s.flow_ratio : '0.98'}</span>
+                <span>T:${Math.round(s.tare_weight_g || 250)}g</span>
+              </div>
+
+            </div>
+          `;
+        }).join('');
+
+        // Generate Barcodes with JsBarcode
+        this.cells.forEach((cell, idx) => {
+          if (cell.active && cell.spool) {
+            const svgId = `#barcode_${idx}`;
+            try {
+              JsBarcode(svgId, cell.spool.uid_code, {
+                format: 'CODE128',
+                displayValue: false,
+                margin: 0,
+                width: 1.5,
+                height: 30
+              });
+            } catch (e) {
+              console.warn(e);
+            }
+          }
+        });
+      }
+    }
+
+    const a4App = new A4PrintApp();
+    lucide.createIcons();
+  </script>
+</body>
+</html>
