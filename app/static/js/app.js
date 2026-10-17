@@ -435,8 +435,8 @@ class FilamentHubApp {
     const model = document.getElementById('settingsGeminiModel')?.value || 'gemini-3.5-flash-lite';
     const saveBtn = document.getElementById('settingsSaveBtn');
 
-    if (keyInput && (!keyInput.startsWith('AIza') || keyInput.length < 30)) {
-      this.showToast("Chiave API non valida: deve iniziare con 'AIza' ed essere completa.", 'error');
+    if (keyInput && keyInput.length < 12) {
+      this.showToast('Chiave API troppo corta o non valida.', 'error');
       return;
     }
 
@@ -449,7 +449,7 @@ class FilamentHubApp {
 
     if (saveBtn) {
       saveBtn.disabled = true;
-      saveBtn.textContent = 'Verifica in corso...';
+      saveBtn.textContent = 'Salvataggio...';
     }
 
     try {

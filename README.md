@@ -3,7 +3,7 @@
 # 🧵 FilamentHub 3D
 ### Progressive Web App per la Gestione Bobine di Filamento 3D, Calibrazioni Slicer & Stampa Etichette
 
-[![Version](https://img.shields.io/badge/version-1.2-emerald.svg?style=for-the-badge)](https://github.com/MrBlueDave/FilamentHub)
+[![Version](https://img.shields.io/badge/version-1.3-emerald.svg?style=for-the-badge)](https://github.com/MrBlueDave/FilamentHub)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688.svg?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Python](https://img.shields.io/badge/Python-3.12+-3776AB.svg?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?style=for-the-badge&logo=docker&logoColor=white)](https://docker.com)
@@ -42,7 +42,7 @@
 
 ## 🚀 Installazione Rapida
 
-Puoi installare **FilamentHub 3D v1.2** scegliendo tra due modalità: **Container Nativo Proxmox LXC** oppure **Docker & Docker Compose**.
+Puoi installare **FilamentHub 3D v1.3** scegliendo tra due modalità: **Container Nativo Proxmox LXC** oppure **Docker & Docker Compose**.
 
 ### Opzione 1: Container Proxmox LXC (Debian 12 / Ubuntu 22.04-24.04) — *Consigliata*
 

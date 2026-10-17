@@ -108,7 +108,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="FilamentHub 3D",
-    version="1.2",
+    version="1.3",
     description="3D Printing Filament & Slicer Calibration Inventory Management",
     lifespan=lifespan,
 )
@@ -137,7 +137,7 @@ async def security_headers_middleware(request: Request, call_next):
 @app.get("/api/health", tags=["Health"])
 def health_check() -> Dict[str, str]:
     """Health check endpoint for Docker container checks, monitors, and load balancers."""
-    return {"status": "ok", "app": "FilamentHub 3D", "version": "1.2"}
+    return {"status": "ok", "app": "FilamentHub 3D", "version": "1.3"}
 
 
 # Include API Routers

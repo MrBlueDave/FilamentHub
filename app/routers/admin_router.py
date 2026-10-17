@@ -431,33 +431,15 @@ PLACEHOLDER_GEMINI_KEYS = (
 
 
 def _is_valid_gemini_key_format(key: str) -> bool:
-    """Return True only if the key looks like a real unmasked Google Gemini API key."""
+    """Return True if the key is a non-empty, non-placeholder, unmasked API key."""
     clean = (key or "").strip()
     if not clean or clean in PLACEHOLDER_GEMINI_KEYS:
         return False
-    if "..." in clean or "*" in clean:
+    if "..." in clean or clean.startswith("***"):
         return False
-    if not clean.startswith("AIza") or len(clean) < 30:
+    if len(clean) < 12:
         return False
     return True
-
-
-def _verify_gemini_key_online(key: str) -> bool:
-    """Verify the Gemini API key against Google AI Studio models endpoint."""
-    if not _is_valid_gemini_key_format(key):
-        return False
-    url = f"https://generativelanguage.googleapis.com/v1beta/models?key={key.strip()}"
-    try:
-        with httpx.Client(timeout=6.0) as client:
-            resp = client.get(url)
-            if resp.status_code == 200:
-                return True
-            if resp.status_code in (400, 401, 403):
-                return False
-            # On 5xx or transient network issue, fallback to strict format validation
-            return True
-    except httpx.RequestError:
-        return _is_valid_gemini_key_format(key)
 
 
 def _mask_api_key(key: str) -> str:
@@ -505,12 +487,7 @@ def update_system_settings(
             if not _is_valid_gemini_key_format(raw_key):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Formato chiave API Gemini non valido. Deve iniziare con 'AIza' ed essere una chiave Google AI Studio completa.",
-                )
-            if not _verify_gemini_key_online(raw_key):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Chiave API Gemini rifiutata da Google (API_KEY_INVALID). Verifica di aver copiato una chiave valida da Google AI Studio.",
+                    detail="Chiave API non valida (troppo corta o formato placeholder).",
                 )
             set_setting("gemini_api_key", raw_key)
             updated_fields.append("gemini_api_key")
