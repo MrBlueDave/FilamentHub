@@ -50,7 +50,7 @@
   <script src="https://unpkg.com/lucide@latest"></script>
 
   <!-- Custom Adaptive Tech Styles -->
-  <link rel="stylesheet" href="/static/css/styles.css?v=1.3">
+  <link rel="stylesheet" href="/static/css/styles.css?v=1.4">
 </head>
 <body class="bg-slate-50 dark:bg-[#0a0f1d] text-slate-900 dark:text-slate-100 h-[100dvh] w-full overflow-hidden flex flex-col antialiased selection:bg-indigo-600 selection:text-white">
 
@@ -73,7 +73,7 @@
             <h1 class="text-base sm:text-lg font-black tracking-tight text-slate-900 dark:text-white leading-none">
               FilamentHub
             </h1>
-            <p class="text-[10px] text-slate-500 dark:text-slate-400 font-mono">Spool Database • v1.3</p>
+            <p class="text-[10px] text-slate-500 dark:text-slate-400 font-mono">Spool Database • v1.4</p>
           </div>
         </div>
 
@@ -347,7 +347,7 @@
           <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-600 text-white flex items-center justify-center font-black text-sm uppercase shadow-md shadow-indigo-500/20" id="mobileUserAvatar">U</div>
           <div>
             <h4 class="font-extrabold text-slate-900 dark:text-white text-base leading-tight" id="mobileUserFullName">Utente</h4>
-            <p class="text-xs text-slate-500 dark:text-slate-400 font-mono" id="mobileUserRole">Ruolo: editor</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400 font-mono" id="mobileUserRole">Profilo Personale • Utente Standard</p>
           </div>
         </div>
         <button onclick="app.closeMobileMenuSheet()" class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition">
@@ -366,7 +366,7 @@
             </div>
             <div>
               <div class="text-sm font-bold text-slate-800 dark:text-slate-100">Configura Gemini Vision AI</div>
-              <div class="text-[11px] text-slate-500 dark:text-slate-400">Riconoscimento etichette e colori da foto</div>
+              <div class="text-[11px] text-slate-500 dark:text-slate-400">Chiave API personale per scansione foto</div>
             </div>
           </div>
           <div class="flex items-center gap-2">
@@ -400,7 +400,7 @@
             </div>
             <div>
               <div class="text-sm font-bold text-slate-800 dark:text-slate-100">Pannello Amministrazione</div>
-              <div class="text-[11px] text-slate-500 dark:text-slate-400">Utenti, Dizionario Tare, Token HA</div>
+              <div class="text-[11px] text-slate-500 dark:text-slate-400">Gestione Utenti e Dizionario Tare</div>
             </div>
           </div>
           <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition"></i>
@@ -435,7 +435,7 @@
 
       <!-- App Version Info -->
       <div class="text-center pt-2">
-        <p class="text-[11px] text-slate-400 dark:text-slate-500 font-mono">FilamentHub 3D v1.3</p>
+        <p class="text-[11px] text-slate-400 dark:text-slate-500 font-mono">FilamentHub 3D v1.4</p>
       </div>
     </div>
   </div>
@@ -1237,7 +1237,7 @@
   </div>
 
   <!-- ========================================================================= -->
-  <!-- MODAL 5: PANNELLO ADMIN (UTENTI, TOKENS HA, TARE, AUDIT LOGS) -->
+  <!-- MODAL 5: PANNELLO ADMIN (UTENTI, TARE BRAND, SECURITY LOGS) -->
   <!-- ========================================================================= -->
   <div id="adminModal" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md hidden overflow-y-auto" onclick="if(event.target===this)app.closeAdminModal()">
     <div class="solid-modal w-full sm:max-w-3xl rounded-t-3xl sm:rounded-2xl border-t sm:border border-slate-700 shadow-2xl overflow-hidden h-[90dvh] sm:h-auto sm:max-h-[92vh] flex flex-col mobile-sheet" onclick="event.stopPropagation()">
@@ -1248,7 +1248,7 @@
           </div>
           <div>
             <h3 class="text-base font-bold text-white">Pannello Amministrazione</h3>
-            <p class="text-xs text-slate-400 font-mono">Gestione Utenti, Token e Tare</p>
+            <p class="text-xs text-slate-400 font-mono">Gestione Utenti, Tare Brand e Security Logs</p>
           </div>
         </div>
         <button onclick="app.closeAdminModal()" class="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition">
@@ -1258,21 +1258,55 @@
 
       <div class="px-4 pt-2 border-b border-slate-800 flex gap-4 shrink-0 bg-slate-950 text-xs">
         <button onclick="app.setAdminTab('users')" id="adminTabUsersBtn" class="pb-2 border-b-2 border-indigo-500 text-indigo-400 font-bold">Utenti</button>
-        <button onclick="app.setAdminTab('tokens')" id="adminTabTokensBtn" class="pb-2 border-b-2 border-transparent text-slate-400 font-semibold">Token HA</button>
-        <button onclick="app.setAdminTab('tares')" id="adminTabTaresBtn" class="pb-2 border-b-2 border-transparent text-slate-400 font-semibold">Dizionario Tare</button>
+        <button onclick="app.setAdminTab('tares')" id="adminTabTaresBtn" class="pb-2 border-b-2 border-transparent text-slate-400 font-semibold">Tare Brand</button>
+        <button onclick="app.setAdminTab('logs')" id="adminTabLogsBtn" class="pb-2 border-b-2 border-transparent text-slate-400 font-semibold">Security Logs</button>
       </div>
 
       <div class="p-4 overflow-y-auto flex-1 text-xs space-y-4">
         <!-- Tab 1: Utenti -->
         <div id="adminTabUsersContent" class="space-y-4">
-          <form onsubmit="app.handleCreateUser(event)" class="p-3 bg-slate-900 border border-slate-800 rounded-xl space-y-2">
-            <h4 class="font-bold text-slate-200">Nuovo Utente</h4>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <form onsubmit="app.handleCreateUser(event)" class="p-3.5 bg-slate-900 border border-slate-800 rounded-xl space-y-2.5">
+            <div class="flex items-center justify-between">
+              <h4 class="font-bold text-slate-200">Crea Nuovo Utente</h4>
+              <span class="text-[10px] text-slate-400 font-mono">Ogni utente ha il proprio archivio bobine personale</span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-2">
               <input type="text" id="newUsername" required placeholder="Username" class="px-3 py-2 bg-[#0b0f19] border border-slate-700 rounded-xl text-white">
-              <input type="password" id="newUserPassword" required placeholder="Password" class="px-3 py-2 bg-[#0b0f19] border border-slate-700 rounded-xl text-white">
-              <button type="submit" class="py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold">Crea Utente</button>
+              <input type="password" id="newUserPassword" required minlength="8" placeholder="Password (min 8 car.)" class="px-3 py-2 bg-[#0b0f19] border border-slate-700 rounded-xl text-white">
+              <select id="newUserRole" class="px-3 py-2 bg-[#0b0f19] border border-slate-700 rounded-xl text-white">
+                <option value="editor" selected>Utente Standard (Archivio Personale)</option>
+                <option value="admin">Amministratore (Gestione Sistema)</option>
+              </select>
+              <button type="submit" class="py-2 px-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold shadow">Crea Utente</button>
             </div>
           </form>
+
+          <!-- Box / Dialog Imposta Nuova Password per Utente Esistente -->
+          <div id="adminResetPasswordBox" class="hidden p-3.5 bg-amber-950/50 border border-amber-600/60 rounded-xl space-y-2.5">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-amber-300 flex items-center gap-1.5">
+                <i data-lucide="key-round" class="w-4 h-4 text-amber-400"></i>
+                <span>Imposta Nuova Password per <strong id="adminResetPassUsername" class="text-white font-mono">utente</strong></span>
+              </span>
+              <button type="button" onclick="app.closeAdminResetPasswordModal()" class="text-amber-400 hover:text-white">✕</button>
+            </div>
+            <form onsubmit="app.handleAdminResetPassword(event)" class="flex flex-col sm:flex-row gap-2">
+              <input type="hidden" id="adminResetPassUserId" value="">
+              <input
+                type="password"
+                id="adminResetPassInput"
+                required
+                minlength="8"
+                placeholder="Nuova password (minimo 8 caratteri)..."
+                class="flex-1 px-3 py-2 bg-[#0b0f19] border border-amber-700 rounded-xl text-white font-mono text-xs focus:outline-none focus:border-amber-400"
+              />
+              <div class="flex items-center gap-2 shrink-0">
+                <button type="button" onclick="app.closeAdminResetPasswordModal()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-semibold">Annulla</button>
+                <button type="submit" id="adminResetPassSubmitBtn" class="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-bold shadow">Salva Password</button>
+              </div>
+            </form>
+          </div>
+
           <div class="overflow-x-auto border border-slate-800 rounded-xl">
             <table class="w-full text-left font-mono">
               <thead class="bg-slate-950 text-slate-400 text-[11px]">
@@ -1287,33 +1321,38 @@
           </div>
         </div>
 
-        <!-- Tab 2: Token HA -->
-        <div id="adminTabTokensContent" class="hidden space-y-4">
-          <form onsubmit="app.handleCreateToken(event)" class="p-3 bg-slate-900 border border-slate-800 rounded-xl flex gap-2">
-            <input type="text" id="newTokenName" required placeholder="Nome Token (es. Home Assistant)" class="flex-1 px-3 py-2 bg-[#0b0f19] border border-slate-700 rounded-xl text-white">
-            <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold">Genera</button>
-          </form>
-          <div id="newSecretAlert" class="hidden p-3 bg-emerald-950/60 border border-emerald-800 rounded-xl space-y-1.5">
-            <span class="font-bold text-emerald-400">Token Generato:</span>
-            <input type="text" id="newSecretValue" readonly class="w-full px-3 py-1.5 bg-black border border-emerald-700 rounded-lg font-mono text-xs text-emerald-300">
-          </div>
-          <div class="overflow-x-auto border border-slate-800 rounded-xl">
-            <table class="w-full text-left font-mono">
-              <tbody id="adminTokensTableBody" class="divide-y divide-slate-800"></tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Tab 3: Tare -->
+        <!-- Tab 2: Tare Brand -->
         <div id="adminTabTaresContent" class="hidden space-y-4">
           <form onsubmit="app.handleCreateTare(event)" class="p-3 bg-slate-900 border border-slate-800 rounded-xl flex gap-2">
-            <input type="text" id="newTareBrand" required placeholder="Brand" class="flex-1 px-3 py-2 bg-[#0b0f19] border border-slate-700 rounded-xl text-white">
+            <input type="text" id="newTareBrand" required placeholder="Brand (es. Bambu Lab, Sunlu)" class="flex-1 px-3 py-2 bg-[#0b0f19] border border-slate-700 rounded-xl text-white">
             <input type="number" id="newTareWeight" required placeholder="Tara (g)" class="w-24 px-3 py-2 bg-[#0b0f19] border border-slate-700 rounded-xl text-white font-mono">
             <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold">Aggiungi</button>
           </form>
           <div class="overflow-x-auto border border-slate-800 rounded-xl">
             <table class="w-full text-left font-mono">
               <tbody id="adminTaresTableBody" class="divide-y divide-slate-800"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tab 3: Security Logs -->
+        <div id="adminTabLogsContent" class="hidden space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-slate-400 font-semibold">Ultimi Eventi di Sicurezza e Audit</span>
+            <button type="button" onclick="app.loadAdminAuditLogs()" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-[11px] font-semibold">Aggiorna</button>
+          </div>
+          <div class="overflow-x-auto border border-slate-800 rounded-xl max-h-96">
+            <table class="w-full text-left font-mono text-[11px]">
+              <thead class="bg-slate-950 text-slate-400">
+                <tr>
+                  <th class="p-2">Data/Ora</th>
+                  <th class="p-2">IP</th>
+                  <th class="p-2">Utente</th>
+                  <th class="p-2">Evento</th>
+                  <th class="p-2">Dettagli</th>
+                </tr>
+              </thead>
+              <tbody id="adminAuditLogsTableBody" class="divide-y divide-slate-800"></tbody>
             </table>
           </div>
         </div>
@@ -1368,7 +1407,7 @@
           </div>
           <div>
             <h3 class="text-sm font-bold text-slate-900 dark:text-white">Impostazioni & Gemini AI</h3>
-            <p class="text-[11px] text-slate-500 dark:text-slate-400 font-mono">Vision AI e preferenze</p>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400 font-mono">Chiave API personale per il tuo profilo</p>
           </div>
         </div>
         <button onclick="app.closeSettingsModal()" class="text-slate-400 hover:text-slate-700 dark:hover:text-white">
@@ -1379,13 +1418,13 @@
       <form onsubmit="app.handleSaveSettings(event)" class="space-y-3.5 text-xs">
         <div class="p-3 bg-slate-900 dark:bg-[#0b0f19] border border-slate-800 rounded-xl space-y-1.5">
           <div class="flex items-center justify-between">
-            <span class="font-bold text-white">Google Gemini Vision API</span>
+            <span class="font-bold text-white">Google Gemini Vision API (Personale)</span>
             <span id="settingsGeminiBadge" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-950 text-amber-400 border border-amber-800">
               Non configurata
             </span>
           </div>
           <p class="text-[11px] text-slate-300 dark:text-slate-400">
-            Abilita l'estrazione automatica di brand, materiale, colore e barcode dalle foto delle etichette.
+            Abilita l'estrazione automatica di brand, materiale, colore e barcode dalle foto delle etichette per il tuo account.
           </p>
         </div>
 
@@ -1441,6 +1480,6 @@
   <div id="toastContainer" class="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
   <!-- Application Logic -->
-  <script src="/static/js/app.js?v=1.3"></script>
+  <script src="/static/js/app.js?v=1.4"></script>
 </body>
 </html>

@@ -56,7 +56,6 @@ class FilamentHubApp {
     this.initSwipeGestures();
     this.updateQuickSortUi();
     await this.checkAuth();
-    await this.loadSettings();
     await this.loadCatalogPresets();
   }
 
@@ -161,7 +160,7 @@ class FilamentHubApp {
       const res = await fetch('/api/auth/me');
       if (res.ok) {
         this.user = await res.json();
-        this.onAuthenticated();
+        await this.onAuthenticated();
       } else {
         this.showLoginModal();
       }
@@ -171,12 +170,26 @@ class FilamentHubApp {
     }
   }
 
-  onAuthenticated() {
+  async onAuthenticated() {
     this.hideLoginModal();
     this.updateUserHeader();
-    this.loadTares();
-    this.loadSpools();
-    this.loadSettings();
+    this.settings = {
+      gemini_configured: false,
+      gemini_api_key_masked: '',
+      gemini_model: 'gemini-3.5-flash-lite'
+    };
+    this.updateSettingsUi();
+    await this.loadSettings();
+    await this.loadTares();
+    await this.loadSpools();
+  }
+
+  getRoleDisplayName(role) {
+    return role === 'admin' ? 'Amministratore' : 'Utente Standard';
+  }
+
+  getMobileRoleLabel(role) {
+    return role === 'admin' ? 'Profilo Personale • Admin' : 'Profilo Personale • Utente Standard';
   }
 
   updateUserHeader() {
@@ -187,7 +200,7 @@ class FilamentHubApp {
     const adminBtn = document.getElementById('mobileAdminMenuBtn');
 
     if (nameLabel) nameLabel.textContent = this.user.username;
-    if (roleBadge) roleBadge.textContent = `Ruolo: ${this.user.role}`;
+    if (roleBadge) roleBadge.textContent = this.getMobileRoleLabel(this.user.role);
     if (avatar) avatar.textContent = this.user.username.charAt(0).toUpperCase();
 
     if (adminBtn) {
@@ -231,8 +244,13 @@ class FilamentHubApp {
 
       if (res.ok) {
         this.user = await res.json();
+        this.settings = {
+          gemini_configured: false,
+          gemini_api_key_masked: '',
+          gemini_model: 'gemini-3.5-flash-lite'
+        };
         this.showToast(`Benvenuto, ${this.user.username}!`, 'success');
-        this.onAuthenticated();
+        await this.onAuthenticated();
       } else if (res.status === 429) {
         if (rateLimitAlert) rateLimitAlert.classList.remove('hidden');
       } else {
@@ -263,6 +281,14 @@ class FilamentHubApp {
     }
     this.user = null;
     this.spools = [];
+    this.settings = {
+      gemini_configured: false,
+      gemini_api_key_masked: '',
+      gemini_model: 'gemini-3.5-flash-lite'
+    };
+    this.updateSettingsUi();
+    this.updateFilterCounts();
+    this.renderSpoolViews();
     this.showLoginModal();
     this.showToast('Disconnessione effettuata', 'info');
   }
@@ -280,7 +306,7 @@ class FilamentHubApp {
 
       if (avatar) avatar.textContent = this.user.username.charAt(0).toUpperCase();
       if (name) name.textContent = this.user.username;
-      if (role) role.textContent = `Ruolo: ${this.user.role}`;
+      if (role) role.textContent = this.getMobileRoleLabel(this.user.role);
       if (adminBtn) adminBtn.classList.toggle('hidden', this.user.role !== 'admin');
     }
 
@@ -304,6 +330,12 @@ class FilamentHubApp {
       if (res.ok) {
         const data = await res.json();
         this.settings = { ...this.settings, ...data };
+      } else {
+        this.settings = {
+          gemini_configured: false,
+          gemini_api_key_masked: '',
+          gemini_model: 'gemini-3.5-flash-lite'
+        };
       }
     } catch (err) {
       console.warn('Impossibile caricare impostazioni da backend:', err);
@@ -339,7 +371,24 @@ class FilamentHubApp {
       disabledHint.classList.toggle('hidden', isConfigured);
     }
 
-    // 3. Mobile menu badge & bottom nav dot
+    // 3. Settings Modal internal badge & clear button
+    const settingsBadge = document.getElementById('settingsGeminiBadge');
+    if (settingsBadge) {
+      if (isConfigured) {
+        settingsBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-950 text-emerald-400 border border-emerald-800';
+        settingsBadge.textContent = `Attiva (${this.settings.gemini_api_key_masked || 'Configurata'})`;
+      } else {
+        settingsBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-950 text-amber-400 border border-amber-800';
+        settingsBadge.textContent = 'Non configurata';
+      }
+    }
+
+    const clearBtn = document.getElementById('settingsClearKeyBtn');
+    if (clearBtn) {
+      clearBtn.classList.toggle('hidden', !isConfigured);
+    }
+
+    // 4. Mobile menu badge & bottom nav dot
     const menuBadge = document.getElementById('menuGeminiBadge');
     if (menuBadge) {
       if (isConfigured) {
@@ -394,24 +443,9 @@ class FilamentHubApp {
   }
 
   openSettingsModal() {
-    const badge = document.getElementById('settingsGeminiBadge');
+    this.updateSettingsUi();
     const keyInput = document.getElementById('settingsGeminiApiKey');
     const modelSelect = document.getElementById('settingsGeminiModel');
-    const clearBtn = document.getElementById('settingsClearKeyBtn');
-
-    if (badge) {
-      if (this.settings.gemini_configured) {
-        badge.className = 'px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-950 text-emerald-400 border border-emerald-800';
-        badge.textContent = `Attiva (${this.settings.gemini_api_key_masked || 'Configurata'})`;
-      } else {
-        badge.className = 'px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-950 text-amber-400 border border-amber-800';
-        badge.textContent = 'Non configurata';
-      }
-    }
-
-    if (clearBtn) {
-      clearBtn.classList.toggle('hidden', !this.settings.gemini_configured);
-    }
 
     if (keyInput) keyInput.value = '';
     if (modelSelect && this.settings.gemini_model) {
@@ -481,18 +515,39 @@ class FilamentHubApp {
 
   async handleClearGeminiKey() {
     try {
-      const res = await fetch('/api/admin/settings', {
+      let res = await fetch('/api/admin/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ gemini_api_key: '__clear__' })
       });
-      if (res.ok) {
-        const updated = await res.json();
-        this.settings = { ...this.settings, ...updated };
-        this.updateSettingsUi();
-        this.openSettingsModal();
-        this.showToast('Chiave API Gemini rimossa. Funzioni Foto AI disattivate.', 'info');
+
+      if (!res.ok) {
+        res = await fetch('/api/admin/settings/gemini-key', { method: 'DELETE' });
       }
+
+      if (res.ok) {
+        const updated = await res.json().catch(() => ({}));
+        this.settings = { ...this.settings, ...updated };
+      }
+
+      // Explicitly enforce cleared state in frontend
+      this.settings.gemini_configured = false;
+      this.settings.gemini_api_key_masked = '';
+
+      const keyInput = document.getElementById('settingsGeminiApiKey');
+      if (keyInput) keyInput.value = '';
+
+      const badge = document.getElementById('settingsGeminiBadge');
+      if (badge) {
+        badge.className = 'px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-950 text-amber-400 border border-amber-800';
+        badge.textContent = 'Non configurata';
+      }
+
+      const clearBtn = document.getElementById('settingsClearKeyBtn');
+      if (clearBtn) clearBtn.classList.add('hidden');
+
+      this.updateSettingsUi();
+      this.showToast('Chiave API Gemini rimossa. Funzioni Foto AI disattivate.', 'info');
     } catch (err) {
       this.showToast('Errore durante la rimozione della chiave API', 'error');
     }
@@ -2736,6 +2791,7 @@ class FilamentHubApp {
       this.showToast('Accesso riservato agli amministratori', 'warning');
       return;
     }
+    this.closeAdminResetPasswordModal();
     this.setAdminTab('users');
     const modal = document.getElementById('adminModal');
     if (modal) modal.classList.remove('hidden');
@@ -2743,13 +2799,14 @@ class FilamentHubApp {
   }
 
   closeAdminModal() {
+    this.closeAdminResetPasswordModal();
     const modal = document.getElementById('adminModal');
     if (modal) modal.classList.add('hidden');
     document.body.classList.remove('overflow-hidden');
   }
 
   setAdminTab(tab) {
-    const tabs = ['users', 'tokens', 'tares'];
+    const tabs = ['users', 'tares', 'logs'];
     tabs.forEach(t => {
       const btn = document.getElementById(`adminTab${t.charAt(0).toUpperCase() + t.slice(1)}Btn`);
       const content = document.getElementById(`adminTab${t.charAt(0).toUpperCase() + t.slice(1)}Content`);
@@ -2765,8 +2822,8 @@ class FilamentHubApp {
     });
 
     if (tab === 'users') this.loadAdminUsers();
-    else if (tab === 'tokens') this.loadAdminTokens();
     else if (tab === 'tares') this.loadAdminTares();
+    else if (tab === 'logs') this.loadAdminAuditLogs();
   }
 
   async loadAdminUsers() {
@@ -2774,26 +2831,163 @@ class FilamentHubApp {
       const res = await fetch('/api/admin/users');
       if (res.ok) {
         const users = await res.json();
-        const tbody = document.getElementById('adminUsersTableBody');
-        if (!tbody) return;
-        tbody.innerHTML = users.map(u => `
-          <tr class="hover:bg-slate-900/60 transition">
-            <td class="p-2.5 font-bold text-slate-200">${this.escapeHtml(u.username)}</td>
-            <td class="p-2.5">
-              <span class="px-2 py-0.5 rounded text-[10px] font-bold ${u.role === 'admin' ? 'bg-indigo-950 text-indigo-400 border border-indigo-800' : 'bg-slate-800 text-slate-300'}">
-                ${u.role}
-              </span>
-            </td>
-            <td class="p-2.5 text-right">
-              ${u.username !== this.user.username ? `
-                <button onclick="app.deleteUser(${u.id})" class="text-red-400 hover:text-red-300 px-2 py-1 rounded hover:bg-red-950/40">Elimina</button>
-              ` : '<span class="text-slate-500 text-[10px]">Tu</span>'}
-            </td>
-          </tr>
-        `).join('');
+        this.renderAdminUsers(users);
       }
     } catch (e) {
       console.warn(e);
+    }
+  }
+
+  renderAdminUsers(users) {
+    const tbody = document.getElementById('adminUsersTableBody');
+    if (!tbody) return;
+
+    tbody.innerHTML = (users || []).map(u => {
+      const isAdmin = u.role === 'admin';
+      const isSelf = this.user && u.username === this.user.username;
+      const roleBadge = isAdmin
+        ? `<span class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-amber-950 text-amber-400 border border-amber-800">Amministratore</span>`
+        : `<span class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-indigo-950 text-indigo-400 border border-indigo-800">Utente Standard</span>`;
+
+      const safeUsername = this.escapeHtml(u.username);
+      const jsSafeUsername = String(u.username || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+
+      return `
+        <tr class="hover:bg-slate-900/60 transition">
+          <td class="p-2.5 font-bold text-slate-200">
+            <div class="flex items-center gap-1.5">
+              <span>${safeUsername}</span>
+              ${isSelf ? '<span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 text-[9px] font-normal">Tu</span>' : ''}
+            </div>
+          </td>
+          <td class="p-2.5">
+            <div class="flex items-center gap-1.5 flex-wrap">
+              ${roleBadge}
+              ${!isSelf ? `
+                <button
+                  type="button"
+                  onclick="app.toggleUserRole(${u.id}, '${u.role}', '${jsSafeUsername}')"
+                  title="Cambia ruolo tra Utente Standard e Amministratore"
+                  class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-[10px] font-semibold transition"
+                >
+                  ⇄ Cambia Ruolo
+                </button>
+              ` : ''}
+            </div>
+          </td>
+          <td class="p-2.5 text-right">
+            <div class="inline-flex items-center justify-end gap-1.5 flex-wrap">
+              <button
+                type="button"
+                onclick="app.openAdminResetPasswordModal(${u.id}, '${jsSafeUsername}')"
+                class="px-2.5 py-1 rounded-lg bg-amber-950/70 hover:bg-amber-900/80 text-amber-300 border border-amber-700/70 text-[11px] font-bold transition"
+              >
+                🔑 Nuova Password
+              </button>
+              ${!isSelf ? `
+                <button
+                  type="button"
+                  onclick="app.deleteUser(${u.id})"
+                  class="text-red-400 hover:text-red-300 px-2 py-1 rounded-lg hover:bg-red-950/40 text-[11px] font-semibold transition"
+                >
+                  Elimina
+                </button>
+              ` : ''}
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  openAdminResetPasswordModal(userId, username) {
+    const box = document.getElementById('adminResetPasswordBox');
+    const idInput = document.getElementById('adminResetPassUserId');
+    const nameLabel = document.getElementById('adminResetPassUsername');
+    const passInput = document.getElementById('adminResetPassInput');
+
+    if (idInput) idInput.value = userId;
+    if (nameLabel) nameLabel.textContent = username;
+    if (passInput) passInput.value = '';
+    if (box) {
+      box.classList.remove('hidden');
+      box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+    lucide.createIcons();
+    setTimeout(() => {
+      if (passInput) passInput.focus();
+    }, 80);
+  }
+
+  closeAdminResetPasswordModal() {
+    const box = document.getElementById('adminResetPasswordBox');
+    const idInput = document.getElementById('adminResetPassUserId');
+    const passInput = document.getElementById('adminResetPassInput');
+    if (box) box.classList.add('hidden');
+    if (idInput) idInput.value = '';
+    if (passInput) passInput.value = '';
+  }
+
+  async handleAdminResetPassword(e) {
+    e.preventDefault();
+    const userId = document.getElementById('adminResetPassUserId')?.value;
+    const username = document.getElementById('adminResetPassUsername')?.textContent || 'utente';
+    const newPassword = document.getElementById('adminResetPassInput')?.value || '';
+    const submitBtn = document.getElementById('adminResetPassSubmitBtn');
+
+    if (!userId) return;
+    if (newPassword.trim().length < 8) {
+      this.showToast('La nuova password deve contenere almeno 8 caratteri.', 'warning');
+      return;
+    }
+
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Salvataggio...';
+    }
+
+    try {
+      const res = await fetch(`/api/admin/users/${userId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: newPassword.trim() })
+      });
+
+      if (res.ok) {
+        this.closeAdminResetPasswordModal();
+        this.showToast(`Password aggiornata per ${username}`, 'success');
+      } else {
+        const err = await res.json().catch(() => ({}));
+        this.showToast(this.formatError(err, 'Errore durante l\'aggiornamento della password'), 'error');
+      }
+    } catch (err) {
+      this.showToast(this.formatError(err, 'Errore di comunicazione'), 'error');
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Salva Password';
+      }
+    }
+  }
+
+  async toggleUserRole(userId, currentRole, username) {
+    const nextRole = currentRole === 'admin' ? 'editor' : 'admin';
+    const nextLabel = this.getRoleDisplayName(nextRole);
+    try {
+      const res = await fetch(`/api/admin/users/${userId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: nextRole })
+      });
+      if (res.ok) {
+        await this.loadAdminUsers();
+        this.showToast(`Ruolo di ${username} aggiornato a ${nextLabel}`, 'success');
+      } else {
+        const err = await res.json().catch(() => ({}));
+        this.showToast(this.formatError(err, 'Impossibile aggiornare il ruolo'), 'error');
+      }
+    } catch (err) {
+      this.showToast(this.formatError(err, 'Errore di comunicazione'), 'error');
     }
   }
 
@@ -2801,18 +2995,26 @@ class FilamentHubApp {
     e.preventDefault();
     const username = document.getElementById('newUsername').value.trim();
     const password = document.getElementById('newUserPassword').value;
+    const role = document.getElementById('newUserRole')?.value || 'editor';
+
+    if (password.length < 8) {
+      this.showToast('La password deve contenere almeno 8 caratteri', 'warning');
+      return;
+    }
 
     try {
       const res = await fetch('/api/admin/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password, role: 'editor' })
+        body: JSON.stringify({ username, password, role })
       });
       if (res.ok) {
         document.getElementById('newUsername').value = '';
         document.getElementById('newUserPassword').value = '';
+        const roleSel = document.getElementById('newUserRole');
+        if (roleSel) roleSel.value = 'editor';
         this.loadAdminUsers();
-        this.showToast(`Utente ${username} creato!`, 'success');
+        this.showToast(`Utente ${username} (${this.getRoleDisplayName(role)}) creato!`, 'success');
       } else {
         const err = await res.json().catch(() => ({}));
         this.showToast(this.formatError(err, 'Errore creazione utente'), 'error');
@@ -2823,76 +3025,15 @@ class FilamentHubApp {
   }
 
   async deleteUser(id) {
-    if (!confirm('Sei sicuro di voler eliminare questo utente?')) return;
+    if (!confirm('Sei sicuro di voler eliminare questo utente e il suo archivio personale?')) return;
     try {
       const res = await fetch(`/api/admin/users/${id}`, { method: 'DELETE' });
       if (res.ok) {
         this.loadAdminUsers();
         this.showToast('Utente eliminato', 'info');
-      }
-    } catch (e) {
-      this.showToast('Errore', 'error');
-    }
-  }
-
-  async loadAdminTokens() {
-    try {
-      const res = await fetch('/api/admin/tokens');
-      if (res.ok) {
-        const tokens = await res.json();
-        const tbody = document.getElementById('adminTokensTableBody');
-        if (!tbody) return;
-        tbody.innerHTML = tokens.map(t => `
-          <tr class="hover:bg-slate-900/60 transition">
-            <td class="p-2.5 font-bold text-slate-200">${this.escapeHtml(t.name)}</td>
-            <td class="p-2.5 font-mono text-emerald-400">${t.token_prefix}••••••••</td>
-            <td class="p-2.5 text-right">
-              <button onclick="app.revokeToken(${t.id})" class="text-red-400 hover:text-red-300 px-2 py-1 rounded hover:bg-red-950/40">Revoca</button>
-            </td>
-          </tr>
-        `).join('');
-      }
-    } catch (e) {
-      console.warn(e);
-    }
-  }
-
-  async handleCreateToken(e) {
-    e.preventDefault();
-    const name = document.getElementById('newTokenName').value.trim();
-    try {
-      const res = await fetch('/api/admin/tokens', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        document.getElementById('newTokenName').value = '';
-
-        const alertBox = document.getElementById('newSecretAlert');
-        const secretVal = document.getElementById('newSecretValue');
-
-        if (secretVal) secretVal.value = data.raw_token;
-        if (alertBox) alertBox.classList.remove('hidden');
-        this.loadAdminTokens();
-        this.showToast('Nuovo token API generato!', 'success');
       } else {
         const err = await res.json().catch(() => ({}));
-        this.showToast(this.formatError(err, 'Errore generazione token'), 'error');
-      }
-    } catch (err) {
-      this.showToast(this.formatError(err, 'Errore di comunicazione'), 'error');
-    }
-  }
-
-  async revokeToken(id) {
-    if (!confirm('Sei sicuro di voler revocare questo token? Client esterni smetteranno di funzionare.')) return;
-    try {
-      const res = await fetch(`/api/admin/tokens/${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        this.loadAdminTokens();
-        this.showToast('Token revocato', 'info');
+        this.showToast(this.formatError(err, 'Impossibile eliminare utente'), 'error');
       }
     } catch (e) {
       this.showToast('Errore', 'error');
@@ -2953,6 +3094,36 @@ class FilamentHubApp {
       }
     } catch (e) {
       this.showToast('Errore', 'error');
+    }
+  }
+
+  async loadAdminAuditLogs() {
+    try {
+      const res = await fetch('/api/admin/audit-logs');
+      if (res.ok) {
+        const logs = await res.json();
+        const tbody = document.getElementById('adminAuditLogsTableBody');
+        if (!tbody) return;
+        if (!logs || logs.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-500">Nessun evento registrato</td></tr>';
+          return;
+        }
+        tbody.innerHTML = logs.map(l => `
+          <tr class="hover:bg-slate-900/60 transition">
+            <td class="p-2 text-slate-400 whitespace-nowrap">${this.escapeHtml((l.timestamp || '').replace('T', ' ').substring(0, 19))}</td>
+            <td class="p-2 text-slate-300 whitespace-nowrap">${this.escapeHtml(l.client_ip || '-')}</td>
+            <td class="p-2 font-bold text-slate-200 whitespace-nowrap">${this.escapeHtml(l.username || '-')}</td>
+            <td class="p-2">
+              <span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${String(l.action).includes('FAIL') ? 'bg-red-950 text-red-400 border border-red-800' : 'bg-slate-800 text-indigo-300'}">
+                ${this.escapeHtml(l.action || '')}
+              </span>
+            </td>
+            <td class="p-2 text-slate-400">${this.escapeHtml(l.details || '')}</td>
+          </tr>
+        `).join('');
+      }
+    } catch (e) {
+      console.warn(e);
     }
   }
 
