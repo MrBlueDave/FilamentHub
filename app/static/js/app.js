@@ -62,7 +62,9 @@ class FilamentHubApp {
   // 1. INITIALIZATION & AUTH
   // =========================================================================
   async init() {
+    if (window.i18n) window.i18n.init();
     this.initThemeListener();
+    this.initLanguageListener();
     this.updateA4QueueBadge();
     this.updateSettingsUi();
     this.setupEventListeners();
@@ -94,6 +96,46 @@ class FilamentHubApp {
       }
     } catch (e) {
       console.warn('Errore listener prefers-color-scheme:', e);
+    }
+  }
+
+  initLanguageListener() {
+    window.addEventListener('languagechange', (e) => {
+      this.onLanguageChanged(e.detail.lang);
+    });
+  }
+
+  onLanguageChanged(lang) {
+    const langSelect = document.getElementById('settingsLanguage');
+    if (langSelect) langSelect.value = lang;
+
+    const isSpools = this.activeMainView === 'spools';
+    const topbarSubtitle = document.getElementById('topbarSubtitle');
+    if (topbarSubtitle && window.i18n) {
+      topbarSubtitle.textContent = isSpools
+        ? window.i18n.t('topbar.subtitle_spools')
+        : window.i18n.t('topbar.subtitle_shopping');
+    }
+
+    this.updateShoppingBadges();
+    if (isSpools) {
+      this.renderSpoolViews();
+    } else {
+      this.renderShoppingList();
+    }
+  }
+
+  async syncUserLanguage(lang) {
+    if (!this.user) return;
+    try {
+      await fetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ language: lang })
+      });
+      this.user.language = lang;
+    } catch (e) {
+      console.warn('Errore sync lingua:', e);
     }
   }
 
@@ -186,6 +228,11 @@ class FilamentHubApp {
   async onAuthenticated() {
     this.hideLoginModal();
     this.updateUserHeader();
+    if (this.user?.language && window.i18n) {
+      if (this.user.language !== window.i18n.getLanguage()) {
+        window.i18n.setLanguage(this.user.language, false);
+      }
+    }
     this.settings = {
       gemini_configured: false,
       gemini_api_key_masked: '',
@@ -465,6 +512,10 @@ class FilamentHubApp {
     if (modelSelect && this.settings.gemini_model) {
       modelSelect.value = this.settings.gemini_model;
     }
+    const langSelect = document.getElementById('settingsLanguage');
+    if (langSelect && window.i18n) {
+      langSelect.value = window.i18n.getLanguage();
+    }
 
     const modal = document.getElementById('settingsModal');
     if (modal) modal.classList.remove('hidden');
@@ -481,6 +532,7 @@ class FilamentHubApp {
     e.preventDefault();
     const keyInput = document.getElementById('settingsGeminiApiKey')?.value.trim();
     const model = document.getElementById('settingsGeminiModel')?.value || 'gemini-3.5-flash-lite';
+    const lang = document.getElementById('settingsLanguage')?.value || 'it';
     const saveBtn = document.getElementById('settingsSaveBtn');
 
     if (keyInput && keyInput.length < 12) {
@@ -489,7 +541,8 @@ class FilamentHubApp {
     }
 
     const payload = {
-      gemini_model: model
+      gemini_model: model,
+      language: lang
     };
     if (keyInput) {
       payload.gemini_api_key = keyInput;
@@ -510,9 +563,13 @@ class FilamentHubApp {
       if (res.ok) {
         const updated = await res.json();
         this.settings = { ...this.settings, ...updated };
+        if (lang && window.i18n) {
+          window.i18n.setLanguage(lang, false);
+        }
+        if (this.user) this.user.language = lang;
         this.updateSettingsUi();
         this.closeSettingsModal();
-        this.showToast('Impostazioni salvate con successo!', 'success');
+        this.showToast(window.i18n ? window.i18n.t('toast.settings_saved') : 'Impostazioni salvate con successo!', 'success');
       } else {
         const err = await res.json().catch(() => ({}));
         this.showToast(this.formatError(err, 'Chiave API Gemini non valida'), 'error');
@@ -3785,11 +3842,10 @@ class FilamentHubApp {
     const item = this.shoppingItems.find(i => i.id === id);
     if (!item) return;
 
-    const shouldRemove = confirm(
-      `Confermi di aver ricevuto la bobina "${item.brand} ${item.material} - ${item.color_name}"?\n\n` +
-      `Verrà generato un nuovo codice univoco SP-xxxx e la bobina verrà inserita nel tuo inventario attivo.\n\n` +
-      `Clicca OK per convertire e rimuovere dalla lista acquisti, oppure Annulla per non procedere.`
-    );
+    const promptMsg = window.i18n
+      ? window.i18n.t('shopping.convert_confirm', { name: `${item.brand} ${item.material} - ${item.color_name}` })
+      : `Confermi di aver ricevuto la bobina "${item.brand} ${item.material} - ${item.color_name}"?\n\nVerrà generato un nuovo codice univoco SP-xxxx e la bobina verrà inserita nel tuo inventario attivo.`;
+    const shouldRemove = confirm(promptMsg);
 
     if (!shouldRemove) return;
 

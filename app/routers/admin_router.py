@@ -22,8 +22,12 @@ from app.models import (
     BrandTareOut,
     SettingsOut,
     SettingsUpdateRequest,
+    SystemSettingsOut,
+    SystemSettingsUpdate,
+    UserCreate,
     UserCreateRequest,
     UserOut,
+    UserUpdate,
     UserUpdateRequest,
 )
 
@@ -49,7 +53,7 @@ def list_users(
 ) -> List[dict[str, Any]]:
     """List all user accounts."""
     cursor = db.execute(
-        "SELECT id, username, role, is_active, created_at FROM users ORDER BY id ASC;"
+        "SELECT id, username, role, is_active, language, created_at FROM users ORDER BY id ASC;"
     )
     return [dict(row) for row in cursor.fetchall()]
 
@@ -64,7 +68,10 @@ def create_user(
     """Create a new user account with specified role ('editor' or 'admin')."""
     client_ip = get_client_ip(request)
     username_clean = req.username.strip()
-    normalized_role = _normalize_role(req.role)
+    normalized_role = _normalize_role(req.role) if req.role is not None else None
+    lang_clean = (req.language or "it").strip().lower()
+    if lang_clean not in ("it", "en", "fr", "es"):
+        lang_clean = "it"
 
     # Check unique username
     cursor = db.execute("SELECT id FROM users WHERE username = ?;", (username_clean,))
@@ -77,10 +84,10 @@ def create_user(
     pwd_hash = hash_password(req.password)
     cursor = db.execute(
         """
-        INSERT INTO users (username, password_hash, role, is_active, gemini_api_key, gemini_model)
-        VALUES (?, ?, ?, 1, '', 'gemini-3.5-flash-lite');
+        INSERT INTO users (username, password_hash, role, is_active, gemini_api_key, gemini_model, language)
+        VALUES (?, ?, ?, 1, '', 'gemini-3.5-flash-lite', ?);
         """,
-        (username_clean, pwd_hash, normalized_role),
+        (username_clean, pwd_hash, normalized_role, lang_clean),
     )
     db.commit()
     new_id = cursor.lastrowid
@@ -94,7 +101,7 @@ def create_user(
     )
 
     fetch_cursor = db.execute(
-        "SELECT id, username, role, is_active, created_at FROM users WHERE id = ?;",
+        "SELECT id, username, role, is_active, language, created_at FROM users WHERE id = ?;",
         (new_id,),
     )
     return dict(fetch_cursor.fetchone())
@@ -123,6 +130,7 @@ def update_user(
         )
 
     normalized_role = _normalize_role(req.role) if req.role is not None else None
+
 
     # Protect last active admin from losing admin rights or being deactivated
     if user["role"] == "admin" and user["is_active"]:
@@ -160,6 +168,16 @@ def update_user(
         updates.append("password_hash = ?")
         params.append(hash_password(clean_pwd))
 
+    if req.language is not None:
+        clean_lang = req.language.strip().lower()
+        if clean_lang not in ("it", "en", "fr", "es"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Lingua non supportata. Le lingue permesse sono: 'it', 'en', 'fr', 'es'.",
+            )
+        updates.append("language = ?")
+        params.append(clean_lang)
+
     if updates:
         params.append(user_id)
         db.execute(
@@ -177,7 +195,7 @@ def update_user(
         )
 
     fetch_cursor = db.execute(
-        "SELECT id, username, role, is_active, created_at FROM users WHERE id = ?;",
+        "SELECT id, username, role, is_active, language, created_at FROM users WHERE id = ?;",
         (user_id,),
     )
     return dict(fetch_cursor.fetchone())
@@ -372,14 +390,15 @@ def _mask_api_key(key: str) -> str:
 
 
 def _build_user_settings_out(db: sqlite3.Connection, user_id: int) -> dict[str, Any]:
-    """Read Gemini API key and model directly from the authenticated user's row in users table."""
+    """Read Gemini API key, model and language directly from the authenticated user's row in users table."""
     cur = db.execute(
-        "SELECT gemini_api_key, gemini_model FROM users WHERE id = ?;",
+        "SELECT gemini_api_key, gemini_model, language FROM users WHERE id = ?;",
         (user_id,),
     )
     row = cur.fetchone()
     gemini_key = (row["gemini_api_key"] if row and row["gemini_api_key"] else "").strip()
     gemini_model = (row["gemini_model"] if row and row["gemini_model"] else "").strip() or "gemini-3.5-flash-lite"
+    language = (row["language"] if row and "language" in row.keys() and row["language"] else "it").strip() or "it"
     is_configured = _is_valid_gemini_key_format(gemini_key)
 
     return {
@@ -387,6 +406,7 @@ def _build_user_settings_out(db: sqlite3.Connection, user_id: int) -> dict[str, 
         "gemini_api_key_masked": _mask_api_key(gemini_key) if is_configured else "",
         "gemini_model": gemini_model,
         "show_ams_cockpit": get_setting("show_ams_cockpit", "false").strip().lower() in ("true", "1", "yes"),
+        "language": language,
     }
 
 
@@ -432,6 +452,17 @@ def update_system_settings(
         db.execute("UPDATE users SET gemini_model = ? WHERE id = ?;", (model_clean, user_id))
         db.commit()
         updated_fields.append("gemini_model")
+
+    if req.language is not None:
+        lang_clean = req.language.strip().lower()
+        if lang_clean not in ("it", "en", "fr", "es"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Lingua non supportata. Le lingue permesse sono: 'it', 'en', 'fr', 'es'.",
+            )
+        db.execute("UPDATE users SET language = ? WHERE id = ?;", (lang_clean, user_id))
+        db.commit()
+        updated_fields.append("language")
 
     if req.show_ams_cockpit is not None:
         set_setting("show_ams_cockpit", "true" if req.show_ams_cockpit else "false")

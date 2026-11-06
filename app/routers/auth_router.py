@@ -41,7 +41,7 @@ def login(
 
     # Lookup user
     cursor = db.execute(
-        "SELECT id, username, password_hash, role, is_active FROM users WHERE username = ?;",
+        "SELECT id, username, password_hash, role, is_active, language FROM users WHERE username = ?;",
         (req.username.strip(),),
     )
     user = cursor.fetchone()
@@ -97,6 +97,7 @@ def login(
         "id": user["id"],
         "username": user["username"],
         "role": user["role"],
+        "language": user["language"] if "language" in user.keys() and user["language"] else "it",
         "message": "Login effettuato con successo",
     }
 
@@ -120,6 +121,7 @@ def get_me(current_user: dict[str, Any] = Depends(get_current_user)) -> dict[str
         "id": current_user["id"],
         "username": current_user["username"],
         "role": current_user["role"],
+        "language": current_user.get("language", "it"),
         "auth_type": current_user["auth_type"],
     }
 

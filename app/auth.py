@@ -170,7 +170,7 @@ def get_current_user(
 
         user_id = payload.get("user_id")
         cursor = db.execute(
-            "SELECT id, username, role, is_active FROM users WHERE id = ?;",
+            "SELECT id, username, role, is_active, language FROM users WHERE id = ?;",
             (user_id,),
         )
         user = cursor.fetchone()
@@ -184,6 +184,7 @@ def get_current_user(
             "id": user["id"],
             "username": user["username"],
             "role": user["role"],
+            "language": user["language"] if "language" in user.keys() and user["language"] else "it",
             "auth_type": "jwt",
         }
 

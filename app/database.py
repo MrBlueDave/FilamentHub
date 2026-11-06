@@ -135,6 +135,7 @@ def init_db() -> None:
                 is_active INTEGER NOT NULL DEFAULT 1,
                 gemini_api_key TEXT NOT NULL DEFAULT '',
                 gemini_model TEXT NOT NULL DEFAULT 'gemini-3.5-flash-lite',
+                language TEXT NOT NULL DEFAULT 'it',
                 created_at TEXT NOT NULL DEFAULT (datetime('now'))
             );
             """
@@ -309,7 +310,7 @@ def init_db() -> None:
                     (init_model,),
                 )
 
-        # Safe schema migration for users: gemini_api_key, gemini_model, and viewer -> editor role migration
+        # Safe schema migration for users: gemini_api_key, gemini_model, language, and viewer -> editor role migration
         cursor.execute("PRAGMA table_info(users);")
         user_columns = [row["name"] for row in cursor.fetchall()]
         added_gemini_key_col = False
@@ -321,6 +322,10 @@ def init_db() -> None:
         if "gemini_model" not in user_columns:
             cursor.execute("ALTER TABLE users ADD COLUMN gemini_model TEXT NOT NULL DEFAULT 'gemini-3.5-flash-lite';")
             print("[FilamentHub DB] Migrated: added 'gemini_model' column to users table.", flush=True)
+
+        if "language" not in user_columns:
+            cursor.execute("ALTER TABLE users ADD COLUMN language TEXT NOT NULL DEFAULT 'it';")
+            print("[FilamentHub DB] Migrated: added 'language' column to users table.", flush=True)
 
         # Migrate existing system_settings gemini_api_key to initial admin user if newly added or present in system_settings, then remove from system_settings
         cursor.execute("SELECT value FROM system_settings WHERE key = 'gemini_api_key';")
