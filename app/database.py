@@ -255,6 +255,31 @@ def init_db() -> None:
             """
         )
 
+        # 8. shopping_list table (Lista Acquisti / Wishlist per-user)
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS shopping_list (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                brand TEXT NOT NULL DEFAULT 'Generico',
+                material TEXT NOT NULL DEFAULT 'PLA',
+                subtype TEXT DEFAULT '',
+                color_name TEXT NOT NULL DEFAULT 'Standard',
+                color_hex TEXT NOT NULL DEFAULT '#3b82f6',
+                color_hex_secondary TEXT DEFAULT '',
+                quantity INTEGER NOT NULL DEFAULT 1,
+                weight_g REAL NOT NULL DEFAULT 1000.0,
+                price_eur REAL DEFAULT 0.0,
+                store_url TEXT DEFAULT '',
+                notes TEXT DEFAULT '',
+                is_bought INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+            """
+        )
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_shopping_list_user ON shopping_list(user_id, is_bought);")
+
         # Seed initial admin user if users table is empty (before migrations that reference users)
         cursor.execute("SELECT COUNT(*) AS count FROM users;")
         user_count = cursor.fetchone()["count"]

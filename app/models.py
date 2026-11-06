@@ -403,3 +403,66 @@ def row_to_spool_dict(row: sqlite3.Row | dict[str, Any]) -> dict[str, Any]:
     d["needs_drying"] = needs_drying
 
     return d
+
+
+# ==========================================
+# Shopping List Models (Lista Acquisti)
+# ==========================================
+
+class ShoppingItemCreate(BaseModel):
+    brand: str = Field(default="Generico", min_length=1, max_length=100)
+    material: str = Field(default="PLA", min_length=1, max_length=50)
+    subtype: Optional[str] = Field(default="", max_length=50)
+    color_name: str = Field(default="Standard", min_length=1, max_length=50)
+    color_hex: str = Field(default="#3b82f6", max_length=20)
+    color_hex_secondary: Optional[str] = Field(default="", max_length=20)
+    quantity: int = Field(default=1, ge=1, le=100)
+    weight_g: float = Field(default=1000.0, ge=1.0)
+    price_eur: Optional[float] = Field(default=0.0, ge=0.0)
+    store_url: Optional[str] = Field(default="", max_length=1000)
+    notes: Optional[str] = Field(default="", max_length=1000)
+    is_bought: Optional[bool] = False
+
+
+class ShoppingItemUpdate(BaseModel):
+    brand: Optional[str] = None
+    material: Optional[str] = None
+    subtype: Optional[str] = None
+    color_name: Optional[str] = None
+    color_hex: Optional[str] = None
+    color_hex_secondary: Optional[str] = None
+    quantity: Optional[int] = None
+    weight_g: Optional[float] = None
+    price_eur: Optional[float] = None
+    store_url: Optional[str] = None
+    notes: Optional[str] = None
+    is_bought: Optional[bool] = None
+
+
+class ShoppingItemOut(BaseModel):
+    id: int
+    user_id: int
+    brand: str
+    material: str
+    subtype: Optional[str] = ""
+    color_name: str
+    color_hex: str
+    color_hex_secondary: Optional[str] = ""
+    quantity: int
+    weight_g: float
+    price_eur: float
+    store_url: str
+    notes: str
+    is_bought: bool
+    created_at: str
+    updated_at: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ShoppingItemConvertRequest(BaseModel):
+    slot_location: Optional[str] = ""
+    location_shelf: Optional[str] = ""
+    barcode: Optional[str] = ""
+    remove_from_list: Optional[bool] = True
+

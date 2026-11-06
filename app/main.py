@@ -16,6 +16,7 @@ from app.routers.admin_router import router as admin_router
 from app.routers.auth_router import router as auth_router
 from app.routers.labels_router import router as labels_router
 from app.routers.scanner_router import router as scanner_router
+from app.routers.shopping_router import router as shopping_router
 from app.routers.spools_router import router as spools_router
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -116,7 +117,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="FilamentHub 3D",
-    version="1.4",
+    version="1.5",
     description="3D Printing Filament & Slicer Calibration Inventory Management",
     lifespan=lifespan,
 )
@@ -145,13 +146,14 @@ async def security_headers_middleware(request: Request, call_next):
 @app.get("/api/health", tags=["Health"])
 def health_check() -> Dict[str, str]:
     """Health check endpoint for Docker container checks, monitors, and load balancers."""
-    return {"status": "ok", "app": "FilamentHub 3D", "version": "1.4"}
+    return {"status": "ok", "app": "FilamentHub 3D", "version": "1.5"}
 
 
 # Include API Routers
 app.include_router(auth_router)
 app.include_router(admin_router)
 app.include_router(spools_router)
+app.include_router(shopping_router)
 app.include_router(scanner_router)
 app.include_router(labels_router)
 
