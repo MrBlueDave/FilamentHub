@@ -434,3 +434,42 @@ html:not(.dark) .glass-card.border-emerald-500\/70 {
     display: block !important;
   }
 }
+
+/* AI Vision Loading Animations & HUD */
+@keyframes indeterminateShimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(30%);
+  }
+  100% {
+    transform: translateX(110%);
+  }
+}
+
+.animate-indeterminate {
+  animation: indeterminateShimmer 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes scanLaser {
+  0%, 100% {
+    top: 0%;
+    opacity: 0.3;
+  }
+  50% {
+    top: 92%;
+    opacity: 1;
+  }
+}
+
+.scan-laser-beam {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #10b981, #6366f1, transparent);
+  box-shadow: 0 0 12px 2px rgba(16, 185, 129, 0.8);
+  animation: scanLaser 2.2s ease-in-out infinite;
+}
+

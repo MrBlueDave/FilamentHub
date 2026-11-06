@@ -42,6 +42,16 @@ class FilamentHubApp {
     this.liveCameraStream = null;
     this.aiImageBase64 = null;
 
+    // AI Vision Progress HUD & Cancellation state
+    this.aiLoadingTimerInterval = null;
+    this.aiLoadingStartTime = null;
+    this.aiAbortController = null;
+
+    // Shopping List (Wishlist) state
+    this.shoppingItems = [];
+    this.shoppingFilter = 'pending'; // 'pending' | 'bought' | 'all'
+    this.shoppingSearchQuery = '';
+
     document.addEventListener('DOMContentLoaded', () => this.init());
   }
 
@@ -182,6 +192,7 @@ class FilamentHubApp {
     await this.loadSettings();
     await this.loadTares();
     await this.loadSpools();
+    await this.loadShoppingList();
   }
 
   getRoleDisplayName(role) {
@@ -2711,9 +2722,80 @@ class FilamentHubApp {
     this.showToast(`Colore impostato: ${this.activeEyedropperHex}`, 'info');
   }
 
+  // =========================================================================
+  // AI VISION PROGRESS HUD CONTROLLER
+  // =========================================================================
+  showAiLoadingOverlay() {
+    const overlay = document.getElementById('aiLoadingOverlay');
+    const timer = document.getElementById('aiLoadingTimer');
+    const stepText = document.getElementById('aiLoadingStepText');
+    if (!overlay) return;
+
+    overlay.classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
+
+    if (timer) timer.textContent = '0.0s';
+    if (stepText) stepText.textContent = 'Connessione a Google Gemini Vision...';
+
+    this.aiLoadingStartTime = Date.now();
+    this.aiAbortController = new AbortController();
+
+    if (this.aiLoadingTimerInterval) {
+      clearInterval(this.aiLoadingTimerInterval);
+    }
+
+    const steps = [
+      { at: 0, text: 'Invio foto ad alta risoluzione a Google Gemini Vision...' },
+      { at: 1800, text: 'Riconoscimento neurale di brand e tipo materiale...' },
+      { at: 3500, text: 'Campionamento cromatico ed estrazione finitura...' },
+      { at: 5500, text: 'Decodifica barcode/QR ed estrazione parametri slicer...' },
+      { at: 8000, text: 'Finalizzazione scheda tecnica e validazione pesi...' },
+      { at: 12000, text: 'Elaborazione neurale avanzata in corso, quasi pronto...' }
+    ];
+
+    this.aiLoadingTimerInterval = setInterval(() => {
+      const elapsedMs = Date.now() - this.aiLoadingStartTime;
+      const elapsedSec = (elapsedMs / 1000).toFixed(1);
+      if (timer) timer.textContent = `${elapsedSec}s`;
+
+      if (stepText) {
+        for (let i = steps.length - 1; i >= 0; i--) {
+          if (elapsedMs >= steps[i].at) {
+            stepText.textContent = steps[i].text;
+            break;
+          }
+        }
+      }
+    }, 100);
+
+    if (window.lucide) lucide.createIcons();
+  }
+
+  hideAiLoadingOverlay() {
+    if (this.aiLoadingTimerInterval) {
+      clearInterval(this.aiLoadingTimerInterval);
+      this.aiLoadingTimerInterval = null;
+    }
+    this.aiLoadingStartTime = null;
+    this.aiAbortController = null;
+
+    const overlay = document.getElementById('aiLoadingOverlay');
+    if (overlay) overlay.classList.add('hidden');
+    document.body.classList.remove('overflow-hidden');
+  }
+
+  cancelAiAnalysis() {
+    if (this.aiAbortController) {
+      this.aiAbortController.abort();
+    }
+    this.hideAiLoadingOverlay();
+    this.showToast('Analisi Vision AI annullata.', 'info');
+  }
+
   async analyzeImageWithGemini() {
     if (!this.settings?.gemini_configured) {
-      this.showToast('API Gemini non configurata! Specifica una chiave valida nelle Impostazioni.', 'warning');
+      this.showToast('API Gemini non configurata! Inserisci una chiave valida nelle Impostazioni.', 'warning');
+      this.openSettingsModal();
       return;
     }
 
@@ -2725,7 +2807,7 @@ class FilamentHubApp {
     }
 
     if (!this.aiImageBase64) {
-      this.showToast('Nessuna immagine fornita. Scatta o carica una foto.', 'warning');
+      this.showToast('Nessuna immagine fornita. Scatta o carica una foto dell\'etichetta.', 'warning');
       return;
     }
 
@@ -2733,9 +2815,12 @@ class FilamentHubApp {
     const statusText = document.getElementById('geminiStatusText');
     if (btn) {
       btn.disabled = true;
-      btn.innerHTML = '<span class="inline-block animate-spin mr-1.5">⟳</span> Analisi...';
+      btn.innerHTML = '<span class="inline-block animate-spin mr-1.5">&#x21bb;</span> Analisi in corso...';
     }
     if (statusText) statusText.textContent = 'Elaborazione Vision AI in corso...';
+
+    // Show prominent visual progress HUD with live stopwatch and step messages
+    this.showAiLoadingOverlay();
 
     try {
       const res = await fetch('/api/scanner/vision', {
@@ -2744,7 +2829,8 @@ class FilamentHubApp {
         body: JSON.stringify({
           image_base64: this.aiImageBase64,
           mime_type: 'image/jpeg'
-        })
+        }),
+        signal: this.aiAbortController?.signal
       });
 
       if (res.ok) {
@@ -2759,8 +2845,8 @@ class FilamentHubApp {
         }
 
         this.applyExtractedSpoolData(data, 'Gemini Vision AI');
-        if (statusText) statusText.textContent = '✅ Dati estratti da Gemini Flash';
-        this.showToast('Dati estratti con successo da Gemini Flash!', 'success');
+        if (statusText) statusText.textContent = '✓ Dati estratti da Gemini Flash';
+        this.showToast('Dati etichetta estratti con successo da Gemini Flash!', 'success');
       } else {
         const err = await res.json().catch(() => ({}));
         if (res.status === 400 && String(err.detail).includes('GEMINI_API_KEY')) {
@@ -2773,12 +2859,16 @@ class FilamentHubApp {
         }
       }
     } catch (e) {
+      if (e.name === 'AbortError') {
+        return; // Analysis cancelled by user button
+      }
       this.showToast(this.formatError(e, 'Errore di comunicazione con il servizio Vision AI'), 'error');
     } finally {
+      this.hideAiLoadingOverlay();
       if (btn) {
         btn.disabled = !this.settings?.gemini_configured;
         btn.innerHTML = '<i data-lucide="cpu" class="w-3 h-3"></i><span>Rianalizza AI</span>';
-        lucide.createIcons();
+        if (window.lucide) lucide.createIcons();
       }
     }
   }
@@ -3257,6 +3347,464 @@ class FilamentHubApp {
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#039;');
   }
+  // =========================================================================
+  // 19. SHOPPING LIST (WISHLIST) CONTROLLER & 1-TAP INVENTORY CONVERSION
+  // =========================================================================
+  async loadShoppingList() {
+    try {
+      const res = await fetch('/api/shopping');
+      if (res.ok) {
+        this.shoppingItems = await res.json();
+      } else {
+        this.shoppingItems = [];
+      }
+    } catch (err) {
+      console.warn('Errore caricamento lista acquisti:', err);
+      this.shoppingItems = [];
+    }
+    this.updateShoppingBadges();
+    this.renderShoppingList();
+  }
+
+  updateShoppingBadges() {
+    const pendingCount = this.shoppingItems.filter(i => !i.is_bought).length;
+    const totalCount = this.shoppingItems.length;
+
+    // Top bar badge
+    const topbarBadge = document.getElementById('topbarShoppingBadge');
+    if (topbarBadge) {
+      topbarBadge.textContent = pendingCount;
+      topbarBadge.classList.toggle('hidden', pendingCount === 0);
+    }
+
+    // Mobile menu badge
+    const menuBadge = document.getElementById('menuShoppingBadge');
+    if (menuBadge) {
+      menuBadge.textContent = `${pendingCount} da ordinare`;
+    }
+
+    // Modal counter badge
+    const counterBadge = document.getElementById('shoppingListCounterBadge');
+    if (counterBadge) {
+      counterBadge.textContent = `${pendingCount} da ordinare / ${totalCount} tot`;
+    }
+  }
+
+  openShoppingListModal() {
+    this.shoppingFilter = 'pending';
+    this.shoppingSearchQuery = '';
+    const searchInput = document.getElementById('shoppingSearchInput');
+    if (searchInput) searchInput.value = '';
+
+    this.updateShoppingTabButtons();
+    const modal = document.getElementById('shoppingListModal');
+    if (modal) modal.classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
+
+    this.renderShoppingList();
+    if (window.lucide) lucide.createIcons();
+  }
+
+  closeShoppingListModal() {
+    const modal = document.getElementById('shoppingListModal');
+    if (modal) modal.classList.add('hidden');
+    document.body.classList.remove('overflow-hidden');
+  }
+
+  setShoppingTab(tab) {
+    this.shoppingFilter = tab;
+    this.updateShoppingTabButtons();
+    this.renderShoppingList();
+  }
+
+  updateShoppingTabButtons() {
+    const tabs = ['pending', 'bought', 'all'];
+    tabs.forEach(t => {
+      const btn = document.getElementById(`shoppingTab${t.charAt(0).toUpperCase() + t.slice(1)}`);
+      if (!btn) return;
+      if (t === this.shoppingFilter) {
+        btn.className = 'px-3 py-1 rounded-lg text-xs font-semibold bg-amber-500 text-slate-950 shadow';
+      } else {
+        btn.className = 'px-3 py-1 rounded-lg text-xs font-semibold text-slate-400 hover:text-white';
+      }
+    });
+  }
+
+  handleShoppingSearch(query) {
+    this.shoppingSearchQuery = (query || '').toLowerCase().trim();
+    this.renderShoppingList();
+  }
+
+  renderShoppingList() {
+    const container = document.getElementById('shoppingListContainer');
+    if (!container) return;
+
+    let items = [...this.shoppingItems];
+
+    // Filter by tab
+    if (this.shoppingFilter === 'pending') {
+      items = items.filter(i => !i.is_bought);
+    } else if (this.shoppingFilter === 'bought') {
+      items = items.filter(i => i.is_bought);
+    }
+
+    // Filter by search query
+    if (this.shoppingSearchQuery) {
+      const q = this.shoppingSearchQuery;
+      items = items.filter(i =>
+        (i.brand && i.brand.toLowerCase().includes(q)) ||
+        (i.material && i.material.toLowerCase().includes(q)) ||
+        (i.subtype && i.subtype.toLowerCase().includes(q)) ||
+        (i.color_name && i.color_name.toLowerCase().includes(q)) ||
+        (i.notes && i.notes.toLowerCase().includes(q))
+      );
+    }
+
+    // Calculate estimated total for items currently shown
+    const totalEst = items.reduce((sum, item) => sum + ((item.price_eur || 0) * (item.quantity || 1)), 0);
+    const totalEl = document.getElementById('shoppingEstimatedTotal');
+    if (totalEl) {
+      totalEl.textContent = `€${totalEst.toFixed(2)}`;
+    }
+
+    if (items.length === 0) {
+      container.innerHTML = `
+        <div class="text-center py-12 px-4 space-y-3">
+          <div class="w-14 h-14 mx-auto rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+            <i data-lucide="shopping-bag" class="w-7 h-7"></i>
+          </div>
+          <h4 class="text-white font-bold text-sm">Nessun filamento trovato</h4>
+          <p class="text-xs text-slate-400 max-w-xs mx-auto">
+            ${this.shoppingSearchQuery ? 'Nessun risultato corrisponde alla ricerca.' : 'La lista acquisti è vuota. Aggiungi i filamenti che prevedi di ordinare!'}
+          </p>
+          <button type="button" onclick="app.openShoppingItemModal()" class="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow-md">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            <span>Aggiungi filamento</span>
+          </button>
+        </div>
+      `;
+      if (window.lucide) lucide.createIcons();
+      return;
+    }
+
+    container.innerHTML = items.map(item => {
+      const isBought = Boolean(item.is_bought);
+      const priceStr = item.price_eur > 0 ? `€${item.price_eur.toFixed(2)}` : 'N/D';
+      const totalItemPrice = item.price_eur > 0 && item.quantity > 1
+        ? ` (Tot: €${(item.price_eur * item.quantity).toFixed(2)})`
+        : '';
+
+      return `
+        <div class="bg-slate-900/90 dark:bg-[#111827] border ${isBought ? 'border-emerald-800/50 opacity-80' : 'border-slate-800 hover:border-amber-500/40'} rounded-2xl p-3.5 transition-all shadow-sm">
+          <div class="flex items-start justify-between gap-3">
+            <!-- Left: Swatch & Identity -->
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="relative shrink-0">
+                <span
+                  class="w-11 h-11 rounded-2xl inline-block shadow-inner border border-black/15 dark:border-white/15 shrink-0"
+                  style="background-color: ${this.escapeHtml(item.color_hex || '#3b82f6')};"
+                ></span>
+              </div>
+
+              <div class="min-w-0 space-y-0.5">
+                <div class="flex items-center gap-1.5 truncate">
+                  ${this.renderBrandLogo(item.brand, 'sm')}
+                  <span class="text-xs font-extrabold uppercase tracking-wider text-amber-500 dark:text-amber-400 truncate">${this.escapeHtml(item.brand)}</span>
+                  ${isBought
+                    ? '<span class="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">ORDINATO</span>'
+                    : '<span class="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">DA COMPRARE</span>'
+                  }
+                </div>
+
+                <div class="text-sm sm:text-base font-extrabold text-white truncate">
+                  ${this.escapeHtml(item.material)}${item.subtype ? ' ' + this.escapeHtml(item.subtype) : ''}
+                </div>
+
+                <div class="text-xs font-semibold text-slate-300 truncate">
+                  ${this.escapeHtml(item.color_name || 'Standard')}
+                </div>
+              </div>
+            </div>
+
+            <!-- Right: Price & Quantity Badge -->
+            <div class="shrink-0 text-right">
+              <div class="text-sm font-mono font-bold ${item.price_eur > 0 ? 'text-emerald-400' : 'text-slate-500'}">
+                ${priceStr}
+              </div>
+              <div class="text-[11px] font-mono text-slate-400">
+                ${item.quantity}x ${item.weight_g}g${totalItemPrice}
+              </div>
+            </div>
+          </div>
+
+          <!-- Store link & Notes (if any) -->
+          ${(item.store_url || item.notes) ? `
+            <div class="mt-2.5 pt-2 border-t border-slate-800/70 flex flex-wrap items-center justify-between gap-2 text-xs">
+              ${item.notes ? `
+                <p class="text-[11px] text-slate-400 italic line-clamp-1 flex-1">
+                  <i data-lucide="message-square" class="w-3 h-3 inline mr-1 text-slate-500"></i>${this.escapeHtml(item.notes)}
+                </p>
+              ` : '<div></div>'}
+              ${item.store_url ? `
+                <a href="${this.escapeHtml(item.store_url)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-400 hover:text-indigo-300 hover:underline">
+                  <i data-lucide="external-link" class="w-3 h-3"></i>
+                  <span>Apri Negozio</span>
+                </a>
+              ` : ''}
+            </div>
+          ` : ''}
+
+          <!-- Actions Toolbar -->
+          <div class="mt-3 pt-2.5 border-t border-slate-800 flex items-center justify-between gap-2">
+            <!-- 1-Tap Convert to Real Spool -->
+            <button
+              type="button"
+              onclick="app.convertShoppingItemToSpool(${item.id})"
+              class="px-2.5 py-1.5 bg-emerald-600/90 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow-sm transition-all"
+              title="Aggiungi all'inventario come bobina ricevuta"
+            >
+              <i data-lucide="package-plus" class="w-3.5 h-3.5"></i>
+              <span>Ricevuta &#8594; Bobina</span>
+            </button>
+
+            <div class="flex items-center gap-1 ml-auto">
+              <!-- Toggle Bought Status -->
+              <button
+                type="button"
+                onclick="app.toggleShoppingItemBought(${item.id}, ${isBought})"
+                class="px-2 py-1.5 text-xs font-semibold rounded-xl border ${isBought ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-slate-800/80 border-slate-700 text-amber-400 hover:bg-slate-700'}"
+                title="${isBought ? 'Segna come Da Acquistare' : 'Segna come Già Ordinato'}"
+              >
+                <i data-lucide="${isBought ? 'rotate-ccw' : 'check'}" class="w-3.5 h-3.5"></i>
+              </button>
+
+              <!-- Edit -->
+              <button
+                type="button"
+                onclick="app.openShoppingItemModal(${item.id})"
+                class="p-1.5 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800"
+                title="Modifica"
+              >
+                <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+              </button>
+
+              <!-- Delete -->
+              <button
+                type="button"
+                onclick="app.deleteShoppingItem(${item.id})"
+                class="p-1.5 text-rose-400/80 hover:text-rose-300 rounded-xl hover:bg-rose-950/40"
+                title="Elimina dalla lista"
+              >
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    if (window.lucide) lucide.createIcons();
+  }
+
+  openShoppingItemModal(id = null) {
+    const title = document.getElementById('shoppingItemModalTitle');
+    const idInput = document.getElementById('shoppingItemId');
+    const brandInput = document.getElementById('shoppingItemBrand');
+    const materialInput = document.getElementById('shoppingItemMaterial');
+    const subtypeInput = document.getElementById('shoppingItemSubtype');
+    const colorNameInput = document.getElementById('shoppingItemColorName');
+    const colorHexInput = document.getElementById('shoppingItemColorHex');
+    const colorHexPicker = document.getElementById('shoppingItemColorHexPicker');
+    const quantityInput = document.getElementById('shoppingItemQuantity');
+    const weightInput = document.getElementById('shoppingItemWeight');
+    const priceInput = document.getElementById('shoppingItemPrice');
+    const storeUrlInput = document.getElementById('shoppingItemStoreUrl');
+    const notesInput = document.getElementById('shoppingItemNotes');
+
+    if (!idInput) return;
+
+    if (id) {
+      const item = this.shoppingItems.find(i => i.id === id);
+      if (!item) return;
+
+      if (title) title.innerHTML = '<i data-lucide="pencil" class="w-4 h-4 text-amber-500"></i> Modifica Filamento da Acquistare';
+      idInput.value = item.id;
+      if (brandInput) brandInput.value = item.brand || '';
+      if (materialInput) materialInput.value = item.material || '';
+      if (subtypeInput) subtypeInput.value = item.subtype || '';
+      if (colorNameInput) colorNameInput.value = item.color_name || '';
+      if (colorHexInput) colorHexInput.value = item.color_hex || '#3b82f6';
+      if (colorHexPicker) colorHexPicker.value = item.color_hex || '#3b82f6';
+      if (quantityInput) quantityInput.value = item.quantity || 1;
+      if (weightInput) weightInput.value = item.weight_g || 1000;
+      if (priceInput) priceInput.value = item.price_eur > 0 ? item.price_eur : '';
+      if (storeUrlInput) storeUrlInput.value = item.store_url || '';
+      if (notesInput) notesInput.value = item.notes || '';
+    } else {
+      if (title) title.innerHTML = '<i data-lucide="plus-circle" class="w-4 h-4 text-amber-500"></i> Nuovo Filamento da Acquistare';
+      idInput.value = '';
+      if (brandInput) brandInput.value = '';
+      if (materialInput) materialInput.value = 'PLA';
+      if (subtypeInput) subtypeInput.value = '';
+      if (colorNameInput) colorNameInput.value = '';
+      if (colorHexInput) colorHexInput.value = '#4f46e5';
+      if (colorHexPicker) colorHexPicker.value = '#4f46e5';
+      if (quantityInput) quantityInput.value = '1';
+      if (weightInput) weightInput.value = '1000';
+      if (priceInput) priceInput.value = '';
+      if (storeUrlInput) storeUrlInput.value = '';
+      if (notesInput) notesInput.value = '';
+    }
+
+    const modal = document.getElementById('shoppingItemModal');
+    if (modal) modal.classList.remove('hidden');
+    if (window.lucide) lucide.createIcons();
+  }
+
+  closeShoppingItemModal() {
+    const modal = document.getElementById('shoppingItemModal');
+    if (modal) modal.classList.add('hidden');
+  }
+
+  async handleSaveShoppingItem(event) {
+    event.preventDefault();
+    const id = document.getElementById('shoppingItemId')?.value;
+    const brand = document.getElementById('shoppingItemBrand')?.value.trim();
+    const material = document.getElementById('shoppingItemMaterial')?.value.trim().toUpperCase();
+    const subtype = document.getElementById('shoppingItemSubtype')?.value.trim();
+    const color_name = document.getElementById('shoppingItemColorName')?.value.trim();
+    const color_hex = document.getElementById('shoppingItemColorHex')?.value.trim() || '#3b82f6';
+    const quantity = parseInt(document.getElementById('shoppingItemQuantity')?.value || '1', 10);
+    const weight_g = parseFloat(document.getElementById('shoppingItemWeight')?.value || '1000');
+    const priceRaw = document.getElementById('shoppingItemPrice')?.value;
+    const price_eur = priceRaw ? parseFloat(priceRaw) : 0.0;
+    const store_url = document.getElementById('shoppingItemStoreUrl')?.value.trim();
+    const notes = document.getElementById('shoppingItemNotes')?.value.trim();
+
+    if (!brand || !material || !color_name) {
+      this.showToast('Compila i campi obbligatori: Brand, Materiale e Colore.', 'warning');
+      return;
+    }
+
+    const payload = {
+      brand,
+      material,
+      subtype,
+      color_name,
+      color_hex,
+      quantity: Math.max(1, quantity),
+      weight_g: Math.max(1, weight_g),
+      price_eur: Math.max(0, price_eur),
+      store_url,
+      notes
+    };
+
+    const saveBtn = document.getElementById('shoppingItemSaveBtn');
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Salvataggio...';
+    }
+
+    try {
+      const url = id ? `/api/shopping/${id}` : '/api/shopping';
+      const method = id ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        this.showToast(id ? 'Elemento aggiornato nella lista!' : 'Filamento aggiunto alla lista acquisti!', 'success');
+        this.closeShoppingItemModal();
+        await this.loadShoppingList();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        this.showToast(this.formatError(err, 'Errore salvataggio filamento'), 'error');
+      }
+    } catch (e) {
+      this.showToast(this.formatError(e, 'Errore di connessione'), 'error');
+    } finally {
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Salva nella Lista';
+      }
+    }
+  }
+
+  async deleteShoppingItem(id) {
+    if (!confirm('Sei sicuro di voler eliminare questo filamento dalla lista acquisti?')) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/shopping/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        this.showToast('Filamento rimosso dalla lista acquisti.', 'info');
+        await this.loadShoppingList();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        this.showToast(this.formatError(err, 'Errore eliminazione'), 'error');
+      }
+    } catch (e) {
+      this.showToast(this.formatError(e, 'Errore di rete'), 'error');
+    }
+  }
+
+  async toggleShoppingItemBought(id, currentStatus) {
+    try {
+      const res = await fetch(`/api/shopping/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_bought: !currentStatus })
+      });
+      if (res.ok) {
+        await this.loadShoppingList();
+        this.showToast(!currentStatus ? 'Segnato come Già Ordinato!' : 'Rimesso in Da Acquistare', 'success');
+      }
+    } catch (e) {
+      console.warn(e);
+    }
+  }
+
+  async convertShoppingItemToSpool(id) {
+    const item = this.shoppingItems.find(i => i.id === id);
+    if (!item) return;
+
+    const shouldRemove = confirm(
+      `Confermi di aver ricevuto la bobina "${item.brand} ${item.material} - ${item.color_name}"?\n\n` +
+      `Verrà generato un nuovo codice univoco SP-xxxx e la bobina verrà inserita nel tuo inventario attivo.\n\n` +
+      `Clicca OK per convertire e rimuovere dalla lista acquisti, oppure Annulla per non procedere.`
+    );
+
+    if (!shouldRemove) return;
+
+    try {
+      const res = await fetch(`/api/shopping/${id}/convert`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          remove_from_list: true,
+          barcode: '',
+          location_shelf: ''
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        this.showToast(`🎉 ${data.message || 'Bobina creata con successo!'}`, 'success');
+        await this.loadSpools();
+        await this.loadShoppingList();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        this.showToast(this.formatError(err, 'Errore durante la conversione in bobina'), 'error');
+      }
+    } catch (e) {
+      this.showToast(this.formatError(e, 'Errore durante la richiesta di conversione'), 'error');
+    }
+  }
+
 }
 
 // Global Application Instance
