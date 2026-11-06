@@ -50,7 +50,7 @@
   <script src="https://unpkg.com/lucide@latest"></script>
 
   <!-- Custom Adaptive Tech Styles -->
-  <link rel="stylesheet" href="/static/css/styles.css?v=1.5">
+  <link rel="stylesheet" href="/static/css/styles.css?v=1.6">
 </head>
 <body class="bg-slate-50 dark:bg-[#0a0f1d] text-slate-900 dark:text-slate-100 h-[100dvh] w-full overflow-hidden flex flex-col antialiased selection:bg-indigo-600 selection:text-white">
 
@@ -64,42 +64,29 @@
   <header class="shrink-0 z-30 solid-header pt-[env(safe-area-inset-top)] shadow-sm w-full">
     <div class="max-w-5xl mx-auto px-3 sm:px-6">
       
-      <!-- Row 1: Brand Logo + Primary Action Buttons (50px height) -->
+      <!-- Row 1: Brand Logo + Contextual Action Buttons (50px height) -->
       <div class="flex items-center justify-between h-13 py-1 gap-2">
         <!-- Logo & Title -->
-        <div class="flex items-center gap-2 cursor-pointer select-none" onclick="app.navToSpools()">
+        <div class="flex items-center gap-2 cursor-pointer select-none" onclick="app.switchActiveView('spools')">
           <img src="/static/icon.svg" alt="FilamentHub Logo" class="w-7 h-7 sm:w-8 sm:h-8">
           <div>
             <h1 class="text-base sm:text-lg font-black tracking-tight text-slate-900 dark:text-white leading-none">
               FilamentHub
             </h1>
-            <p class="text-[10px] text-slate-500 dark:text-slate-400 font-mono">Spool Database • v1.5</p>
+            <p id="topbarSubtitle" class="text-[10px] text-slate-500 dark:text-slate-400 font-mono">Spool Database • v1.6</p>
           </div>
         </div>
 
-        <!-- Action Buttons: Lista Acquisti, Foto AI & Nuova Bobina -->
-        <div class="flex items-center gap-1.5 sm:gap-2">
-          <!-- Lista Acquisti Button -->
-          <button
-            type="button"
-            id="topbarShoppingBtn"
-            onclick="app.openShoppingListModal()"
-            title="Lista Acquisti Filamenti"
-            class="px-2.5 sm:px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 active:scale-95 border border-amber-500/30 text-amber-700 dark:text-amber-400 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 shrink-0 transition shadow-sm relative"
-          >
-            <i data-lucide="shopping-cart" class="w-4 h-4 text-amber-500"></i>
-            <span class="hidden sm:inline">Acquisti</span>
-            <span id="topbarShoppingBadge" class="hidden px-1.5 py-0.2 bg-amber-500 text-slate-950 text-[10px] font-black rounded-full shadow">0</span>
-          </button>
-
-          <!-- 1-Tap Native Camera Photo AI Trigger (Disabled until valid API key is configured) -->
+        <!-- Action Buttons when on 'spools' view (Foto AI & Nuova Bobina) -->
+        <div id="topbarSpoolsActions" class="flex items-center gap-1.5 sm:gap-2">
+          <!-- 1-Tap Native Camera Photo AI Trigger -->
           <button
             type="button"
             id="topbarAiPhotoBtn"
             onclick="app.triggerCameraAiPhoto()"
             disabled
             title="Configura prima una API Key Gemini valida nelle Impostazioni"
-            class="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 active:scale-95 border border-emerald-200 dark:border-emerald-500/50 text-emerald-700 dark:text-emerald-300 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 shrink-0 transition shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale disabled:active:scale-100"
+            class="px-2.5 sm:px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 active:scale-95 border border-emerald-200 dark:border-emerald-500/50 text-emerald-700 dark:text-emerald-300 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 shrink-0 transition shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale disabled:active:scale-100"
           >
             <i data-lucide="camera" class="w-4 h-4 text-emerald-500"></i>
             <span>Foto AI</span>
@@ -108,76 +95,146 @@
           <!-- + Nuova Bobina Button -->
           <button
             type="button"
+            id="topbarNewSpoolBtn"
             onclick="app.openSpoolModal(null)"
             title="Aggiungi Nuova Bobina"
-            class="px-3.5 sm:px-4 py-1.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 active:scale-95 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-indigo-600/30 flex items-center gap-1.5 transition"
+            class="px-3 sm:px-4 py-1.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 active:scale-95 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-indigo-600/30 flex items-center gap-1.5 transition shrink-0"
           >
             <i data-lucide="plus" class="w-4 h-4 stroke-[2.5]"></i>
             <span>Nuova</span>
           </button>
         </div>
+
+        <!-- Action Buttons when on 'shopping' view (+ Aggiungi Filamento) -->
+        <div id="topbarShoppingActions" class="hidden flex items-center gap-1.5 sm:gap-2">
+          <button
+            type="button"
+            id="topbarAddShoppingBtn"
+            onclick="app.openShoppingItemModal()"
+            title="Aggiungi filamento alla lista acquisti"
+            class="px-3 sm:px-4 py-1.5 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 active:scale-95 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-amber-600/30 flex items-center gap-1.5 transition shrink-0"
+          >
+            <i data-lucide="plus" class="w-4 h-4 stroke-[2.5]"></i>
+            <span>Aggiungi</span>
+          </button>
+        </div>
       </div>
 
-      <!-- Row 2: Search + Integrated Filters Popover (42px height) -->
-      <div class="flex items-center gap-2 pb-2 pt-0.5">
-        <!-- Search Input -->
-        <div class="flex-1 relative">
-          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
-            <i data-lucide="search" class="w-4 h-4"></i>
+      <!-- Controls for Spools view (Search, Filters & Segmented Control) -->
+      <div id="topbarSpoolsFilterRows">
+        <!-- Row 2: Search + Integrated Filters Popover -->
+        <div class="flex items-center gap-2 pb-2 pt-0.5">
+          <!-- Search Input -->
+          <div class="flex-1 relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
+              <i data-lucide="search" class="w-4 h-4"></i>
+            </div>
+            <input
+              type="search"
+              id="searchInput"
+              oninput="app.syncSearch(this.value)"
+              placeholder="Cerca marca, materiale, colore..."
+              class="w-full pl-9 pr-8 py-2 bg-white dark:bg-[#0b0f19] border border-slate-300 dark:border-slate-700 rounded-xl text-base sm:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition shadow-inner"
+            />
+            <button id="clearSearchBtn" class="hidden absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" onclick="app.syncSearch('')">
+              <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
           </div>
-          <input
-            type="search"
-            id="searchInput"
-            oninput="app.syncSearch(this.value)"
-            placeholder="Cerca marca, materiale, colore..."
-            class="w-full pl-9 pr-8 py-2 bg-white dark:bg-[#0b0f19] border border-slate-300 dark:border-slate-700 rounded-xl text-base sm:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition shadow-inner"
-          />
-          <button id="clearSearchBtn" class="hidden absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" onclick="app.syncSearch('')">
-            <i data-lucide="x" class="w-4 h-4"></i>
+
+          <!-- Filters Popover / Sheet Trigger -->
+          <button
+            type="button"
+            onclick="app.openFiltersSheet()"
+            id="filtersSheetTriggerBtn"
+            title="Filtra per Marca, Materiale o Ordina"
+            class="relative px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5 shrink-0 transition"
+          >
+            <i data-lucide="sliders-horizontal" class="w-4 h-4 text-indigo-500 dark:text-indigo-400"></i>
+            <span class="hidden sm:inline">Filtri</span>
+            <span id="activeFiltersDot" class="hidden w-2 h-2 rounded-full bg-indigo-500"></span>
           </button>
         </div>
 
-        <!-- Filters Popover / Sheet Trigger -->
-        <button
-          type="button"
-          onclick="app.openFiltersSheet()"
-          id="filtersSheetTriggerBtn"
-          title="Filtra per Marca, Materiale o Ordina"
-          class="relative px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5 shrink-0 transition"
-        >
-          <i data-lucide="sliders-horizontal" class="w-4 h-4 text-indigo-500 dark:text-indigo-400"></i>
-          <span class="hidden sm:inline">Filtri</span>
-          <span id="activeFiltersDot" class="hidden w-2 h-2 rounded-full bg-indigo-500"></span>
-        </button>
+        <!-- Row 3: iOS Segmented Control State Tabs -->
+        <div class="pb-2">
+          <div class="segmented-container grid grid-cols-3 gap-1 text-[13px]">
+            <button
+              type="button"
+              onclick="app.setFilterStatus('all')"
+              id="filterStatusAll"
+              class="segmented-btn py-1.5 text-center font-bold active"
+            >
+              Tutte (<span id="countTotal">0</span>)
+            </button>
+            <button
+              type="button"
+              onclick="app.setFilterStatus('opened')"
+              id="filterStatusOpened"
+              class="segmented-btn py-1.5 text-center font-bold text-emerald-400"
+            >
+              🟢 Aperte (<span id="countOpened">0</span>)
+            </button>
+            <button
+              type="button"
+              onclick="app.setFilterStatus('new')"
+              id="filterStatusNew"
+              class="segmented-btn py-1.5 text-center font-bold text-blue-400"
+            >
+              📦 Nuove (<span id="countNew">0</span>)
+            </button>
+          </div>
+        </div>
       </div>
 
-      <!-- Row 3: iOS Segmented Control State Tabs -->
-      <div class="pb-2">
-        <div class="segmented-container grid grid-cols-3 gap-1 text-[13px]">
-          <button
-            type="button"
-            onclick="app.setFilterStatus('all')"
-            id="filterStatusAll"
-            class="segmented-btn py-1.5 text-center font-bold active"
-          >
-            Tutte (<span id="countTotal">0</span>)
-          </button>
-          <button
-            type="button"
-            onclick="app.setFilterStatus('opened')"
-            id="filterStatusOpened"
-            class="segmented-btn py-1.5 text-center font-bold text-emerald-400"
-          >
-            🔓 Aperte (<span id="countOpened">0</span>)
-          </button>
-          <button
-            type="button"
-            onclick="app.setFilterStatus('new')"
-            id="filterStatusNew"
-            class="segmented-btn py-1.5 text-center font-bold text-blue-400"
-          >
-            📦 Nuove (<span id="countNew">0</span>)
-          </button>
+      <!-- Controls for Shopping view (Search, Budget Total & Segmented Control) -->
+      <div id="topbarShoppingFilterRows" class="hidden">
+        <!-- Row 2: Search + Estimated Budget Badge -->
+        <div class="flex items-center gap-2 pb-2 pt-0.5">
+          <div class="flex-1 relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
+              <i data-lucide="search" class="w-4 h-4"></i>
+            </div>
+            <input
+              type="search"
+              id="shoppingSearchInput"
+              oninput="app.handleShoppingSearch(this.value)"
+              placeholder="Cerca per brand, materiale, colore..."
+              class="w-full pl-9 pr-3 py-2 bg-white dark:bg-[#0b0f19] border border-slate-300 dark:border-slate-700 rounded-xl text-base sm:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-amber-500 transition shadow-inner"
+            />
+          </div>
+          <div class="shrink-0 px-3 py-2 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs font-mono font-bold text-amber-600 dark:text-amber-400">
+            Tot: <span id="shoppingEstimatedTotal">€0.00</span>
+          </div>
+        </div>
+
+        <!-- Row 3: iOS Segmented Control State Tabs for Shopping -->
+        <div class="pb-2">
+          <div class="segmented-container grid grid-cols-3 gap-1 text-[13px]">
+            <button
+              type="button"
+              onclick="app.setShoppingTab('pending')"
+              id="shoppingTabPending"
+              class="segmented-btn py-1.5 text-center font-bold active"
+            >
+              Da Comprare (<span id="shoppingCountPending">0</span>)
+            </button>
+            <button
+              type="button"
+              onclick="app.setShoppingTab('bought')"
+              id="shoppingTabBought"
+              class="segmented-btn py-1.5 text-center font-bold text-emerald-400"
+            >
+              Ordinati (<span id="shoppingCountBought">0</span>)
+            </button>
+            <button
+              type="button"
+              onclick="app.setShoppingTab('all')"
+              id="shoppingTabAll"
+              class="segmented-btn py-1.5 text-center font-bold"
+            >
+              Tutti (<span id="shoppingCountAll">0</span>)
+            </button>
+          </div>
         </div>
       </div>
 
@@ -185,92 +242,117 @@
   </header>
 
   <!-- ========================================================================= -->
-  <!-- MAIN CONTENT CONTAINER -->
-  <!-- ========================================================================= -->
-  <!-- ========================================================================= -->
   <!-- MAIN CONTENT CONTAINER (NATIVE APP SCROLL AREA) -->
   <!-- ========================================================================= -->
   <main id="mainScrollArea" class="flex-1 min-h-0 w-full overflow-y-auto overflow-x-hidden overscroll-y-contain">
     <div class="max-w-5xl w-full mx-auto px-3 sm:px-6 py-3 space-y-3">
+      
+      <!-- ========================================== -->
+      <!-- VIEW 1: SPOOLS INVENTORY VIEW              -->
+      <!-- ========================================== -->
+      <div id="spoolsViewContainer" class="space-y-3">
+        <!-- Active Filter Indicators (if any brand/material filter applied) -->
+        <div id="activeFilterTagsBar" class="hidden flex items-center gap-2 overflow-x-auto no-scrollbar text-xs py-1">
+          <span class="text-slate-400 text-[11px]">Filtri attivi:</span>
+          <span id="activeBrandTag" class="hidden px-2 py-0.5 rounded-lg bg-indigo-950 text-indigo-300 border border-indigo-800 font-mono flex items-center gap-1">
+            <span id="activeBrandTagText">Brand</span>
+            <button onclick="app.setBrandFilter('')" class="hover:text-white">✕</button>
+          </span>
+          <span id="activeMaterialTag" class="hidden px-2 py-0.5 rounded-lg bg-indigo-950 text-indigo-300 border border-indigo-800 font-mono flex items-center gap-1">
+            <span id="activeMaterialTagText">Material</span>
+            <button onclick="app.setMaterialFilter('')" class="hover:text-white">✕</button>
+          </span>
+          <button onclick="app.resetDropdownFilters()" class="text-slate-400 hover:text-white text-[11px] underline ml-auto">Reimposta</button>
+        </div>
 
-      <!-- Active Filter Indicators (if any brand/material filter applied) -->
-      <div id="activeFilterTagsBar" class="hidden flex items-center gap-2 overflow-x-auto no-scrollbar text-xs py-1">
-        <span class="text-slate-400 text-[11px]">Filtri attivi:</span>
-        <span id="activeBrandTag" class="hidden px-2 py-0.5 rounded-lg bg-indigo-950 text-indigo-300 border border-indigo-800 font-mono flex items-center gap-1">
-          <span id="activeBrandTagText">Brand</span>
-          <button onclick="app.setBrandFilter('')" class="hover:text-white">✕</button>
-        </span>
-        <span id="activeMaterialTag" class="hidden px-2 py-0.5 rounded-lg bg-indigo-950 text-indigo-300 border border-indigo-800 font-mono flex items-center gap-1">
-          <span id="activeMaterialTagText">Material</span>
-          <button onclick="app.setMaterialFilter('')" class="hover:text-white">✕</button>
-        </span>
-        <button onclick="app.resetDropdownFilters()" class="text-slate-400 hover:text-white text-[11px] underline ml-auto">Reimposta</button>
+        <!-- Spools Swipe List View (iOS Native Swipe-to-Action) -->
+        <section id="listViewSection">
+          <div id="spoolListContainer" class="space-y-2.5">
+            <!-- Rendered via renderSpoolSwipeList() -->
+          </div>
+        </section>
+
+        <!-- Empty State Spools -->
+        <div id="emptyGridState" class="hidden py-16 text-center text-slate-500">
+          <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-slate-900 border border-slate-800 text-slate-500 mb-3">
+            <i data-lucide="package-search" class="w-7 h-7"></i>
+          </div>
+          <p class="text-sm font-bold text-slate-300">Nessuna bobina trovata</p>
+          <p class="text-xs text-slate-500 mt-1">Modifica i filtri o aggiungi una nuova bobina.</p>
+          <button onclick="app.openSpoolModal(null)" class="mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow">
+            <i data-lucide="plus" class="w-4 h-4"></i> Aggiungi Bobina
+          </button>
+        </div>
       </div>
 
-      <!-- Spools Swipe List View (iOS Native Swipe-to-Action) -->
-      <section id="listViewSection">
-        <div id="spoolListContainer" class="space-y-2.5">
-          <!-- Rendered via renderSpoolSwipeList() -->
+      <!-- ========================================== -->
+      <!-- VIEW 2: DEDICATED SHOPPING (WISHLIST) VIEW -->
+      <!-- ========================================== -->
+      <div id="shoppingViewContainer" class="hidden space-y-3">
+        <!-- Shopping List Items Container -->
+        <div id="shoppingListContainer" class="space-y-2.5">
+          <!-- Rendered via app.renderShoppingList() -->
         </div>
-      </section>
 
-      <!-- Empty State -->
-      <div id="emptyGridState" class="hidden py-16 text-center text-slate-500">
-        <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-slate-900 border border-slate-800 text-slate-500 mb-3">
-          <i data-lucide="package-search" class="w-7 h-7"></i>
+        <!-- Empty State Shopping -->
+        <div id="emptyShoppingState" class="hidden py-16 text-center text-slate-500">
+          <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 mb-3">
+            <i data-lucide="shopping-bag" class="w-7 h-7"></i>
+          </div>
+          <p class="text-sm font-bold text-white">Nessun filamento nella lista acquisti</p>
+          <p class="text-xs text-slate-400 max-w-xs mx-auto mt-1">Aggiungi i filamenti che prevedi di ordinare per monitorare colori, quantità, prezzi e link store.</p>
+          <button onclick="app.openShoppingItemModal()" class="mt-4 px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow-md shadow-amber-950/30">
+            <i data-lucide="plus" class="w-4 h-4"></i> Aggiungi Filamento
+          </button>
         </div>
-        <p class="text-sm font-bold text-slate-300">Nessuna bobina trovata</p>
-        <p class="text-xs text-slate-500 mt-1">Modifica i filtri o aggiungi una nuova bobina.</p>
-        <button onclick="app.openSpoolModal(null)" class="mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow">
-          <i data-lucide="plus" class="w-4 h-4"></i> Aggiungi Bobina
-        </button>
       </div>
 
     </div>
   </main>
 
   <!-- ========================================================================= -->
-  <!-- NATIVE iOS FIXED BOTTOM BAR (3 SORT BUTTONS + MENU)                       -->
+  <!-- NATIVE iOS FIXED BOTTOM BAR (4 BALANCED TABS: BOBINE, ACQUISTI, ORDINA, MENU) -->
   <!-- ========================================================================= -->
   <nav class="shrink-0 z-30 bg-white dark:bg-[#0f172a] border-t border-slate-200 dark:border-slate-800/80 px-2 py-1.5 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] flex items-center justify-around shadow-2xl w-full">
-    
-    <!-- 1. Sort: Produttore -->
+
+    <!-- 1. Tab: Bobine (Inventario) -->
     <button
       type="button"
-      id="sortBtnBrand"
-      onclick="app.setQuickSort('brand_asc')"
-      class="quick-sort-btn flex flex-col items-center justify-center py-1 px-2 rounded-xl text-slate-400 dark:text-slate-400 hover:text-indigo-500 font-semibold transition flex-1 min-w-0"
-      title="Ordina per Produttore"
+      id="navTabSpools"
+      onclick="app.switchActiveView('spools')"
+      class="flex flex-col items-center justify-center py-1 px-2 rounded-xl text-indigo-600 dark:text-indigo-400 font-bold transition flex-1 min-w-0"
+      title="Inventario Bobine"
     >
-      <i data-lucide="building-2" class="w-5 h-5 mb-0.5"></i>
-      <span class="text-[11px] truncate">Produttore</span>
+      <i data-lucide="layers" class="w-5 h-5 mb-0.5"></i>
+      <span class="text-[11px] truncate">Bobine</span>
     </button>
 
-    <!-- 2. Sort: Filamento -->
+    <!-- 2. Tab: Acquisti (Wishlist) -->
     <button
       type="button"
-      id="sortBtnMaterial"
-      onclick="app.setQuickSort('material_asc')"
-      class="quick-sort-btn flex flex-col items-center justify-center py-1 px-2 rounded-xl text-slate-400 dark:text-slate-400 hover:text-indigo-500 font-semibold transition flex-1 min-w-0"
-      title="Ordina per Tipo di Filamento"
+      id="navTabShopping"
+      onclick="app.switchActiveView('shopping')"
+      class="flex flex-col items-center justify-center py-1 px-2 rounded-xl text-slate-400 dark:text-slate-400 hover:text-amber-500 font-semibold transition flex-1 min-w-0 relative"
+      title="Lista Acquisti Filamenti"
     >
-      <i data-lucide="flask-conical" class="w-5 h-5 mb-0.5"></i>
-      <span class="text-[11px] truncate">Filamento</span>
+      <i data-lucide="shopping-cart" class="w-5 h-5 mb-0.5"></i>
+      <span class="text-[11px] truncate">Acquisti</span>
+      <span id="bottomNavShoppingBadge" class="hidden absolute top-0.5 right-1/4 px-1.5 py-0.2 bg-amber-500 text-slate-950 text-[10px] font-black rounded-full shadow">0</span>
     </button>
 
-    <!-- 3. Sort: Scala Cromatica -->
+    <!-- 3. Tab: Ordina / Filtri -->
     <button
       type="button"
-      id="sortBtnColor"
-      onclick="app.setQuickSort('color_chromatic')"
-      class="quick-sort-btn flex flex-col items-center justify-center py-1 px-2 rounded-xl text-slate-400 dark:text-slate-400 hover:text-indigo-500 font-semibold transition flex-1 min-w-0"
-      title="Ordina per Scala Cromatica"
+      id="navTabSort"
+      onclick="app.openFiltersSheet()"
+      class="flex flex-col items-center justify-center py-1 px-2 rounded-xl text-slate-400 dark:text-slate-400 hover:text-indigo-500 font-semibold transition flex-1 min-w-0"
+      title="Ordina e Filtra"
     >
-      <i data-lucide="palette" class="w-5 h-5 mb-0.5"></i>
-      <span class="text-[11px] truncate">Colore</span>
+      <i data-lucide="arrow-up-down" class="w-5 h-5 mb-0.5"></i>
+      <span class="text-[11px] truncate">Ordina</span>
     </button>
 
-    <!-- 4. Menu & Impostazioni -->
+    <!-- 4. Tab: Menu & Impostazioni -->
     <button
       type="button"
       id="navTabMenu"
@@ -372,7 +454,7 @@
       <div class="rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 divide-y divide-slate-200 dark:divide-slate-800 overflow-hidden">
         
         <!-- Lista Acquisti Filamenti -->
-        <button onclick="app.closeMobileMenuSheet(); app.openShoppingListModal();" class="w-full p-3.5 flex items-center justify-between text-left hover:bg-slate-100 dark:hover:bg-slate-800/60 transition group">
+        <button onclick="app.closeMobileMenuSheet(); app.switchActiveView('shopping');" class="w-full p-3.5 flex items-center justify-between text-left hover:bg-slate-100 dark:hover:bg-slate-800/60 transition group">
           <div class="flex items-center gap-3">
             <div class="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
               <i data-lucide="shopping-cart" class="w-4 h-4"></i>
@@ -1557,81 +1639,6 @@
   </div>
 
   <!-- ========================================== -->
-  <!-- Shopping List Modal (Wishlist Filamenti)   -->
-  <!-- ========================================== -->
-  <div id="shoppingListModal" class="fixed inset-0 z-40 bg-slate-950/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
-    <div class="bg-slate-900 dark:bg-[#0b0f19] border border-slate-800 rounded-t-3xl sm:rounded-2xl w-full max-w-2xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden transition-all">
-      <!-- Modal Header -->
-      <div class="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between gap-3 bg-slate-900/50">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500/20 to-orange-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-sm">
-            <i data-lucide="shopping-cart" class="w-5 h-5"></i>
-          </div>
-          <div>
-            <div class="flex items-center gap-2">
-              <h2 class="text-base sm:text-lg font-bold text-white">Lista Acquisti Filamenti</h2>
-              <span id="shoppingListCounterBadge" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                0
-              </span>
-            </div>
-            <p class="text-xs text-slate-400">Wishlist e scorte da ordinare con conversione automatica in bobina</p>
-          </div>
-        </div>
-
-        <div class="flex items-center gap-2">
-          <button type="button" onclick="app.openShoppingItemModal()" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md shadow-amber-950/30">
-            <i data-lucide="plus" class="w-4 h-4"></i>
-            <span>Aggiungi</span>
-          </button>
-          <button type="button" onclick="app.closeShoppingListModal()" class="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800">
-            <i data-lucide="x" class="w-5 h-5"></i>
-          </button>
-        </div>
-      </div>
-
-      <!-- Filter Tabs & Stats Bar -->
-      <div class="px-4 py-3 bg-slate-950/60 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs">
-        <!-- Tabs -->
-        <div class="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800">
-          <button type="button" id="shoppingTabPending" onclick="app.setShoppingTab('pending')" class="px-3 py-1 rounded-lg text-xs font-semibold bg-amber-500 text-slate-950 shadow">
-            Da Acquistare
-          </button>
-          <button type="button" id="shoppingTabBought" onclick="app.setShoppingTab('bought')" class="px-3 py-1 rounded-lg text-xs font-semibold text-slate-400 hover:text-white">
-            Già Ordinati
-          </button>
-          <button type="button" id="shoppingTabAll" onclick="app.setShoppingTab('all')" class="px-3 py-1 rounded-lg text-xs font-semibold text-slate-400 hover:text-white">
-            Tutti
-          </button>
-        </div>
-
-        <!-- Budget Stats -->
-        <div class="flex items-center gap-3 text-slate-400 text-xs">
-          <div>Totale stimato: <strong id="shoppingEstimatedTotal" class="text-white font-mono font-bold">€0.00</strong></div>
-        </div>
-      </div>
-
-      <!-- Search Input within Shopping List -->
-      <div class="px-4 pt-3 pb-1">
-        <div class="relative">
-          <i data-lucide="search" class="w-4 h-4 text-slate-500 absolute left-3 top-2.5"></i>
-          <input
-            type="text"
-            id="shoppingSearchInput"
-            oninput="app.handleShoppingSearch(this.value)"
-            placeholder="Cerca per brand, materiale o colore..."
-            class="w-full pl-9 pr-3 py-1.5 bg-slate-950/70 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500/50"
-          />
-        </div>
-      </div>
-
-      <!-- Shopping List Container -->
-      <div id="shoppingListContainer" class="flex-1 overflow-y-auto p-4 space-y-3 min-h-[220px]">
-        <!-- Dynamically rendered via app.renderShoppingList() -->
-      </div>
-    </div>
-  </div>
-
-  <!-- ========================================== -->
   <!-- Shopping Item Add / Edit Modal             -->
   <!-- ========================================== -->
   <div id="shoppingItemModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
@@ -1823,6 +1830,6 @@
   <div id="toastContainer" class="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
   <!-- Application Logic -->
-  <script src="/static/js/app.js?v=1.5"></script>
+  <script src="/static/js/app.js?v=1.6"></script>
 </body>
 </html>

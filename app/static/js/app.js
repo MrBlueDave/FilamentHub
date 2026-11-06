@@ -47,6 +47,9 @@ class FilamentHubApp {
     this.aiLoadingStartTime = null;
     this.aiAbortController = null;
 
+    // Main Screen View state ('spools' | 'shopping')
+    this.activeMainView = 'spools';
+
     // Shopping List (Wishlist) state
     this.shoppingItems = [];
     this.shoppingFilter = 'pending'; // 'pending' | 'bought' | 'all'
@@ -1018,6 +1021,7 @@ class FilamentHubApp {
   }
 
   navToSpools() {
+    this.switchActiveView('spools');
     this.closeAllModals();
     this.resetDropdownFilters();
     this.setFilterStatus('all');
@@ -3350,6 +3354,73 @@ class FilamentHubApp {
   // =========================================================================
   // 19. SHOPPING LIST (WISHLIST) CONTROLLER & 1-TAP INVENTORY CONVERSION
   // =========================================================================
+  switchActiveView(view) {
+    this.activeMainView = view || 'spools';
+    const isSpools = this.activeMainView === 'spools';
+
+    // Toggle main content view containers
+    const spoolsContainer = document.getElementById('spoolsViewContainer');
+    const shoppingContainer = document.getElementById('shoppingViewContainer');
+    if (spoolsContainer) spoolsContainer.classList.toggle('hidden', !isSpools);
+    if (shoppingContainer) shoppingContainer.classList.toggle('hidden', isSpools);
+
+    // Toggle topbar action buttons
+    const spoolsActions = document.getElementById('topbarSpoolsActions');
+    const shoppingActions = document.getElementById('topbarShoppingActions');
+    if (spoolsActions) spoolsActions.classList.toggle('hidden', !isSpools);
+    if (shoppingActions) shoppingActions.classList.toggle('hidden', isSpools);
+
+    // Toggle topbar filter rows (Row 2 & 3)
+    const spoolsFilterRows = document.getElementById('topbarSpoolsFilterRows');
+    const shoppingFilterRows = document.getElementById('topbarShoppingFilterRows');
+    if (spoolsFilterRows) spoolsFilterRows.classList.toggle('hidden', !isSpools);
+    if (shoppingFilterRows) shoppingFilterRows.classList.toggle('hidden', isSpools);
+
+    // Update topbar subtitle
+    const topbarSubtitle = document.getElementById('topbarSubtitle');
+    if (topbarSubtitle) {
+      topbarSubtitle.textContent = isSpools ? 'Spool Database • v1.6' : 'Lista Acquisti Filamenti • v1.6';
+    }
+
+    // Update bottom nav tab buttons
+    const navSpools = document.getElementById('navTabSpools');
+    const navShopping = document.getElementById('navTabShopping');
+    if (navSpools) {
+      if (isSpools) {
+        navSpools.className = 'flex flex-col items-center justify-center py-1 px-2 rounded-xl text-indigo-600 dark:text-indigo-400 font-bold transition flex-1 min-w-0';
+      } else {
+        navSpools.className = 'flex flex-col items-center justify-center py-1 px-2 rounded-xl text-slate-400 dark:text-slate-400 hover:text-indigo-500 font-semibold transition flex-1 min-w-0';
+      }
+    }
+    if (navShopping) {
+      if (!isSpools) {
+        navShopping.className = 'flex flex-col items-center justify-center py-1 px-2 rounded-xl text-amber-500 font-bold transition flex-1 min-w-0 relative';
+      } else {
+        navShopping.className = 'flex flex-col items-center justify-center py-1 px-2 rounded-xl text-slate-400 dark:text-slate-400 hover:text-amber-500 font-semibold transition flex-1 min-w-0 relative';
+      }
+    }
+
+    // Scroll to top of main scroll area
+    const scrollEl = document.getElementById('mainScrollArea');
+    if (scrollEl) scrollEl.scrollTo({ top: 0, behavior: 'smooth' });
+
+    if (!isSpools) {
+      this.renderShoppingList();
+    } else {
+      this.renderSpoolViews();
+    }
+
+    if (window.lucide) lucide.createIcons();
+  }
+
+  openShoppingListModal() {
+    this.switchActiveView('shopping');
+  }
+
+  closeShoppingListModal() {
+    this.switchActiveView('spools');
+  }
+
   async loadShoppingList() {
     try {
       const res = await fetch('/api/shopping');
@@ -3368,13 +3439,14 @@ class FilamentHubApp {
 
   updateShoppingBadges() {
     const pendingCount = this.shoppingItems.filter(i => !i.is_bought).length;
+    const boughtCount = this.shoppingItems.filter(i => i.is_bought).length;
     const totalCount = this.shoppingItems.length;
 
-    // Top bar badge
-    const topbarBadge = document.getElementById('topbarShoppingBadge');
-    if (topbarBadge) {
-      topbarBadge.textContent = pendingCount;
-      topbarBadge.classList.toggle('hidden', pendingCount === 0);
+    // Bottom nav badge
+    const bottomNavBadge = document.getElementById('bottomNavShoppingBadge');
+    if (bottomNavBadge) {
+      bottomNavBadge.textContent = pendingCount;
+      bottomNavBadge.classList.toggle('hidden', pendingCount === 0);
     }
 
     // Mobile menu badge
@@ -3383,51 +3455,29 @@ class FilamentHubApp {
       menuBadge.textContent = `${pendingCount} da ordinare`;
     }
 
-    // Modal counter badge
-    const counterBadge = document.getElementById('shoppingListCounterBadge');
-    if (counterBadge) {
-      counterBadge.textContent = `${pendingCount} da ordinare / ${totalCount} tot`;
-    }
-  }
-
-  openShoppingListModal() {
-    this.shoppingFilter = 'pending';
-    this.shoppingSearchQuery = '';
-    const searchInput = document.getElementById('shoppingSearchInput');
-    if (searchInput) searchInput.value = '';
-
-    this.updateShoppingTabButtons();
-    const modal = document.getElementById('shoppingListModal');
-    if (modal) modal.classList.remove('hidden');
-    document.body.classList.add('overflow-hidden');
-
-    this.renderShoppingList();
-    if (window.lucide) lucide.createIcons();
-  }
-
-  closeShoppingListModal() {
-    const modal = document.getElementById('shoppingListModal');
-    if (modal) modal.classList.add('hidden');
-    document.body.classList.remove('overflow-hidden');
+    // Segmented tab badges
+    const pCountEl = document.getElementById('shoppingCountPending');
+    if (pCountEl) pCountEl.textContent = pendingCount;
+    const bCountEl = document.getElementById('shoppingCountBought');
+    if (bCountEl) bCountEl.textContent = boughtCount;
+    const aCountEl = document.getElementById('shoppingCountAll');
+    if (aCountEl) aCountEl.textContent = totalCount;
   }
 
   setShoppingTab(tab) {
-    this.shoppingFilter = tab;
-    this.updateShoppingTabButtons();
-    this.renderShoppingList();
-  }
-
-  updateShoppingTabButtons() {
+    this.shoppingFilter = tab || 'pending';
     const tabs = ['pending', 'bought', 'all'];
     tabs.forEach(t => {
       const btn = document.getElementById(`shoppingTab${t.charAt(0).toUpperCase() + t.slice(1)}`);
-      if (!btn) return;
-      if (t === this.shoppingFilter) {
-        btn.className = 'px-3 py-1 rounded-lg text-xs font-semibold bg-amber-500 text-slate-950 shadow';
-      } else {
-        btn.className = 'px-3 py-1 rounded-lg text-xs font-semibold text-slate-400 hover:text-white';
+      if (btn) {
+        if (t === this.shoppingFilter) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
       }
     });
+    this.renderShoppingList();
   }
 
   handleShoppingSearch(query) {
@@ -3437,6 +3487,7 @@ class FilamentHubApp {
 
   renderShoppingList() {
     const container = document.getElementById('shoppingListContainer');
+    const emptyState = document.getElementById('emptyShoppingState');
     if (!container) return;
 
     let items = [...this.shoppingItems];
@@ -3468,132 +3519,94 @@ class FilamentHubApp {
     }
 
     if (items.length === 0) {
-      container.innerHTML = `
-        <div class="text-center py-12 px-4 space-y-3">
-          <div class="w-14 h-14 mx-auto rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
-            <i data-lucide="shopping-bag" class="w-7 h-7"></i>
-          </div>
-          <h4 class="text-white font-bold text-sm">Nessun filamento trovato</h4>
-          <p class="text-xs text-slate-400 max-w-xs mx-auto">
-            ${this.shoppingSearchQuery ? 'Nessun risultato corrisponde alla ricerca.' : 'La lista acquisti è vuota. Aggiungi i filamenti che prevedi di ordinare!'}
-          </p>
-          <button type="button" onclick="app.openShoppingItemModal()" class="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow-md">
-            <i data-lucide="plus" class="w-4 h-4"></i>
-            <span>Aggiungi filamento</span>
-          </button>
-        </div>
-      `;
+      container.innerHTML = '';
+      container.classList.add('hidden');
+      if (emptyState) emptyState.classList.remove('hidden');
       if (window.lucide) lucide.createIcons();
       return;
     }
+
+    container.classList.remove('hidden');
+    if (emptyState) emptyState.classList.add('hidden');
 
     container.innerHTML = items.map(item => {
       const isBought = Boolean(item.is_bought);
       const priceStr = item.price_eur > 0 ? `€${item.price_eur.toFixed(2)}` : 'N/D';
       const totalItemPrice = item.price_eur > 0 && item.quantity > 1
-        ? ` (Tot: €${(item.price_eur * item.quantity).toFixed(2)})`
+        ? ` <span class="text-[10px] text-slate-400 font-normal">(Tot: €${(item.price_eur * item.quantity).toFixed(2)})</span>`
         : '';
 
       return `
-        <div class="bg-slate-900/90 dark:bg-[#111827] border ${isBought ? 'border-emerald-800/50 opacity-80' : 'border-slate-800 hover:border-amber-500/40'} rounded-2xl p-3.5 transition-all shadow-sm">
-          <div class="flex items-start justify-between gap-3">
-            <!-- Left: Swatch & Identity -->
-            <div class="flex items-center gap-3 min-w-0">
-              <div class="relative shrink-0">
-                <span
-                  class="w-11 h-11 rounded-2xl inline-block shadow-inner border border-black/15 dark:border-white/15 shrink-0"
-                  style="background-color: ${this.escapeHtml(item.color_hex || '#3b82f6')};"
-                ></span>
-              </div>
-
-              <div class="min-w-0 space-y-0.5">
-                <div class="flex items-center gap-1.5 truncate">
-                  ${this.renderBrandLogo(item.brand, 'sm')}
-                  <span class="text-xs font-extrabold uppercase tracking-wider text-amber-500 dark:text-amber-400 truncate">${this.escapeHtml(item.brand)}</span>
-                  ${isBought
-                    ? '<span class="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">ORDINATO</span>'
-                    : '<span class="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">DA COMPRARE</span>'
-                  }
-                </div>
-
-                <div class="text-sm sm:text-base font-extrabold text-white truncate">
-                  ${this.escapeHtml(item.material)}${item.subtype ? ' ' + this.escapeHtml(item.subtype) : ''}
-                </div>
-
-                <div class="text-xs font-semibold text-slate-300 truncate">
-                  ${this.escapeHtml(item.color_name || 'Standard')}
-                </div>
-              </div>
-            </div>
-
-            <!-- Right: Price & Quantity Badge -->
-            <div class="shrink-0 text-right">
-              <div class="text-sm font-mono font-bold ${item.price_eur > 0 ? 'text-emerald-400' : 'text-slate-500'}">
-                ${priceStr}
-              </div>
-              <div class="text-[11px] font-mono text-slate-400">
-                ${item.quantity}x ${item.weight_g}g${totalItemPrice}
-              </div>
-            </div>
+        <div
+          class="p-3.5 rounded-2xl bg-white dark:bg-[#131c31] border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between gap-3 transition-all select-none hover:border-amber-500/30"
+          style="border-left: 6px solid ${this.escapeHtml(item.color_hex || '#3b82f6')};"
+        >
+          <!-- Left: Big Color Swatch (w-11 h-11) -->
+          <div class="relative shrink-0">
+            <span
+              class="w-11 h-11 rounded-2xl inline-block shadow-inner border border-black/10 dark:border-white/15 shrink-0"
+              style="background-color: ${this.escapeHtml(item.color_hex || '#3b82f6')};"
+            ></span>
           </div>
 
-          <!-- Store link & Notes (if any) -->
-          ${(item.store_url || item.notes) ? `
-            <div class="mt-2.5 pt-2 border-t border-slate-800/70 flex flex-wrap items-center justify-between gap-2 text-xs">
-              ${item.notes ? `
-                <p class="text-[11px] text-slate-400 italic line-clamp-1 flex-1">
-                  <i data-lucide="message-square" class="w-3 h-3 inline mr-1 text-slate-500"></i>${this.escapeHtml(item.notes)}
-                </p>
-              ` : '<div></div>'}
-              ${item.store_url ? `
-                <a href="${this.escapeHtml(item.store_url)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-400 hover:text-indigo-300 hover:underline">
-                  <i data-lucide="external-link" class="w-3 h-3"></i>
-                  <span>Apri Negozio</span>
-                </a>
-              ` : ''}
+          <!-- Center: 3 Clean Full-Width Rows (consistent with Bobine list) -->
+          <div class="flex-1 min-w-0 space-y-0.5 cursor-pointer" onclick="app.openShoppingItemModal(${item.id})">
+            <!-- Row 1: Brand logo + Brand name + Status Badge -->
+            <div class="flex items-center gap-1.5 truncate">
+              ${this.renderBrandLogo(item.brand, 'sm')}
+              <span class="text-[13px] sm:text-sm font-extrabold uppercase tracking-wider text-amber-600 dark:text-amber-400 truncate">${this.escapeHtml(item.brand)}</span>
+              <span class="px-1.5 py-0.5 rounded-full text-[9px] font-bold ${isBought ? 'bg-emerald-500/20 text-emerald-500 border border-emerald-500/40' : 'bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/40'}">
+                ${isBought ? 'ORDINATO' : 'DA COMPRARE'}
+              </span>
             </div>
-          ` : ''}
 
-          <!-- Actions Toolbar -->
-          <div class="mt-3 pt-2.5 border-t border-slate-800 flex items-center justify-between gap-2">
-            <!-- 1-Tap Convert to Real Spool -->
-            <button
-              type="button"
-              onclick="app.convertShoppingItemToSpool(${item.id})"
-              class="px-2.5 py-1.5 bg-emerald-600/90 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow-sm transition-all"
-              title="Aggiungi all'inventario come bobina ricevuta"
-            >
-              <i data-lucide="package-plus" class="w-3.5 h-3.5"></i>
-              <span>Ricevuta &#8594; Bobina</span>
-            </button>
+            <!-- Row 2: Material & Subtype in large bold text -->
+            <div class="text-[17px] font-extrabold text-slate-900 dark:text-white leading-tight truncate">
+              ${this.escapeHtml(item.material)}${item.subtype ? ' ' + this.escapeHtml(item.subtype) : ''}
+            </div>
 
-            <div class="flex items-center gap-1 ml-auto">
-              <!-- Toggle Bought Status -->
+            <!-- Row 3: Color Name + Quantity/Weight -->
+            <div class="flex items-center justify-between text-[14px] font-semibold text-slate-600 dark:text-slate-300 truncate">
+              <span class="truncate">${this.escapeHtml(item.color_name || 'Standard')}</span>
+              <span class="text-xs font-mono font-semibold text-slate-500 dark:text-slate-400 shrink-0 ml-1.5">${item.quantity}x ${item.weight_g}g</span>
+            </div>
+
+            <!-- Row 4 (optional notes or store link) -->
+            ${(item.store_url || item.notes) ? `
+              <div class="pt-1 flex items-center gap-2 text-[11px] text-slate-400 truncate">
+                ${item.store_url ? `
+                  <a href="${this.escapeHtml(item.store_url)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" class="text-indigo-500 dark:text-indigo-400 hover:underline font-semibold inline-flex items-center gap-1">
+                    <i data-lucide="external-link" class="w-3 h-3"></i><span>Store</span>
+                  </a>
+                ` : ''}
+                ${item.notes ? `<span class="italic truncate text-slate-500">${this.escapeHtml(item.notes)}</span>` : ''}
+              </div>
+            ` : ''}
+          </div>
+
+          <!-- Right: Price on top + Green 'Ricevuto' button on bottom -->
+          <div class="shrink-0 flex flex-col items-end justify-between gap-1.5">
+            <div class="text-sm font-bold font-mono text-emerald-600 dark:text-emerald-400 leading-tight">
+              ${priceStr}${totalItemPrice}
+            </div>
+            <div class="flex items-center gap-1">
+              <!-- 1-Tap Convert / Received Button -->
               <button
                 type="button"
-                onclick="app.toggleShoppingItemBought(${item.id}, ${isBought})"
-                class="px-2 py-1.5 text-xs font-semibold rounded-xl border ${isBought ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-slate-800/80 border-slate-700 text-amber-400 hover:bg-slate-700'}"
-                title="${isBought ? 'Segna come Da Acquistare' : 'Segna come Già Ordinato'}"
+                onclick="event.stopPropagation(); app.convertShoppingItemToSpool(${item.id})"
+                class="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-sm transition"
+                title="Bobina Ricevuta: aggiungi all'inventario"
               >
-                <i data-lucide="${isBought ? 'rotate-ccw' : 'check'}" class="w-3.5 h-3.5"></i>
+                <i data-lucide="package-check" class="w-3.5 h-3.5"></i>
+                <span class="text-xs">Ricevuto</span>
               </button>
 
-              <!-- Edit -->
+              <!-- Delete Button -->
               <button
                 type="button"
-                onclick="app.openShoppingItemModal(${item.id})"
-                class="p-1.5 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800"
-                title="Modifica"
-              >
-                <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
-              </button>
-
-              <!-- Delete -->
-              <button
-                type="button"
-                onclick="app.deleteShoppingItem(${item.id})"
-                class="p-1.5 text-rose-400/80 hover:text-rose-300 rounded-xl hover:bg-rose-950/40"
-                title="Elimina dalla lista"
+                onclick="event.stopPropagation(); app.deleteShoppingItem(${item.id})"
+                class="p-1.5 text-slate-400 hover:text-rose-500 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                title="Elimina"
               >
                 <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
               </button>
@@ -3606,7 +3619,7 @@ class FilamentHubApp {
     if (window.lucide) lucide.createIcons();
   }
 
-  openShoppingItemModal(id = null) {
+    openShoppingItemModal(id = null) {
     const title = document.getElementById('shoppingItemModalTitle');
     const idInput = document.getElementById('shoppingItemId');
     const brandInput = document.getElementById('shoppingItemBrand');
