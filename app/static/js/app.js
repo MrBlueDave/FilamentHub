@@ -964,18 +964,18 @@ class FilamentHubApp {
   }
 
   cycleQuickSort() {
-    if (this.sortBy !== 'brand_asc') {
-      this.sortBy = 'brand_asc';
-    } else {
-      this.sortBy = 'material_asc';
-    }
+    const order = ['brand_asc', 'material_asc', 'color_chromatic'];
+    const idx = order.indexOf(this.sortBy);
+    this.sortBy = order[(idx + 1) % order.length];
     this.updateQuickSortUi();
     this.renderSpoolViews();
     this.renderShoppingList();
-    this.showToast(
-      this.sortBy === 'brand_asc' ? 'Sorted by Brand (A–Z)' : 'Sorted by Material (A–Z)',
-      'info'
-    );
+    const toastLabels = {
+      brand_asc: 'Sorted by Brand (A–Z)',
+      material_asc: 'Sorted by Material (A–Z)',
+      color_chromatic: 'Sorted by Color Scale'
+    };
+    this.showToast(toastLabels[this.sortBy] || 'Sorted by Brand (A–Z)', 'info');
   }
 
   setQuickSort(key) {
@@ -988,7 +988,13 @@ class FilamentHubApp {
   updateQuickSortUi() {
     const sortLabel = document.getElementById('navTabSortLabel');
     if (sortLabel) {
-      sortLabel.textContent = this.sortBy === 'material_asc' ? 'Sort: Material' : 'Sort: Brand';
+      if (this.sortBy === 'material_asc') {
+        sortLabel.textContent = 'Sort: Material';
+      } else if (this.sortBy === 'color_chromatic') {
+        sortLabel.textContent = 'Sort: Color';
+      } else {
+        sortLabel.textContent = 'Sort: Brand';
+      }
     }
   }
 
@@ -3235,7 +3241,7 @@ class FilamentHubApp {
     // Update topbar subtitle
     const topbarSubtitle = document.getElementById('topbarSubtitle');
     if (topbarSubtitle) {
-      topbarSubtitle.textContent = isSpools ? 'Spool Database • v2.1' : 'Shopping List • v2.1';
+      topbarSubtitle.textContent = isSpools ? 'Spool Database • v2.2' : 'Shopping List • v2.2';
     }
 
     // Update bottom nav tab buttons
@@ -3382,6 +3388,15 @@ class FilamentHubApp {
         if (cmp !== 0) return cmp;
         const scmp = (a.subtype || '').localeCompare(b.subtype || '');
         if (scmp !== 0) return scmp;
+        return (a.brand || '').localeCompare(b.brand || '');
+      });
+    } else if (this.sortBy === 'color_chromatic') {
+      items.sort((a, b) => {
+        const ka = this.hexToSortKey(a.color_hex);
+        const kb = this.hexToSortKey(b.color_hex);
+        if (ka.group !== kb.group) return ka.group - kb.group;
+        if (Math.abs(ka.val1 - kb.val1) > 0.01) return ka.val1 - kb.val1;
+        if (Math.abs(ka.val2 - kb.val2) > 0.01) return ka.val2 - kb.val2;
         return (a.brand || '').localeCompare(b.brand || '');
       });
     }
