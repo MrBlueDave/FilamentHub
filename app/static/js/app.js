@@ -3235,7 +3235,7 @@ class FilamentHubApp {
     // Update topbar subtitle
     const topbarSubtitle = document.getElementById('topbarSubtitle');
     if (topbarSubtitle) {
-      topbarSubtitle.textContent = isSpools ? 'Spool Database • v2.0' : 'Shopping List • v2.0';
+      topbarSubtitle.textContent = isSpools ? 'Spool Database • v2.1' : 'Shopping List • v2.1';
     }
 
     // Update bottom nav tab buttons
@@ -3430,9 +3430,21 @@ class FilamentHubApp {
             <div class="flex items-center gap-1.5 truncate">
               ${this.renderBrandLogo(item.brand, 'sm')}
               <span class="text-[13px] sm:text-sm font-extrabold uppercase tracking-wider text-amber-600 dark:text-amber-400 truncate">${this.escapeHtml(item.brand)}</span>
-              <span class="px-1.5 py-0.5 rounded-full text-[9px] font-bold ${isBought ? 'bg-emerald-500/20 text-emerald-500 border border-emerald-500/40' : 'bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/40'}">
-                ${isBought ? 'ORDERED' : 'TO BUY'}
-              </span>
+              ${isBought ? `
+                <button
+                  type="button"
+                  onclick="event.stopPropagation(); app.toggleShoppingItemBought(${item.id}, true)"
+                  title="Click to move back to To Buy"
+                  class="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/20 hover:bg-amber-500/20 text-emerald-500 hover:text-amber-400 border border-emerald-500/40 hover:border-amber-500/40 inline-flex items-center gap-0.5 transition"
+                >
+                  <span>ORDERED</span>
+                  <i data-lucide="undo-2" class="w-2.5 h-2.5"></i>
+                </button>
+              ` : `
+                <span class="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/40">
+                  TO BUY
+                </span>
+              `}
             </div>
 
             <!-- Row 2: Material & Subtype in large bold text -->
@@ -3465,16 +3477,29 @@ class FilamentHubApp {
               ${priceStr}${totalItemPrice}
             </div>
             <div class="flex items-center gap-1">
-              <!-- 1-Tap Convert / Received Button -->
-              <button
-                type="button"
-                onclick="event.stopPropagation(); app.convertShoppingItemToSpool(${item.id})"
-                class="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-sm transition"
-                title="Spool Received: add to inventory"
-              >
-                <i data-lucide="package-check" class="w-3.5 h-3.5"></i>
-                <span class="text-xs">Received</span>
-              </button>
+              ${!isBought ? `
+                <!-- Step 1: Move from To Buy -> Ordered -->
+                <button
+                  type="button"
+                  onclick="event.stopPropagation(); app.toggleShoppingItemBought(${item.id}, false)"
+                  class="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-sm transition"
+                  title="Mark as Ordered"
+                >
+                  <i data-lucide="shopping-bag" class="w-3.5 h-3.5"></i>
+                  <span class="text-xs">Ordered</span>
+                </button>
+              ` : `
+                <!-- Step 2: Move from Ordered -> Received (Spools Inventory) -->
+                <button
+                  type="button"
+                  onclick="event.stopPropagation(); app.convertShoppingItemToSpool(${item.id})"
+                  class="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-sm transition"
+                  title="Spool Received: add to Spools inventory"
+                >
+                  <i data-lucide="package-check" class="w-3.5 h-3.5"></i>
+                  <span class="text-xs">Received</span>
+                </button>
+              `}
 
               <!-- Delete Button -->
               <button
@@ -3660,7 +3685,10 @@ class FilamentHubApp {
     const item = this.shoppingItems.find(i => i.id === id);
     if (!item) return;
 
-    const promptMsg = `Confirm you received spool "${item.brand} ${item.material} - ${item.color_name}"?\n\nA new unique SP-xxxx code will be generated and the spool will be added to your active inventory.`;
+    const qty = Math.max(1, parseInt(item.quantity || 1, 10));
+    const promptMsg = qty > 1
+      ? `Confirm you received ${qty}x "${item.brand} ${item.material} - ${item.color_name}"?\n\n${qty} new spools (status: New) with unique SP-xxxx codes will be added to your Spools inventory.`
+      : `Confirm you received spool "${item.brand} ${item.material} - ${item.color_name}"?\n\nA new spool (status: New) with a unique SP-xxxx code will be added to your Spools inventory.`;
     const shouldRemove = confirm(promptMsg);
 
     if (!shouldRemove) return;

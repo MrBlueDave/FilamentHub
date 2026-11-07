@@ -39,8 +39,8 @@ def _row_to_shopping_dict(row: sqlite3.Row) -> Dict[str, Any]:
 
 @router.get("", response_model=List[ShoppingItemOut])
 def get_shopping_list(
-    is_bought: Optional[bool] = Query(None, description="Filtra per stato acquisto (true/false)"),
-    search: Optional[str] = Query(None, description="Cerca per brand, materiale, colore o note"),
+    is_bought: Optional[bool] = Query(None, description="Filter by order status (true=Ordered, false=To Buy)"),
+    search: Optional[str] = Query(None, description="Search by brand, material, color, or notes"),
     db: sqlite3.Connection = Depends(get_db),
     current_user: Dict[str, Any] = Depends(require_viewer),
 ) -> List[Dict[str, Any]]:
@@ -224,9 +224,10 @@ def convert_to_spool(
     current_user: Dict[str, Any] = Depends(require_editor),
 ) -> Dict[str, Any]:
     """
-    1-Tap Conversion: Converts a shopping list item into a brand-new Spool in the user's inventory!
-    Prepopulates brand, material, subtype, color, initial weight and price, assigns next sequential SP-xxxx UID,
-    initializes weight log, and either removes or marks the shopping item as purchased.
+    1-Tap Conversion: Converts a shopping list item into brand-new Spool(s) in the user's inventory!
+    Creates N spools matching item.quantity, prepopulates brand, material, subtype, color,
+    initial weight and price, assigns sequential SP-xxxx UIDs, initializes weight logs,
+    and either removes or marks the shopping item as purchased.
     """
     user_id = current_user["id"]
     cursor = db.execute(
@@ -251,69 +252,79 @@ def convert_to_spool(
 
     net_weight = float(item["weight_g"] or 1000.0)
     current_gross = net_weight + tare_weight
-    uid_code = _generate_next_uid_code(db)
+    qty = max(1, int(item["quantity"] or 1))
 
     slot_loc = (req.slot_location or "").strip()
     if slot_loc:
         _enforce_slot_exclusivity(db, user_id, slot_loc)
 
-    # Insert new spool
-    spool_cur = db.execute(
-        """
-        INSERT INTO spools (
-            user_id, uid_code, barcode, brand, material, subtype,
-            color_name, color_hex, color_hex_secondary, initial_net_weight_g,
-            tare_weight_g, current_gross_g, low_stock_threshold_g, price_eur,
-            location_shelf, status, in_drybox, in_use, slot_location,
-            k_factor, flow_ratio, max_volumetric_speed, retraction_length_mm,
-            retraction_speed_mms, nozzle_temp_min, nozzle_temp_max,
-            bed_temp, chamber_temp, opened_at, last_dried_at,
-            drying_temp_c, drying_hours, humidity_alert, notes,
-            created_at, updated_at
-        ) VALUES (
-            ?, ?, ?, ?, ?, ?,
-            ?, ?, ?, ?,
-            ?, ?, 150.0, ?,
-            ?, ?, 0, ?, ?,
-            0.020, 0.98, 15.0, 0.8,
-            30.0, 200, 220,
-            60, 0, '', '',
-            55, 6, 0, ?,
-            datetime('now'), datetime('now')
-        );
-        """,
-        (
-            user_id,
-            uid_code,
-            (req.barcode or "").strip(),
-            brand_clean,
-            item["material"].strip(),
-            item["subtype"] or "",
-            item["color_name"].strip(),
-            item["color_hex"] or "#3b82f6",
-            item["color_hex_secondary"] or "",
-            net_weight,
-            tare_weight,
-            current_gross,
-            float(item["price_eur"] or 0.0),
-            (req.location_shelf or "").strip(),
-            "in_use" if slot_loc else "new",
-            1 if slot_loc else 0,
-            slot_loc,
-            (item["notes"] or "").strip(),
-        ),
-    )
-    new_spool_id = spool_cur.lastrowid
+    created_spool_ids: List[int] = []
+    created_uids: List[str] = []
 
-    # Record initial weight log
-    db.execute(
-        """
-        INSERT INTO weight_history (
-            spool_id, gross_weight_g, net_weight_g, delta_g, recorded_by, recorded_at
-        ) VALUES (?, ?, ?, 0.0, ?, datetime('now'));
-        """,
-        (new_spool_id, current_gross, net_weight, current_user.get("username", "user")),
-    )
+    for idx in range(qty):
+        uid_code = _generate_next_uid_code(db)
+        this_slot = slot_loc if idx == 0 else ""
+        this_status = "in_use" if this_slot else "new"
+        this_in_use = 1 if this_slot else 0
+
+        spool_cur = db.execute(
+            """
+            INSERT INTO spools (
+                user_id, uid_code, barcode, brand, material, subtype,
+                color_name, color_hex, color_hex_secondary, initial_net_weight_g,
+                tare_weight_g, current_gross_g, low_stock_threshold_g, price_eur,
+                location_shelf, status, in_drybox, in_use, slot_location,
+                k_factor, flow_ratio, max_volumetric_speed, retraction_length_mm,
+                retraction_speed_mms, nozzle_temp_min, nozzle_temp_max,
+                bed_temp, chamber_temp, opened_at, last_dried_at,
+                drying_temp_c, drying_hours, humidity_alert, notes,
+                created_at, updated_at
+            ) VALUES (
+                ?, ?, ?, ?, ?, ?,
+                ?, ?, ?, ?,
+                ?, ?, 150.0, ?,
+                ?, ?, 0, ?, ?,
+                0.020, 0.98, 15.0, 0.8,
+                30.0, 200, 220,
+                60, 0, '', '',
+                55, 6, 0, ?,
+                datetime('now'), datetime('now')
+            );
+            """,
+            (
+                user_id,
+                uid_code,
+                (req.barcode or "").strip(),
+                brand_clean,
+                item["material"].strip(),
+                item["subtype"] or "",
+                item["color_name"].strip(),
+                item["color_hex"] or "#3b82f6",
+                item["color_hex_secondary"] or "",
+                net_weight,
+                tare_weight,
+                current_gross,
+                float(item["price_eur"] or 0.0),
+                (req.location_shelf or "").strip(),
+                this_status,
+                this_in_use,
+                this_slot,
+                (item["notes"] or "").strip(),
+            ),
+        )
+        new_spool_id = spool_cur.lastrowid
+        created_spool_ids.append(new_spool_id)
+        created_uids.append(uid_code)
+
+        # Record initial weight log
+        db.execute(
+            """
+            INSERT INTO weight_history (
+                spool_id, gross_weight_g, net_weight_g, delta_g, recorded_by, recorded_at
+            ) VALUES (?, ?, ?, 0.0, ?, datetime('now'));
+            """,
+            (new_spool_id, current_gross, net_weight, current_user.get("username", "user")),
+        )
 
     # Either remove item or mark as bought
     if req.remove_from_list:
@@ -326,8 +337,15 @@ def convert_to_spool(
 
     db.commit()
 
-    created_row = db.execute("SELECT * FROM spools WHERE id = ?;", (new_spool_id,)).fetchone()
+    created_row = db.execute("SELECT * FROM spools WHERE id = ?;", (created_spool_ids[0],)).fetchone()
+    msg = (
+        f"Spool {created_uids[0]} received and added to inventory!"
+        if qty == 1
+        else f"{qty} spools ({created_uids[0]}–{created_uids[-1]}) received and added to inventory!"
+    )
     return {
-        "message": f"Spool {uid_code} created and added to inventory!",
+        "message": msg,
+        "count": qty,
+        "uids": created_uids,
         "spool": row_to_spool_dict(created_row),
     }

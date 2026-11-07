@@ -3,7 +3,7 @@
 # 🧵 FilamentHub 3D
 ### Progressive Web App for 3D Filament Spool Management, Slicer Calibrations & Vision AI
 
-[![Version](https://img.shields.io/badge/version-2.0-emerald.svg?style=for-the-badge)](https://github.com/MrBlueDave/FilamentHub)
+[![Version](https://img.shields.io/badge/version-2.1-emerald.svg?style=for-the-badge)](https://github.com/MrBlueDave/FilamentHub)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688.svg?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Python](https://img.shields.io/badge/Python-3.12+-3776AB.svg?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?style=for-the-badge&logo=docker&logoColor=white)](https://docker.com)
@@ -38,7 +38,7 @@
 
 ## 🚀 Quick Installation
 
-You can install **FilamentHub 3D v2.0** using either a **Native Proxmox LXC Container** or **Docker & Docker Compose**.
+You can install **FilamentHub 3D v2.1** using either a **Native Proxmox LXC Container** or **Docker & Docker Compose**.
 
 ### Option 1: Proxmox LXC Container (Debian 12 / Ubuntu 22.04–24.04) — *Recommended*
 
