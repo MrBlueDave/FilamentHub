@@ -3,12 +3,13 @@
 # 🧵 FilamentHub 3D
 ### Progressive Web App for 3D Filament Spool Management, Slicer Calibrations & Vision AI
 
-[![Version](https://img.shields.io/badge/version-2.2-emerald.svg?style=for-the-badge)](https://github.com/MrBlueDave/FilamentHub)
+[![Version](https://img.shields.io/badge/version-2.3-emerald.svg?style=for-the-badge)](https://github.com/MrBlueDave/FilamentHub)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688.svg?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Python](https://img.shields.io/badge/Python-3.12+-3776AB.svg?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?style=for-the-badge&logo=docker&logoColor=white)](https://docker.com)
 [![Proxmox LXC](https://img.shields.io/badge/Proxmox_LXC-Optimized-E57000.svg?style=for-the-badge&logo=proxmox&logoColor=white)](https://proxmox.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
+[![Buy Me a Beer](https://img.shields.io/badge/Buy_Me_a_Beer-%F0%9F%8D%BA-FFDD00.svg?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black&labelColor=FFDD00)](https://buymeacoffee.com/mrbluedave)
 
 <p align="center">
   <b>FilamentHub 3D</b> is a modern, mobile-first, and desktop-ready multi-user Progressive Web App (PWA) crafted for FDM 3D printing makers and print farm operators. It allows each user to manage their private spool inventory, slicer calibration parameters (K-Factor, Flow Ratio, Max Volumetric Speed), plan future spool purchases via a dedicated Shopping List, and extract label specs automatically using their own personal <b>Google Gemini Vision AI</b> key.
@@ -38,7 +39,7 @@
 
 ## 🚀 Quick Installation
 
-You can install **FilamentHub 3D v2.2** using either a **Native Proxmox LXC Container** or **Docker & Docker Compose**.
+You can install **FilamentHub 3D v2.3** using either a **Native Proxmox LXC Container** or **Docker & Docker Compose**.
 
 ### Option 1: Proxmox LXC Container (Debian 12 / Ubuntu 22.04–24.04) — *Recommended*
 
@@ -128,6 +129,20 @@ INITIAL_ADMIN_PASSWORD=ChangeThisPasswordPromptly123!
 - **Authentication:** Password hashing with **Argon2id**, JWT sessions in `HttpOnly; SameSite=Lax` cookies.
 - **Frontend:** Lightweight Single Page Application (HTML5, modular ES6+ JavaScript, Tailwind CSS, Lucide Icons, html5-qrcode).
 - **Data Isolation:** User inventories, wishlists, and Gemini API keys are strictly partitioned per user ID.
+
+---
+
+## 🍺 Support the Project
+
+If you find **FilamentHub 3D** useful for managing your 3D printing spool inventory, feel free to support its development:
+
+<div align="center">
+  <a href="https://buymeacoffee.com/mrbluedave" target="_blank">
+    <img src="https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20beer&emoji=%F0%9F%8D%BA&slug=mrbluedave&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff" alt="Buy me a beer" />
+  </a>
+  <br/>
+  <a href="https://buymeacoffee.com/mrbluedave"><b>https://buymeacoffee.com/mrbluedave</b></a>
+</div>
 
 ---
 

@@ -3241,7 +3241,7 @@ class FilamentHubApp {
     // Update topbar subtitle
     const topbarSubtitle = document.getElementById('topbarSubtitle');
     if (topbarSubtitle) {
-      topbarSubtitle.textContent = isSpools ? 'Spool Database • v2.2' : 'Shopping List • v2.2';
+      topbarSubtitle.textContent = isSpools ? 'Spool Database • v2.3' : 'Shopping List • v2.3';
     }
 
     // Update bottom nav tab buttons
