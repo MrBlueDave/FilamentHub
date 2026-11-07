@@ -1,9 +1,9 @@
 <div align="center">
 
 # 🧵 FilamentHub 3D
-### Progressive Web App for 3D Filament Spool Management, Slicer Calibrations & Label Printing
+### Progressive Web App for 3D Filament Spool Management, Slicer Calibrations & Vision AI
 
-[![Version](https://img.shields.io/badge/version-1.9-emerald.svg?style=for-the-badge)](https://github.com/MrBlueDave/FilamentHub)
+[![Version](https://img.shields.io/badge/version-2.0-emerald.svg?style=for-the-badge)](https://github.com/MrBlueDave/FilamentHub)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688.svg?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Python](https://img.shields.io/badge/Python-3.12+-3776AB.svg?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?style=for-the-badge&logo=docker&logoColor=white)](https://docker.com)
@@ -11,7 +11,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
 
 <p align="center">
-  <b>FilamentHub 3D</b> is a modern, mobile-first, and desktop-ready multi-user Progressive Web App (PWA) crafted for FDM 3D printing makers and print farm operators. It allows each user to manage their private spool inventory, slicer calibration parameters (K-Factor, Flow Ratio, Max Volumetric Speed), generate high-contrast thermal labels (Brother-compatible PNGs and 24-label A4 sheets), plan future spool purchases via a dedicated Wishlist, and extract label specs automatically using their own personal <b>Google Gemini Vision AI</b> key.
+  <b>FilamentHub 3D</b> is a modern, mobile-first, and desktop-ready multi-user Progressive Web App (PWA) crafted for FDM 3D printing makers and print farm operators. It allows each user to manage their private spool inventory, slicer calibration parameters (K-Factor, Flow Ratio, Max Volumetric Speed), plan future spool purchases via a dedicated Shopping List, and extract label specs automatically using their own personal <b>Google Gemini Vision AI</b> key.
 </p>
 
 </div>
@@ -25,10 +25,7 @@
 - 🤖 **Vision AI Label Recognition (Gemini Flash):** Snap or upload a photo of a spool label. Neural AI extracts brand, material (PLA, PETG, ASA, TPU, PA-CF, etc.), recommended printing temperatures, color, tare weight, and EAN/code barcodes.
 - 🎨 **Filament Color Eyedropper:** Tap directly on the photo canvas to sample the exact `#RRGGBB` hex color and apply it to the spool record.
 - 🛒 **Filament Shopping List (Wishlist):** Dedicated section to track future spool purchases, view estimated budget totals, and convert bought items into active inventory spools with 1 tap.
-- 🏷️ **Thermal & Laser Label Printing:**
-  - **Thermal Printers (Brother PT-P710BT Cube Plus, QL-800, etc.):** Server-side generation of high-contrast 1-bit monochrome 300 DPI PNG labels (12mm, 18mm, 24mm tape widths) with Code128 barcodes or QR codes + 3 lines of technical specs. Native export and mobile sharing via Web Share API directly to **Brother iPrint&Label** or **P-Touch Design&Print**.
-  - **A4 Adhesive Laser Sheets:** 24-label grid sheet generator (`/print-a4`) with an interactive label picker to reuse partially printed sticker sheets.
-- 🌐 **Multilingual Interface:** Native support for English (default), Italian, French, and Spanish with real-time switching across all screens and user profile persistence.
+- 🔀 **1-Tap Quick Sort & Instant Filters:** Toggle sorting directly between **Brand (A–Z)** and **Material (A–Z)** from the bottom bar across both Spools and Shopping List views, or filter by Brand and Material.
 - 📱 **Mobile-First PWA:** Native-feeling touch gestures, swipeable cards, dark tech theme, and quick mobile action views.
 - 🔒 **Enterprise-Grade Security:**
   - Zero public sign-up: accounts are created strictly by Administrators.
@@ -41,7 +38,7 @@
 
 ## 🚀 Quick Installation
 
-You can install **FilamentHub 3D v1.9** using either a **Native Proxmox LXC Container** or **Docker & Docker Compose**.
+You can install **FilamentHub 3D v2.0** using either a **Native Proxmox LXC Container** or **Docker & Docker Compose**.
 
 ### Option 1: Proxmox LXC Container (Debian 12 / Ubuntu 22.04–24.04) — *Recommended*
 
@@ -125,21 +122,11 @@ INITIAL_ADMIN_PASSWORD=ChangeThisPasswordPromptly123!
 
 ---
 
-## 🏷️ Brother Thermal Label Printing
-
-FilamentHub streamlines label creation for Brother thermal printers (**PT-P710BT Cube Plus, PT-P750W, PT-P900W, QL-800, etc.**):
-1. In the spool details card, tap **Label**.
-2. Select your installed tape width (**12mm, 18mm, 24mm**).
-3. Tap **Share / Download PNG**: on mobile devices, the native share sheet opens to send the high-resolution monochrome 1-bit image directly to **Brother iPrint&Label** or **P-Touch Design&Print**.
-
----
-
 ## 🛡️ Architecture & Tech Stack
 
 - **Backend:** Python 3.12+, FastAPI, Uvicorn, native SQLite 3 in **WAL** mode (`PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;`).
 - **Authentication:** Password hashing with **Argon2id**, JWT sessions in `HttpOnly; SameSite=Lax` cookies.
 - **Frontend:** Lightweight Single Page Application (HTML5, modular ES6+ JavaScript, Tailwind CSS, Lucide Icons, html5-qrcode).
-- **Internationalization:** Standalone client-side translation engine supporting English, Italian, French, and Spanish.
 - **Data Isolation:** User inventories, wishlists, and Gemini API keys are strictly partitioned per user ID.
 
 ---

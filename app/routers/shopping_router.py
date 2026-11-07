@@ -77,7 +77,7 @@ def get_shopping_item(
     if not row:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Elemento lista acquisti {item_id} non trovato",
+            detail=f"Shopping list item {item_id} not found",
         )
     return _row_to_shopping_dict(row)
 
@@ -139,7 +139,7 @@ def update_shopping_item(
     if not row:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Elemento lista acquisti {item_id} non trovato",
+            detail=f"Shopping list item {item_id} not found",
         )
 
     updates: List[str] = []
@@ -208,12 +208,12 @@ def delete_shopping_item(
     if not cursor.fetchone():
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Elemento lista acquisti {item_id} non trovato",
+            detail=f"Shopping list item {item_id} not found",
         )
 
     db.execute("DELETE FROM shopping_list WHERE id = ? AND user_id = ?;", (item_id, user_id))
     db.commit()
-    return {"message": f"Elemento {item_id} eliminato dalla lista acquisti"}
+    return {"message": f"Item {item_id} deleted from shopping list"}
 
 
 @router.post("/{item_id}/convert")
@@ -237,7 +237,7 @@ def convert_to_spool(
     if not item:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Elemento lista acquisti {item_id} non trovato",
+            detail=f"Shopping list item {item_id} not found",
         )
 
     # Resolve tare weight from brands_tare or default 250g
@@ -328,6 +328,6 @@ def convert_to_spool(
 
     created_row = db.execute("SELECT * FROM spools WHERE id = ?;", (new_spool_id,)).fetchone()
     return {
-        "message": f"Bobina {uid_code} creata e aggiunta all'inventario!",
+        "message": f"Spool {uid_code} created and added to inventory!",
         "spool": row_to_spool_dict(created_row),
     }

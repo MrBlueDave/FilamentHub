@@ -35,7 +35,7 @@ router = APIRouter(prefix="/api/admin", tags=["admin"])
 
 
 def _normalize_role(role: str) -> str:
-    """Normalize role string so 'user' or 'viewer' maps to 'editor' (Utente Standard)."""
+    """Normalize role string so 'user' or 'viewer' maps to 'editor' (Standard User)."""
     r = (role or "editor").strip().lower()
     if r == "admin":
         return "admin"
@@ -78,7 +78,7 @@ def create_user(
     if cursor.fetchone():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Lo username '{username_clean}' è già in uso",
+            detail=f"Username '{username_clean}' is already taken",
         )
 
     pwd_hash = hash_password(req.password)
@@ -97,7 +97,7 @@ def create_user(
         client_ip,
         admin_user["username"],
         "USER_CREATE",
-        f"Creato utente '{username_clean}' con ruolo '{normalized_role}' (id={new_id})",
+        f"Created user '{username_clean}' with role '{normalized_role}' (id={new_id})",
     )
 
     fetch_cursor = db.execute(
@@ -126,7 +126,7 @@ def update_user(
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Utente {user_id} non trovato",
+            detail=f"User {user_id} not found",
         )
 
     normalized_role = _normalize_role(req.role) if req.role is not None else None
@@ -144,7 +144,7 @@ def update_user(
             if active_admin_count <= 1:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Impossibile disattivare o rimuovere il ruolo di amministratore all'ultimo admin attivo",
+                    detail="Cannot disable or demote the last active administrator",
                 )
 
     updates = []
@@ -163,7 +163,7 @@ def update_user(
         if len(clean_pwd) < 6:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="La nuova password deve contenere almeno 8 caratteri",
+                detail="New password must be at least 8 characters long",
             )
         updates.append("password_hash = ?")
         params.append(hash_password(clean_pwd))
@@ -173,7 +173,7 @@ def update_user(
         if clean_lang not in ("it", "en", "fr", "es"):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Lingua non supportata. Le lingue permesse sono: 'it', 'en', 'fr', 'es'.",
+                detail="Unsupported language.",
             )
         updates.append("language = ?")
         params.append(clean_lang)
@@ -191,7 +191,7 @@ def update_user(
             client_ip,
             admin_user["username"],
             "USER_UPDATE",
-            f"Aggiornato utente id={user_id} ({user['username']})",
+            f"Updated user id={user_id} ({user['username']})",
         )
 
     fetch_cursor = db.execute(
@@ -214,7 +214,7 @@ def delete_user(
     if admin_user.get("id") == user_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Non puoi eliminare il tuo stesso account utente",
+            detail="You cannot delete your own user account",
         )
 
     cursor = db.execute(
@@ -225,7 +225,7 @@ def delete_user(
     if not target:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Utente {user_id} non trovato",
+            detail=f"User {user_id} not found",
         )
 
     if target["role"] == "admin" and target["is_active"]:
@@ -235,7 +235,7 @@ def delete_user(
         if count_cursor.fetchone()["count"] <= 1:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Impossibile eliminare l'ultimo amministratore attivo del sistema",
+                detail="Cannot delete the last active administrator",
             )
 
     # Delete user's spools first, then the user row
@@ -248,10 +248,10 @@ def delete_user(
         client_ip,
         admin_user["username"],
         "USER_DELETE",
-        f"Eliminato utente id={user_id} ({target['username']}) e relativo archivio bobine",
+        f"Deleted user id={user_id} ({target['username']}) and associated spool archive",
     )
 
-    return {"message": f"Utente {user_id} eliminato con successo"}
+    return {"message": f"User {user_id} deleted successfully"}
 
 
 # ==========================================
@@ -324,7 +324,7 @@ def delete_brand_tare(
     if not target:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Tara {tare_id} non trovata",
+            detail=f"Tare {tare_id} not found",
         )
 
     db.execute("DELETE FROM brands_tare WHERE id = ?;", (tare_id,))
@@ -335,10 +335,10 @@ def delete_brand_tare(
         client_ip,
         admin_user["username"],
         "TARE_DELETE",
-        f"Eliminata tara id={tare_id} ({target['brand_name']})",
+        f"Deleted tare id={tare_id} ({target['brand_name']})",
     )
 
-    return {"message": f"Tara {tare_id} eliminata con successo"}
+    return {"message": f"Tare {tare_id} deleted successfully"}
 
 
 # ==========================================
@@ -441,7 +441,7 @@ def update_system_settings(
             if not _is_valid_gemini_key_format(raw_key):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Chiave API non valida (troppo corta o formato placeholder).",
+                    detail="Invalid API key (too short or placeholder format).",
                 )
             db.execute("UPDATE users SET gemini_api_key = ? WHERE id = ?;", (raw_key, user_id))
             db.commit()
@@ -458,7 +458,7 @@ def update_system_settings(
         if lang_clean not in ("it", "en", "fr", "es"):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Lingua non supportata. Le lingue permesse sono: 'it', 'en', 'fr', 'es'.",
+                detail="Unsupported language.",
             )
         db.execute("UPDATE users SET language = ? WHERE id = ?;", (lang_clean, user_id))
         db.commit()
@@ -473,7 +473,7 @@ def update_system_settings(
         client_ip,
         current_user.get("username", "system"),
         "SETTINGS_UPDATE",
-        f"Aggiornate impostazioni utente: {', '.join(updated_fields) if updated_fields else 'nessuna modifica'}",
+        f"Updated user settings: {', '.join(updated_fields) if updated_fields else 'no changes'}",
     )
 
     return _build_user_settings_out(db, user_id)

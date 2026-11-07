@@ -60,7 +60,7 @@ def check_login_rate_limit(client_ip: str) -> None:
     if len(recent_attempts) >= MAX_FAILED_ATTEMPTS:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Too Many Requests - Troppi tentativi di login falliti. Riprova tra 15 minuti.",
+            detail="Too Many Requests - Too many failed login attempts. Try again in 15 minutes.",
         )
 
 
@@ -165,7 +165,7 @@ def get_current_user(
         if not payload:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token di sessione non valido o scaduto",
+                detail="Invalid or expired session token",
             )
 
         user_id = payload.get("user_id")
@@ -177,7 +177,7 @@ def get_current_user(
         if not user or not user["is_active"]:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Utente non trovato o account disattivato",
+                detail="User not found or account disabled",
             )
 
         return {
@@ -190,7 +190,7 @@ def get_current_user(
 
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Autenticazione richiesta",
+        detail="Authentication required",
     )
 
 
@@ -200,7 +200,7 @@ def require_role(allowed_roles: list[str]) -> Callable[..., dict[str, Any]]:
         if current_user["role"] not in allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Permessi insufficienti: richiesto uno dei seguenti ruoli {allowed_roles}",
+                detail=f"Insufficient permissions: requires one of {allowed_roles}",
             )
         return current_user
 

@@ -366,7 +366,7 @@ async def scan_label_vision(
     if not image_bytes:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Nessuna immagine valida fornita nella richiesta (richiesto file multipart o image_base64 JSON)",
+            detail="No valid image provided in request (multipart file or JSON image_base64 required)",
         )
 
     # Fetch user's personal Gemini API Key and preferred model

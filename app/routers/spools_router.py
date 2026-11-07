@@ -186,7 +186,7 @@ def get_spool_by_uid(
     if not row:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Bobina con UID '{uid_code}' non trovata",
+            detail=f"Spool with UID '{uid_code}' not found",
         )
 
     spool = row_to_spool_dict(row)
@@ -222,7 +222,7 @@ def get_spool_by_id(
     if not row:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Bobina ID {spool_id} non trovata",
+            detail=f"Spool ID {spool_id} not found",
         )
 
     spool = row_to_spool_dict(row)
@@ -281,7 +281,7 @@ async def create_spool(
             if check_cur.fetchone():
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Il codice UID '{uid_code}' è già utilizzato da un'altra bobina",
+                    detail=f"UID code '{uid_code}' is already used by another spool",
                 )
         else:
             uid_code = f"SP-{max_num + i + 1:04d}"
@@ -431,7 +431,7 @@ async def update_spool(
     if not existing:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Bobina ID {spool_id} non trovata",
+            detail=f"Spool ID {spool_id} not found",
         )
 
     fields_dict = spool_update.model_dump(exclude_unset=True)
@@ -525,7 +525,7 @@ async def delete_spool(
     if not row:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Bobina ID {spool_id} non trovata",
+            detail=f"Spool ID {spool_id} not found",
         )
 
     uid_code = row["uid_code"]
@@ -552,7 +552,7 @@ async def quick_status_spool(
     if not row:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Bobina ID {spool_id} non trovata",
+            detail=f"Spool ID {spool_id} not found",
         )
 
     today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
@@ -635,7 +635,7 @@ async def clone_spool(
     if not source:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Bobina ID {spool_id} non trovata",
+            detail=f"Spool ID {spool_id} not found",
         )
 
     qty = max(1, min(50, req.quantity))
@@ -721,7 +721,7 @@ async def clone_spool(
     db.commit()
 
     return {
-        "message": f"Clonate con successo {qty} bobine",
+        "message": f"Successfully cloned {qty} spools",
         "created_count": qty,
         "created_uids": created_uids,
     }
@@ -741,7 +741,7 @@ async def quick_weigh_spool(
     if not row:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Bobina ID {spool_id} non trovata",
+            detail=f"Spool ID {spool_id} not found",
         )
 
     old_gross = float(row["current_gross_g"])
@@ -793,7 +793,7 @@ async def quick_slot_spool(
     if not row:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Bobina ID {spool_id} non trovata",
+            detail=f"Spool ID {spool_id} not found",
         )
 
     target_slot = (req.slot_location or "").strip()
@@ -850,7 +850,7 @@ async def quick_dry_spool(
     if not row:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Bobina ID {spool_id} non trovata",
+            detail=f"Spool ID {spool_id} not found",
         )
 
     today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")

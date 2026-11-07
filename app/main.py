@@ -14,7 +14,6 @@ from fastapi.staticfiles import StaticFiles
 from app.database import get_db_connection, init_db
 from app.routers.admin_router import router as admin_router
 from app.routers.auth_router import router as auth_router
-from app.routers.labels_router import router as labels_router
 from app.routers.scanner_router import router as scanner_router
 from app.routers.shopping_router import router as shopping_router
 from app.routers.spools_router import router as spools_router
@@ -45,25 +44,25 @@ def _seed_demo_spools() -> None:
                     admin_user_id, "SP-0001", "6975337030117", "Bambu Lab", "PLA", "Matte", "Charcoal",
                     "#1c1d21", "", 1000.0, 250.0, 1120.0, 150.0, 19.99, "AMS 1", "in_use", 0, 1, "Slot 1",
                     0.022, 0.98, 21.0, 0.8, 30.0, 190, 220, 55, 0,
-                    "2026-10-01", "2026-10-01", 55, 6, 0, "Bobina demo Bambu Lab montata nello Slot 1"
+                    "2026-10-01", "2026-10-01", 55, 6, 0, "Demo Bambu Lab spool loaded in Slot 1"
                 ),
                 (
                     admin_user_id, "SP-0002", "6975337030224", "Bambu Lab", "PETG", "HF", "Emerald Green",
                     "#10b981", "", 1000.0, 250.0, 850.0, 150.0, 22.99, "AMS 1", "in_use", 0, 1, "Slot 2",
                     0.035, 0.96, 16.0, 0.8, 30.0, 230, 250, 75, 0,
-                    "2026-10-05", "2026-10-05", 65, 8, 0, "Bobina demo PETG HF montata nello Slot 2"
+                    "2026-10-05", "2026-10-05", 65, 8, 0, "Demo PETG HF spool loaded in Slot 2"
                 ),
                 (
                     admin_user_id, "SP-0003", "6922572219151", "eSUN", "PLA+", "Standard", "Fire Engine Red",
                     "#dc2626", "", 1000.0, 240.0, 780.0, 150.0, 18.50, "A1", "opened", 0, 0, "",
                     0.024, 0.98, 18.0, 0.8, 30.0, 205, 225, 60, 0,
-                    "2026-09-20", "2026-09-20", 50, 6, 0, "Stoccata a magazzino scaffale A1"
+                    "2026-09-20", "2026-09-20", 50, 6, 0, "Stored on shelf A1"
                 ),
                 (
                     admin_user_id, "SP-0004", "8402542001004", "Polymaker", "ASA", "PolyLite", "Black",
                     "#1e1e1e", "", 1000.0, 140.0, 270.0, 150.0, 27.00, "Drybox 1", "opened", 1, 0, "",
                     0.040, 0.95, 14.0, 1.0, 25.0, 240, 260, 95, 45,
-                    "2026-08-15", "2026-08-15", 70, 8, 1, "Bobina con avviso umidità elevata e scorta residua bassa"
+                    "2026-08-15", "2026-08-15", 70, 8, 1, "Spool with high humidity alert and low remaining stock"
                 ),
             ]
 
@@ -117,7 +116,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="FilamentHub 3D",
-    version="1.9",
+    version="2.0",
     description="3D Printing Filament & Slicer Calibration Inventory Management",
     lifespan=lifespan,
 )
@@ -146,7 +145,7 @@ async def security_headers_middleware(request: Request, call_next):
 @app.get("/api/health", tags=["Health"])
 def health_check() -> Dict[str, str]:
     """Health check endpoint for Docker container checks, monitors, and load balancers."""
-    return {"status": "ok", "app": "FilamentHub 3D", "version": "1.9"}
+    return {"status": "ok", "app": "FilamentHub 3D", "version": "2.0"}
 
 
 # Include API Routers
@@ -155,7 +154,6 @@ app.include_router(admin_router)
 app.include_router(spools_router)
 app.include_router(shopping_router)
 app.include_router(scanner_router)
-app.include_router(labels_router)
 
 # Mount static files directory if present
 if STATIC_DIR.exists():
@@ -163,15 +161,6 @@ if STATIC_DIR.exists():
 
 
 # HTML Page routes
-@app.get("/print-a4")
-def serve_print_a4_page():
-    """Serves the printable A4 sticker grid page."""
-    page_path = STATIC_DIR / "print_a4.html"
-    if page_path.exists():
-        return FileResponse(page_path, headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
-    return HTMLResponse("<h1>FilamentHub 3D - Print A4 Page</h1>", status_code=200)
-
-
 @app.get("/s/{uid_code}")
 def serve_quick_view_page(uid_code: str):
     """Serves the mobile quick-action page for NFC tags or QR scan."""

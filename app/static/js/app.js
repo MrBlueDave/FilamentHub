@@ -1,5 +1,5 @@
 /**
- * FilamentHub 3D - Modern Vanilla JS SPA Application
+ * FilamentHub 3D - Modern Vanilla JS SPA Application (v2.0)
  * High-Contrast Dark Tech UI/UX, Multi-Quantity, Lifecycle & Vision AI
  * Tailored for iPhone 14 Pro (393 x 852 px, iOS Safari) & Desktop
  */
@@ -14,8 +14,7 @@ class FilamentHubApp {
     this.materialFilter = '';
     this.brandFilter = '';
     this.searchQuery = '';
-    this.sortBy = 'in_use_desc';
-    this.a4Queue = JSON.parse(localStorage.getItem('filamenthub_a4_queue') || '[]');
+    this.sortBy = 'brand_asc';
 
     // Settings state
     this.settings = {
@@ -27,9 +26,6 @@ class FilamentHubApp {
     // Modal & Action states
     this.currentEditingSpool = null;
     this.currentWeighSpool = null;
-    this.currentLabelSpool = null;
-    this.labelTape = 24;
-    this.labelCodeType = 'barcode';
     this.activeEyedropperHex = '#10b981';
 
     // Missing fields wizard state
@@ -62,10 +58,7 @@ class FilamentHubApp {
   // 1. INITIALIZATION & AUTH
   // =========================================================================
   async init() {
-    if (window.i18n) window.i18n.init();
     this.initThemeListener();
-    this.initLanguageListener();
-    this.updateA4QueueBadge();
     this.updateSettingsUi();
     this.setupEventListeners();
     this.initSwipeGestures();
@@ -95,49 +88,7 @@ class FilamentHubApp {
         mq.addListener((e) => applyTheme(e.matches));
       }
     } catch (e) {
-      console.warn('Errore listener prefers-color-scheme:', e);
-    }
-  }
-
-  initLanguageListener() {
-    window.addEventListener('languagechange', (e) => {
-      this.onLanguageChanged(e.detail.lang);
-    });
-  }
-
-  onLanguageChanged(lang) {
-    const langSelect = document.getElementById('settingsLanguage');
-    if (langSelect) langSelect.value = lang;
-
-    const isSpools = this.activeMainView === 'spools';
-    const topbarSubtitle = document.getElementById('topbarSubtitle');
-    if (topbarSubtitle && window.i18n) {
-      topbarSubtitle.textContent = isSpools
-        ? window.i18n.t('topbar.subtitle_spools')
-        : window.i18n.t('topbar.subtitle_shopping');
-    }
-
-    this.updateSettingsUi();
-    this.populateBrandFilter();
-    this.updateShoppingBadges();
-    if (isSpools) {
-      this.renderSpoolViews();
-    } else {
-      this.renderShoppingList();
-    }
-  }
-
-  async syncUserLanguage(lang) {
-    if (!this.user) return;
-    try {
-      await fetch('/api/admin/settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ language: lang })
-      });
-      this.user.language = lang;
-    } catch (e) {
-      console.warn('Errore sync lingua:', e);
+      console.warn('Error setting prefers-color-scheme listener:', e);
     }
   }
 
@@ -177,7 +128,7 @@ class FilamentHubApp {
             const blob = item.getAsFile();
             if (blob) {
               await this.loadImageBlobToCanvas(blob);
-              this.showToast('Immagine incollata! Avvio analisi con Gemini...', 'info');
+              this.showToast('Image pasted! Analyzing with Gemini...', 'info');
               await this.analyzeImageWithGemini();
               e.preventDefault();
               break;
@@ -230,11 +181,6 @@ class FilamentHubApp {
   async onAuthenticated() {
     this.hideLoginModal();
     this.updateUserHeader();
-    if (this.user?.language && window.i18n) {
-      if (this.user.language !== window.i18n.getLanguage()) {
-        window.i18n.setLanguage(this.user.language, false);
-      }
-    }
     this.settings = {
       gemini_configured: false,
       gemini_api_key_masked: '',
@@ -248,11 +194,11 @@ class FilamentHubApp {
   }
 
   getRoleDisplayName(role) {
-    return role === 'admin' ? 'Amministratore' : 'Utente Standard';
+    return role === 'admin' ? 'Administrator' : 'Standard User';
   }
 
   getMobileRoleLabel(role) {
-    return role === 'admin' ? 'Profilo Personale • Admin' : 'Profilo Personale • Utente Standard';
+    return role === 'admin' ? 'Personal Profile • Admin' : 'Personal Profile • Standard User';
   }
 
   updateUserHeader() {
@@ -295,7 +241,7 @@ class FilamentHubApp {
     if (rateLimitAlert) rateLimitAlert.classList.add('hidden');
     if (submitBtn) {
       submitBtn.disabled = true;
-      submitBtn.innerHTML = '<span class="inline-block animate-spin mr-2">⟳</span> Accesso in corso...';
+      submitBtn.innerHTML = '<span class="inline-block animate-spin mr-2">⟳</span> Signing in...';
     }
 
     try {
@@ -312,26 +258,26 @@ class FilamentHubApp {
           gemini_api_key_masked: '',
           gemini_model: 'gemini-3.5-flash-lite'
         };
-        this.showToast(`Benvenuto, ${this.user.username}!`, 'success');
+        this.showToast(`Welcome, ${this.user.username}!`, 'success');
         await this.onAuthenticated();
       } else if (res.status === 429) {
         if (rateLimitAlert) rateLimitAlert.classList.remove('hidden');
       } else {
         const data = await res.json().catch(() => ({}));
         if (errorAlert) {
-          errorAlert.textContent = data.detail || 'Credenziali non valide.';
+          errorAlert.textContent = data.detail || 'Invalid credentials.';
           errorAlert.classList.remove('hidden');
         }
       }
     } catch (err) {
       if (errorAlert) {
-        errorAlert.textContent = 'Errore di connessione al server.';
+        errorAlert.textContent = 'Server connection error.';
         errorAlert.classList.remove('hidden');
       }
     } finally {
       if (submitBtn) {
         submitBtn.disabled = false;
-        submitBtn.innerHTML = '<span>Accedi al Sistema</span>';
+        submitBtn.innerHTML = '<span>Sign In to Inventory</span>';
       }
     }
   }
@@ -353,7 +299,7 @@ class FilamentHubApp {
     this.updateFilterCounts();
     this.renderSpoolViews();
     this.showLoginModal();
-    this.showToast('Disconnessione effettuata', 'info');
+    this.showToast('Signed out successfully', 'info');
   }
 
   openMobileMenuSheet(e) {
@@ -401,7 +347,7 @@ class FilamentHubApp {
         };
       }
     } catch (err) {
-      console.warn('Impossibile caricare impostazioni da backend:', err);
+      console.warn('Unable to load settings from backend:', err);
     } finally {
       this.updateSettingsUi();
     }
@@ -417,8 +363,8 @@ class FilamentHubApp {
       if (btn) {
         btn.disabled = !isConfigured;
         btn.title = isConfigured
-          ? 'Scatta o carica foto etichetta per compilazione AI'
-          : 'Funzione disattivata: specifica prima una API Key Gemini valida nelle Impostazioni';
+          ? 'Take or upload label photo for AI auto-fill'
+          : 'Disabled: configure a valid Gemini API key in Settings first';
       }
     });
 
@@ -439,11 +385,10 @@ class FilamentHubApp {
     if (settingsBadge) {
       if (isConfigured) {
         settingsBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-950 text-emerald-400 border border-emerald-800';
-        const activeText = window.i18n ? window.i18n.t('settings.configured') : 'Attiva';
-        settingsBadge.textContent = `${activeText} (${this.settings.gemini_api_key_masked || ''})`;
+        settingsBadge.textContent = `Configured (${this.settings.gemini_api_key_masked || ''})`;
       } else {
         settingsBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-950 text-amber-400 border border-amber-800';
-        settingsBadge.textContent = window.i18n ? window.i18n.t('settings.not_configured') : 'Non configurata';
+        settingsBadge.textContent = 'Not configured';
       }
     }
 
@@ -457,10 +402,10 @@ class FilamentHubApp {
     if (menuBadge) {
       if (isConfigured) {
         menuBadge.className = 'text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800';
-        menuBadge.textContent = window.i18n ? window.i18n.t('settings.configured') : 'Attiva';
+        menuBadge.textContent = 'Configured';
       } else {
         menuBadge.className = 'text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800';
-        menuBadge.textContent = window.i18n ? window.i18n.t('settings.not_configured') : 'Non attiva';
+        menuBadge.textContent = 'Not configured';
       }
     }
 
@@ -476,17 +421,17 @@ class FilamentHubApp {
     if (dot) {
       if (isConfigured) {
         dot.className = 'w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400';
-        dot.title = 'Gemini AI Configurato e Attivo';
+        dot.title = 'Gemini AI Configured & Active';
       } else {
         dot.className = 'w-2 h-2 rounded-full bg-amber-500 animate-pulse';
-        dot.title = 'Gemini AI Non Configurato (Clicca per inserire la chiave)';
+        dot.title = 'Gemini AI Not Configured (Click to enter API key)';
       }
     }
   }
 
   triggerCameraAiPhoto() {
     if (!this.settings?.gemini_configured) {
-      this.showToast('Inserisci prima una API Key Gemini valida nelle Impostazioni.', 'warning');
+      this.showToast('Please configure a valid Gemini API key in Settings first.', 'warning');
       return;
     }
     const input = document.getElementById('nativeCameraPhotoInput');
@@ -497,7 +442,7 @@ class FilamentHubApp {
 
   triggerGalleryAiPhoto() {
     if (!this.settings?.gemini_configured) {
-      this.showToast('Inserisci prima una API Key Gemini valida nelle Impostazioni.', 'warning');
+      this.showToast('Please configure a valid Gemini API key in Settings first.', 'warning');
       return;
     }
     const input = document.getElementById('spoolPhotoInput');
@@ -515,18 +460,9 @@ class FilamentHubApp {
     if (modelSelect && this.settings.gemini_model) {
       modelSelect.value = this.settings.gemini_model;
     }
-    const currentLang = window.i18n ? window.i18n.getLanguage() : (this.user?.language || 'en');
-    const langSelect = document.getElementById('settingsLanguage');
-    if (langSelect) {
-      langSelect.value = currentLang;
-    }
-    if (window.i18n) {
-      window.i18n.updateActiveLanguageUi();
-    }
 
     const modal = document.getElementById('settingsModal');
     if (modal) {
-      if (window.i18n) window.i18n.applyTranslations(modal);
       modal.classList.remove('hidden');
     }
     document.body.classList.add('overflow-hidden');
@@ -542,17 +478,15 @@ class FilamentHubApp {
     e.preventDefault();
     const keyInput = document.getElementById('settingsGeminiApiKey')?.value.trim();
     const model = document.getElementById('settingsGeminiModel')?.value || 'gemini-3.5-flash-lite';
-    const lang = (window.i18n ? window.i18n.getLanguage() : document.getElementById('settingsLanguage')?.value) || 'en';
     const saveBtn = document.getElementById('settingsSaveBtn');
 
     if (keyInput && keyInput.length < 12) {
-      this.showToast('Chiave API troppo corta o non valida.', 'error');
+      this.showToast('API key is too short or invalid.', 'error');
       return;
     }
 
     const payload = {
-      gemini_model: model,
-      language: lang
+      gemini_model: model
     };
     if (keyInput) {
       payload.gemini_api_key = keyInput;
@@ -560,7 +494,7 @@ class FilamentHubApp {
 
     if (saveBtn) {
       saveBtn.disabled = true;
-      saveBtn.textContent = 'Salvataggio...';
+      saveBtn.textContent = 'Saving...';
     }
 
     try {
@@ -573,23 +507,19 @@ class FilamentHubApp {
       if (res.ok) {
         const updated = await res.json();
         this.settings = { ...this.settings, ...updated };
-        if (lang && window.i18n) {
-          window.i18n.setLanguage(lang, false);
-        }
-        if (this.user) this.user.language = lang;
         this.updateSettingsUi();
         this.closeSettingsModal();
-        this.showToast(window.i18n ? window.i18n.t('toast.settings_saved') : 'Impostazioni salvate con successo!', 'success');
+        this.showToast('Settings saved successfully!', 'success');
       } else {
         const err = await res.json().catch(() => ({}));
-        this.showToast(this.formatError(err, 'Chiave API Gemini non valida'), 'error');
+        this.showToast(this.formatError(err, 'Invalid Gemini API key'), 'error');
       }
     } catch (err) {
-      this.showToast(this.formatError(err, 'Errore durante il salvataggio delle impostazioni'), 'error');
+      this.showToast(this.formatError(err, 'Error saving settings'), 'error');
     } finally {
       if (saveBtn) {
         saveBtn.disabled = false;
-        saveBtn.textContent = 'Salva Impostazioni';
+        saveBtn.textContent = 'Save Settings';
       }
     }
   }
@@ -621,16 +551,16 @@ class FilamentHubApp {
       const badge = document.getElementById('settingsGeminiBadge');
       if (badge) {
         badge.className = 'px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-950 text-amber-400 border border-amber-800';
-        badge.textContent = 'Non configurata';
+        badge.textContent = 'Not configured';
       }
 
       const clearBtn = document.getElementById('settingsClearKeyBtn');
       if (clearBtn) clearBtn.classList.add('hidden');
 
       this.updateSettingsUi();
-      this.showToast('Chiave API Gemini rimossa. Funzioni Foto AI disattivate.', 'info');
+      this.showToast('Gemini API key removed. AI Photo features disabled.', 'info');
     } catch (err) {
-      this.showToast('Errore durante la rimozione della chiave API', 'error');
+      this.showToast('Error removing API key', 'error');
     }
   }
 
@@ -875,7 +805,7 @@ class FilamentHubApp {
     });
 
     if (matches.length === 0) {
-      dropdown.innerHTML = `<div class="p-3 text-center text-xs text-slate-400">Nessun filamento trovato per "${this.escapeHtml(query)}"</div>`;
+      dropdown.innerHTML = `<div class="p-3 text-center text-xs text-slate-400">No filaments found for "${this.escapeHtml(query)}"</div>`;
       dropdown.classList.remove('hidden');
       return;
     }
@@ -933,8 +863,8 @@ class FilamentHubApp {
       max_volumetric_speed: p.mvs !== undefined ? p.mvs : p.max_volumetric_speed
     };
 
-    this.applyExtractedSpoolData(data, 'Database Produttori', true);
-    this.showToast(`Preset applicato: ${p.brand} ${p.material} ${p.color_name}!`, 'success');
+    this.applyExtractedSpoolData(data, 'Manufacturer Catalog', true);
+    this.showToast(`Preset applied: ${p.brand} ${p.material} ${p.color_name}!`, 'success');
   }
 
   quickSelectBrand(brandName, defaultTare) {
@@ -950,7 +880,7 @@ class FilamentHubApp {
     }
     this.recalculateNetWeight();
     this.openCatalogDropdown();
-    this.showToast(`Filtro ${brandName} attivo (Tara: ${defaultTare}g)`, 'info');
+    this.showToast(`${brandName} filter active (Tare: ${defaultTare}g)`, 'info');
   }
 
   // =========================================================================
@@ -968,8 +898,8 @@ class FilamentHubApp {
         this.showLoginModal();
       }
     } catch (err) {
-      console.error('Errore caricamento bobine:', err);
-      this.showToast('Errore durante il caricamento delle bobine', 'error');
+      console.error('Error loading spools:', err);
+      this.showToast('Error loading spools', 'error');
     }
   }
 
@@ -980,7 +910,7 @@ class FilamentHubApp {
         this.tares = await res.json();
       }
     } catch (err) {
-      console.warn('Errore caricamento dizionario tare:', err);
+      console.warn('Error loading tare dictionary:', err);
     }
   }
 
@@ -989,13 +919,12 @@ class FilamentHubApp {
     if (!select) return;
     const brands = Array.from(new Set(this.spools.map(s => s.brand).filter(Boolean))).sort();
     const currentVal = this.brandFilter;
-    const allBrandsText = window.i18n ? window.i18n.t('filters.all_brands') : 'Tutti i Brand';
-    select.innerHTML = `<option value="" data-i18n="filters.all_brands">${allBrandsText}</option>` +
+    select.innerHTML = `<option value="">All Brands</option>` +
       brands.map(b => `<option value="${this.escapeHtml(b)}"${b === currentVal ? ' selected' : ''}>${this.escapeHtml(b)}</option>`).join('');
   }
 
   // =========================================================================
-  // 5. QUICK SORTING (PRODUTTORE, FILAMENTO, SCALA CROMATICA) & HSL HELPERS
+  // 5. DIRECT 1-TAP QUICK SORTING (BRAND <-> MATERIAL) & HSL HELPERS
   // =========================================================================
   hexToHsl(hex) {
     if (!hex || typeof hex !== 'string') return { h: 0, s: 0, l: 0 };
@@ -1027,65 +956,40 @@ class FilamentHubApp {
 
   hexToSortKey(hex) {
     const { h, s, l } = this.hexToHsl(hex);
-    // Acromatic colors: Black, Greys, White (s < 0.12 or very dark l < 0.08 or very light l > 0.94)
     const isAchromatic = s < 0.12 || l < 0.08 || l > 0.94;
     if (isAchromatic) {
-      // Group 0: Acromatic (Black -> Grey -> White ordered by lightness)
       return { group: 0, val1: l, val2: s };
     }
-    // Group 1: Chromatic (Ordered by Hue angle: 0 Red -> 60 Yellow -> 120 Green -> 180 Cyan -> 240 Blue -> 300 Magenta)
     return { group: 1, val1: h, val2: l };
   }
 
-  setQuickSort(key) {
-    if (this.sortBy === key) {
-      if (key === 'brand_asc') this.sortBy = 'brand_desc';
-      else if (key === 'brand_desc') this.sortBy = 'in_use_desc';
-      else if (key === 'material_asc') this.sortBy = 'material_desc';
-      else if (key === 'material_desc') this.sortBy = 'in_use_desc';
-      else if (key === 'color_chromatic') this.sortBy = 'color_chromatic_desc';
-      else if (key === 'color_chromatic_desc') this.sortBy = 'in_use_desc';
-      else this.sortBy = 'in_use_desc';
+  cycleQuickSort() {
+    if (this.sortBy !== 'brand_asc') {
+      this.sortBy = 'brand_asc';
     } else {
-      this.sortBy = key;
+      this.sortBy = 'material_asc';
     }
-
     this.updateQuickSortUi();
     this.renderSpoolViews();
+    this.renderShoppingList();
+    this.showToast(
+      this.sortBy === 'brand_asc' ? 'Sorted by Brand (A–Z)' : 'Sorted by Material (A–Z)',
+      'info'
+    );
+  }
 
-    const labels = {
-      brand_asc: 'Produttore (A-Z)',
-      brand_desc: 'Produttore (Z-A)',
-      material_asc: 'Filamento (A-Z)',
-      material_desc: 'Filamento (Z-A)',
-      color_chromatic: 'Scala Cromatica',
-      color_chromatic_desc: 'Scala Cromatica (Inversa)',
-      in_use_desc: 'Predefinito (In Uso prima)'
-    };
-    this.showToast(`Ordinato per: ${labels[this.sortBy] || this.sortBy}`, 'info');
+  setQuickSort(key) {
+    this.sortBy = key;
+    this.updateQuickSortUi();
+    this.renderSpoolViews();
+    this.renderShoppingList();
   }
 
   updateQuickSortUi() {
-    const brandBtn = document.getElementById('sortBtnBrand');
-    const matBtn = document.getElementById('sortBtnMaterial');
-    const colorBtn = document.getElementById('sortBtnColor');
-
-    const isBrand = this.sortBy.startsWith('brand');
-    const isMat = this.sortBy.startsWith('material');
-    const isColor = this.sortBy.startsWith('color_chromatic');
-
-    const setBtnActive = (btn, active) => {
-      if (!btn) return;
-      if (active) {
-        btn.className = 'quick-sort-btn flex flex-col items-center justify-center py-1 px-2 rounded-xl text-indigo-600 dark:text-indigo-400 bg-indigo-50/80 dark:bg-indigo-950/50 font-bold transition flex-1 min-w-0';
-      } else {
-        btn.className = 'quick-sort-btn flex flex-col items-center justify-center py-1 px-2 rounded-xl text-slate-400 dark:text-slate-400 hover:text-indigo-500 font-semibold transition flex-1 min-w-0';
-      }
-    };
-
-    setBtnActive(brandBtn, isBrand);
-    setBtnActive(matBtn, isMat);
-    setBtnActive(colorBtn, isColor);
+    const sortLabel = document.getElementById('navTabSortLabel');
+    if (sortLabel) {
+      sortLabel.textContent = this.sortBy === 'material_asc' ? 'Sort: Material' : 'Sort: Brand';
+    }
   }
 
   navToSpools() {
@@ -1093,7 +997,7 @@ class FilamentHubApp {
     this.closeAllModals();
     this.resetDropdownFilters();
     this.setFilterStatus('all');
-    this.sortBy = 'in_use_desc';
+    this.sortBy = 'brand_asc';
     this.updateQuickSortUi();
     this.renderSpoolViews();
     const scrollEl = document.getElementById('mainScrollArea');
@@ -1104,7 +1008,6 @@ class FilamentHubApp {
     this.closeSpoolDetailModal();
     this.closeSpoolModal();
     this.closeQuickWeighModal();
-    this.closeLabelModal();
     this.closeAdminModal();
     this.closeChangePasswordModal();
     this.closeSettingsModal();
@@ -1127,15 +1030,12 @@ class FilamentHubApp {
     if (!sheet) return;
 
     this.populateBrandFilter();
-    if (window.i18n) window.i18n.applyTranslations(sheet);
 
     const matSelect = document.getElementById('materialFilter');
     const brandSelect = document.getElementById('brandFilter');
-    const sortSelect = document.getElementById('sortSelector');
 
     if (matSelect) matSelect.value = this.materialFilter;
     if (brandSelect) brandSelect.value = this.brandFilter;
-    if (sortSelect) sortSelect.value = this.sortBy;
 
     sheet.classList.remove('hidden');
     document.body.classList.add('overflow-hidden');
@@ -1151,19 +1051,16 @@ class FilamentHubApp {
   resetDropdownFilters() {
     this.materialFilter = '';
     this.brandFilter = '';
-    this.sortBy = 'in_use_desc';
 
     const matSelect = document.getElementById('materialFilter');
     const brandSelect = document.getElementById('brandFilter');
-    const sortSelect = document.getElementById('sortSelector');
 
     if (matSelect) matSelect.value = '';
     if (brandSelect) brandSelect.value = '';
-    if (sortSelect) sortSelect.value = 'in_use_desc';
 
     this.updateFilterTagsUi();
     this.renderSpoolViews();
-    this.showToast('Filtri azzerati', 'info');
+    this.showToast('Filters reset', 'info');
   }
 
   updateFilterTagsUi() {
@@ -1275,9 +1172,9 @@ class FilamentHubApp {
   renderStatusBadge(spool) {
     const status = this.getSpoolStatus(spool);
     if (status === 'opened') {
-      return `<span class="px-2.5 py-0.5 rounded-lg text-xs font-extrabold badge-status-opened inline-flex items-center">Aperta</span>`;
+      return `<span class="px-2.5 py-0.5 rounded-lg text-xs font-extrabold badge-status-opened inline-flex items-center">Opened</span>`;
     }
-    return `<span class="px-2.5 py-0.5 rounded-lg text-xs font-extrabold badge-status-new inline-flex items-center">Nuova</span>`;
+    return `<span class="px-2.5 py-0.5 rounded-lg text-xs font-extrabold badge-status-new inline-flex items-center">Sealed</span>`;
   }
 
   async quickSetStatus(spoolId, targetStatus) {
@@ -1307,19 +1204,18 @@ class FilamentHubApp {
 
       if (res.ok) {
         await this.loadSpools();
-        this.showToast(targetStatus === 'opened' ? 'Bobina contrassegnata come Aperta' : 'Bobina contrassegnata come Nuova', 'success');
+        this.showToast(targetStatus === 'opened' ? 'Spool marked as Opened' : 'Spool marked as Sealed', 'success');
       } else {
-        this.showToast('Errore aggiornamento stato', 'error');
+        this.showToast('Error updating status', 'error');
       }
     } catch (e) {
-      this.showToast('Errore di comunicazione', 'error');
+      this.showToast('Communication error', 'error');
     }
   }
 
   // =========================================================================
   // 8. MULTI-QUANTITY
   // =========================================================================
-
   adjustQuantity(delta) {
     const input = document.getElementById('spoolQuantity');
     if (!input) return;
@@ -1372,12 +1268,12 @@ class FilamentHubApp {
 
       if (res.ok) {
         await this.loadSpools();
-        this.showToast(`+${quantity} Bobina identica aggiunta in scorta!`, 'success');
+        this.showToast(`+${quantity} identical spool added to inventory!`, 'success');
       } else {
-        this.showToast('Errore durante la duplicazione della bobina', 'error');
+        this.showToast('Error cloning spool', 'error');
       }
     } catch (e) {
-      this.showToast('Errore di connessione', 'error');
+      this.showToast('Connection error', 'error');
     }
   }
 
@@ -1530,7 +1426,9 @@ class FilamentHubApp {
 
   setSorting(sortKey) {
     this.sortBy = sortKey;
+    this.updateQuickSortUi();
     this.renderSpoolViews();
+    this.renderShoppingList();
   }
 
   renderSpoolViews() {
@@ -1538,7 +1436,7 @@ class FilamentHubApp {
   }
 
   // =========================================================================
-  // 10. VISTA LISTA SWIPE BILATERALE (NATIVE iOS SWIPE-TO-ACTION)
+  // 10. BILATERAL SWIPE LIST VIEW (NATIVE iOS SWIPE-TO-ACTION)
   // =========================================================================
   renderSpoolSwipeList() {
     const container = document.getElementById('spoolListContainer');
@@ -1569,16 +1467,16 @@ class FilamentHubApp {
       return `
         <div class="swipe-item-wrapper border ${isOpened ? 'border-emerald-500/60 shadow-md' : 'border-slate-200 dark:border-slate-800'} relative transition duration-200" id="swipe-item-${spool.id}" data-spool-id="${spool.id}">
           
-          <!-- Left Swipe Actions Drawer (160px = 2 x 80px): Pesa + Apri/Nuova -->
+          <!-- Left Swipe Actions Drawer (160px = 2 x 80px): Weigh + Open/Seal -->
           <div class="swipe-actions-left">
             <button
               type="button"
               class="swipe-action-btn swipe-action-weigh"
               onclick="event.stopPropagation(); app.closeAllSwipeRows(); app.openQuickWeighModal(${spool.id});"
-              title="Aggiorna peso da bilancia"
+              title="Update scale weight"
             >
               <i data-lucide="scale" class="w-5 h-5"></i>
-              <span>Pesa</span>
+              <span>Weigh</span>
             </button>
 
             ${isOpened ? `
@@ -1586,57 +1484,57 @@ class FilamentHubApp {
                 type="button"
                 class="swipe-action-btn swipe-action-seal"
                 onclick="event.stopPropagation(); app.closeAllSwipeRows(); app.quickSetStatus(${spool.id}, 'new');"
-                title="Segna come Nuova"
+                title="Mark as Sealed"
               >
                 <i data-lucide="package" class="w-5 h-5"></i>
-                <span>Nuova</span>
+                <span>Seal</span>
               </button>
             ` : `
               <button
                 type="button"
                 class="swipe-action-btn swipe-action-open"
                 onclick="event.stopPropagation(); app.closeAllSwipeRows(); app.quickSetStatus(${spool.id}, 'opened');"
-                title="Segna come Aperta"
+                title="Mark as Opened"
               >
                 <i data-lucide="unlock" class="w-5 h-5"></i>
-                <span>Apri</span>
+                <span>Open</span>
               </button>
             `}
           </div>
 
-          <!-- Right Swipe Actions Drawer (216px = 3 x 72px): Duplica + Modifica + Elimina -->
+          <!-- Right Swipe Actions Drawer (216px = 3 x 72px): Clone + Edit + Delete -->
           <div class="swipe-actions-right">
-            <!-- 1. Duplica -->
+            <!-- 1. Clone -->
             <button
               type="button"
               class="swipe-action-btn swipe-action-clone"
               onclick="event.stopPropagation(); app.closeAllSwipeRows(); app.cloneSpool(${spool.id}, 1);"
-              title="Duplica questa bobina"
+              title="Clone this spool"
             >
               <i data-lucide="copy-plus" class="w-5 h-5"></i>
-              <span>Duplica</span>
+              <span>Clone</span>
             </button>
 
-            <!-- 2. Modifica -->
+            <!-- 2. Edit -->
             <button
               type="button"
               class="swipe-action-btn swipe-action-edit"
               onclick="event.stopPropagation(); app.closeAllSwipeRows(); app.openSpoolModal(${spool.id});"
-              title="Modifica parametri e slicer"
+              title="Edit parameters & slicer settings"
             >
               <i data-lucide="edit-3" class="w-5 h-5"></i>
-              <span>Modifica</span>
+              <span>Edit</span>
             </button>
 
-            <!-- 3. Elimina -->
+            <!-- 3. Delete -->
             <button
               type="button"
               class="swipe-action-btn swipe-action-delete"
               onclick="event.stopPropagation(); app.closeAllSwipeRows(); app.confirmDeleteSpool(${spool.id});"
-              title="Elimina definitivamente la bobina"
+              title="Permanently delete spool"
             >
               <i data-lucide="trash-2" class="w-5 h-5"></i>
-              <span>Elimina</span>
+              <span>Delete</span>
             </button>
           </div>
 
@@ -1646,7 +1544,7 @@ class FilamentHubApp {
             style="border-left: 6px solid ${spool.color_hex};"
             onclick="app.handleSwipeRowClick(event, ${spool.id})"
           >
-            <!-- Left: Swatch colore elegante w-11 h-11 -->
+            <!-- Left: Color swatch w-11 h-11 -->
             <div class="relative shrink-0">
               <span
                 class="w-11 h-11 rounded-2xl inline-block color-swatch-ring shadow-inner border border-black/10 dark:border-white/15 shrink-0"
@@ -1656,25 +1554,25 @@ class FilamentHubApp {
 
             <!-- Center: 3 Clean Full-Width Rows -->
             <div class="flex-1 min-w-0 space-y-0.5">
-              <!-- Riga 1: Produttore + codice SP-xxxx discreto -->
+              <!-- Row 1: Brand + discrete SP-xxxx UID -->
               <div class="flex items-center gap-1.5 truncate">
                 ${this.renderBrandLogo(spool.brand, 'sm')}
                 <span class="text-[13px] sm:text-sm font-extrabold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 truncate">${this.escapeHtml(spool.brand)}</span>
                 <span class="text-[11px] font-mono text-slate-400 dark:text-slate-500 font-semibold shrink-0">${spool.uid_code}</span>
               </div>
 
-              <!-- Riga 2: Materiale e Finitura (stessa dimensione, peso e colore) -->
+              <!-- Row 2: Material & Subtype -->
               <div class="text-[17px] font-extrabold text-slate-900 dark:text-white leading-tight truncate">
                 ${this.escapeHtml(spool.material)}${spool.subtype ? ' ' + this.escapeHtml(spool.subtype) : ''}
               </div>
 
-              <!-- Riga 3: Nome Colore a larghezza piena -->
+              <!-- Row 3: Full-width Color Name -->
               <div class="text-[15px] font-semibold text-slate-600 dark:text-slate-300 truncate">
                 ${this.escapeHtml(spool.color_name || 'Standard')}
               </div>
             </div>
 
-            <!-- Right: Pillola Stato (sopra) + Peso Netto discreto (sotto) -->
+            <!-- Right: Status Pill (top) + Net Weight (bottom) -->
             <div class="shrink-0 text-right flex flex-col items-end justify-center gap-1">
               <div>
                 ${this.renderStatusBadge(spool)}
@@ -1705,8 +1603,8 @@ class FilamentHubApp {
     let initialTranslate = 0;
     let didSwipe = false;
 
-    const LEFT_ACTION_WIDTH = 160;  // 2 buttons x 80px (Pesa, Apri/Nuova)
-    const RIGHT_ACTION_WIDTH = 216; // 3 buttons x 72px (Duplica, Modifica, Elimina)
+    const LEFT_ACTION_WIDTH = 160;  // 2 buttons x 80px (Weigh, Open/Seal)
+    const RIGHT_ACTION_WIDTH = 216; // 3 buttons x 72px (Clone, Edit, Delete)
     const SNAP_THRESHOLD = 50;
 
     // Delegated touchstart listener
@@ -1804,14 +1702,12 @@ class FilamentHubApp {
             this.setSwipeRowState(activeWrapper, null);
           }
         } else if (initialTranslate === LEFT_ACTION_WIDTH) {
-          // Was open left
           if (deltaX < -40) {
             this.setSwipeRowState(activeWrapper, null);
           } else {
             this.setSwipeRowState(activeWrapper, 'left');
           }
         } else if (initialTranslate === -RIGHT_ACTION_WIDTH) {
-          // Was open right
           if (deltaX > 40) {
             this.setSwipeRowState(activeWrapper, null);
           } else {
@@ -1892,32 +1788,32 @@ class FilamentHubApp {
     if (!spool) return;
     const uid = spool.uid_code;
     const title = `${spool.brand} ${spool.material} (${uid})`;
-    if (!confirm(`Sei sicuro di voler eliminare definitivamente la bobina ${title}?`)) return;
+    if (!confirm(`Are you sure you want to permanently delete spool ${title}?`)) return;
 
     try {
       const res = await fetch(`/api/spools/${spoolId}`, { method: 'DELETE' });
       if (res.ok) {
         await this.loadSpools();
-        this.showToast(`Bobina ${uid} eliminata con successo`, 'info');
+        this.showToast(`Spool ${uid} deleted successfully`, 'info');
       } else {
         const err = await res.json().catch(() => ({}));
-        this.showToast(this.formatError(err, 'Impossibile eliminare la bobina'), 'error');
+        this.showToast(this.formatError(err, 'Unable to delete spool'), 'error');
       }
     } catch (e) {
-      this.showToast(this.formatError(e, 'Errore di rete'), 'error');
+      this.showToast(this.formatError(e, 'Network error'), 'error');
     }
   }
 
   // =========================================================================
-  // 14. QUICK WEIGH (PESA ORA) MODAL LOGIC
+  // 14. QUICK WEIGH (WEIGH NOW) MODAL LOGIC
   // =========================================================================
   openQuickWeighModal(spoolId) {
     const spool = this.spools.find(s => s.id === spoolId);
     if (!spool) return;
     this.currentWeighSpool = spool;
 
-    document.getElementById('quickWeighTitle').textContent = `Pesa ${spool.brand} ${spool.material}`;
-    document.getElementById('quickWeighUid').textContent = `${spool.uid_code} • Lordo attuale: ${Math.round(spool.current_gross_g)}g`;
+    document.getElementById('quickWeighTitle').textContent = `Weigh ${spool.brand} ${spool.material}`;
+    document.getElementById('quickWeighUid').textContent = `${spool.uid_code} • Current gross: ${Math.round(spool.current_gross_g)}g`;
     document.getElementById('quickWeighTare').textContent = `${Math.round(spool.tare_weight_g)} g`;
 
     const input = document.getElementById('quickWeighInput');
@@ -1957,13 +1853,13 @@ class FilamentHubApp {
     document.getElementById('quickWeighNewNet').textContent = `${newNet} g`;
     const deltaEl = document.getElementById('quickWeighDelta');
     if (delta < 0) {
-      deltaEl.textContent = `${delta} g consumati`;
+      deltaEl.textContent = `${delta} g used`;
       deltaEl.className = 'text-indigo-400 font-bold';
     } else if (delta > 0) {
-      deltaEl.textContent = `+${delta} g ricaricati`;
+      deltaEl.textContent = `+${delta} g added`;
       deltaEl.className = 'text-emerald-400 font-bold';
     } else {
-      deltaEl.textContent = '0 g (invariato)';
+      deltaEl.textContent = '0 g (unchanged)';
       deltaEl.className = 'text-slate-400';
     }
   }
@@ -1974,7 +1870,7 @@ class FilamentHubApp {
     const gross_weight_g = parseFloat(input.value);
 
     if (isNaN(gross_weight_g) || gross_weight_g < 0) {
-      this.showToast('Inserisci un peso valido.', 'warning');
+      this.showToast('Please enter a valid weight.', 'warning');
       return;
     }
 
@@ -1991,126 +1887,13 @@ class FilamentHubApp {
 
         this.closeQuickWeighModal();
         await this.loadSpools();
-        this.showToast(`Pesata aggiornata con successo (${spoolObj.net_remaining_g}g netti)`, 'success');
+        this.showToast(`Weight updated successfully (${spoolObj.net_remaining_g}g net)`, 'success');
       } else {
         const err = await res.json().catch(() => ({}));
-        this.showToast(this.formatError(err, 'Errore salvataggio pesata'), 'error');
+        this.showToast(this.formatError(err, 'Error saving weight'), 'error');
       }
     } catch (e) {
-      this.showToast(this.formatError(e, 'Errore di connessione'), 'error');
-    }
-  }
-
-  // =========================================================================
-  // 15. LABEL PRINTING & BROTHER BLUETOOTH / A4 MODAL
-  // =========================================================================
-  openLabelModal(spoolId) {
-    const spool = this.spools.find(s => s.id === spoolId);
-    if (!spool) return;
-    this.currentLabelSpool = spool;
-
-    document.getElementById('labelSpoolUid').textContent = `${spool.uid_code} • ${spool.brand} ${spool.material}`;
-    const nfcLink = document.getElementById('labelNfcLink');
-    if (nfcLink) nfcLink.href = `/s/${spool.uid_code}`;
-
-    this.updateLabelPreview();
-    const modal = document.getElementById('labelModal');
-    if (modal) modal.classList.remove('hidden');
-    document.body.classList.add('overflow-hidden');
-  }
-
-  closeLabelModal() {
-    const modal = document.getElementById('labelModal');
-    if (modal) modal.classList.add('hidden');
-    document.body.classList.remove('overflow-hidden');
-    this.currentLabelSpool = null;
-  }
-
-  setLabelTape(mm) {
-    this.labelTape = mm;
-    [12, 18, 24].forEach(val => {
-      const btn = document.getElementById(`tape${val}Btn`);
-      if (btn) {
-        if (val === mm) {
-          btn.className = 'flex-1 py-1 rounded-lg text-center font-mono bg-indigo-600 text-white font-bold';
-        } else {
-          btn.className = 'flex-1 py-1 rounded-lg text-center font-mono text-slate-400';
-        }
-      }
-    });
-    this.updateLabelPreview();
-  }
-
-  setLabelCodeType(type) {
-    this.labelCodeType = type;
-    const barcodeBtn = document.getElementById('codeBarcodeBtn');
-    const qrBtn = document.getElementById('codeQrBtn');
-    if (type === 'barcode') {
-      if (barcodeBtn) barcodeBtn.className = 'flex-1 py-1 rounded-lg text-center bg-indigo-600 text-white font-bold';
-      if (qrBtn) qrBtn.className = 'flex-1 py-1 rounded-lg text-center text-slate-400';
-    } else {
-      if (barcodeBtn) barcodeBtn.className = 'flex-1 py-1 rounded-lg text-center text-slate-400';
-      if (qrBtn) qrBtn.className = 'flex-1 py-1 rounded-lg text-center bg-indigo-600 text-white font-bold';
-    }
-    this.updateLabelPreview();
-  }
-
-  updateLabelPreview() {
-    if (!this.currentLabelSpool) return;
-    const img = document.getElementById('labelPreviewImg');
-    if (!img) return;
-    const url = `/api/labels/brother/${this.currentLabelSpool.uid_code}?tape_mm=${this.labelTape}&code_type=${this.labelCodeType}&_t=${Date.now()}`;
-    img.src = url;
-  }
-
-  async shareOrDownloadBrotherLabel() {
-    if (!this.currentLabelSpool) return;
-    const url = `/api/labels/brother/${this.currentLabelSpool.uid_code}?tape_mm=${this.labelTape}&code_type=${this.labelCodeType}`;
-    const filename = `${this.currentLabelSpool.uid_code}_brother_${this.labelTape}mm.png`;
-
-    try {
-      const response = await fetch(url);
-      const blob = await response.blob();
-      const file = new File([blob], filename, { type: 'image/png' });
-
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          files: [file],
-          title: `Etichetta ${this.currentLabelSpool.uid_code}`,
-          text: `Stampa etichetta per ${this.currentLabelSpool.brand} ${this.currentLabelSpool.material}`
-        });
-        this.showToast('Etichetta condivisa con successo', 'success');
-        return;
-      }
-    } catch (err) {
-      if (err.name === 'AbortError') return;
-      console.warn('Web Share fallback to download:', err);
-    }
-
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    this.showToast('Etichetta PNG scaricata per Brother P-touch / iPrint&Label', 'info');
-  }
-
-  addCurrentSpoolToA4Queue() {
-    if (!this.currentLabelSpool) return;
-    const uid = this.currentLabelSpool.uid_code;
-    this.a4Queue.push(uid);
-    localStorage.setItem('filamenthub_a4_queue', JSON.stringify(this.a4Queue));
-    this.updateA4QueueBadge();
-    this.showToast(`Aggiunta ${uid} alla coda A4 (${this.a4Queue.length} etichette)`, 'success');
-  }
-
-  updateA4QueueBadge() {
-    const mobileEl = document.getElementById('mobileMenuA4Badge');
-    const count = this.a4Queue.length;
-    if (mobileEl) {
-      mobileEl.textContent = count;
-      mobileEl.classList.toggle('hidden', count === 0);
+      this.showToast(this.formatError(e, 'Connection error'), 'error');
     }
   }
 
@@ -2141,8 +1924,8 @@ class FilamentHubApp {
 
     const titleEl = document.getElementById('spoolModalTitle');
     const subtitleEl = document.getElementById('spoolModalSubtitle');
-    if (titleEl) titleEl.textContent = isEdit ? `Modifica Bobina ${this.currentEditingSpool.uid_code}` : 'Nuova Bobina';
-    if (subtitleEl) subtitleEl.textContent = isEdit ? 'Aggiorna pesi, temperature e parametri slicer' : 'Registra una nuova bobina nel catalogo';
+    if (titleEl) titleEl.textContent = isEdit ? `Edit Spool ${this.currentEditingSpool.uid_code}` : 'New Spool';
+    if (subtitleEl) subtitleEl.textContent = isEdit ? 'Update weights, temperatures & slicer settings' : 'Register a new spool in your inventory';
     
     const delBtn = document.getElementById('spoolDeleteBtn');
     if (delBtn) delBtn.classList.toggle('hidden', !isEdit);
@@ -2229,7 +2012,7 @@ class FilamentHubApp {
   }
 
   // =========================================================================
-  // READ-ONLY TECH SHEET (SCHEDA DETTAGLIO BOBINA)
+  // READ-ONLY TECH SHEET (SPOOL DETAIL MODAL)
   // =========================================================================
   openSpoolDetailModal(spoolId) {
     const spool = this.spools.find(s => s.id === spoolId);
@@ -2255,7 +2038,7 @@ class FilamentHubApp {
     // Title & Status Badge
     const titleEl = document.getElementById('detailSpoolTitle');
     if (titleEl) {
-      titleEl.textContent = `${spool.material || 'Filamento'}${spool.subtype ? ' (' + spool.subtype + ')' : ''} - ${spool.color_name || 'Standard'}`;
+      titleEl.textContent = `${spool.material || 'Filament'}${spool.subtype ? ' (' + spool.subtype + ')' : ''} - ${spool.color_name || 'Standard'}`;
     }
 
     const badgeEl = document.getElementById('detailSpoolStatusBadge');
@@ -2263,13 +2046,13 @@ class FilamentHubApp {
       badgeEl.className = isOpened
         ? 'text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-950 text-emerald-400 border border-emerald-800'
         : 'text-[10px] px-2 py-0.5 rounded-full font-bold bg-blue-950 text-blue-400 border border-blue-800';
-      badgeEl.textContent = isOpened ? 'In Uso / Aperta' : 'Nuova / Sigillata';
+      badgeEl.textContent = isOpened ? 'In Use / Opened' : 'New / Sealed';
     }
 
     // Subtitle
     const subEl = document.getElementById('detailSpoolSubtitle');
     if (subEl) {
-      subEl.textContent = `${spool.brand || 'Generico'} • ${spool.uid_code || ''}`;
+      subEl.textContent = `${spool.brand || 'Generic'} • ${spool.uid_code || ''}`;
     }
 
     // Weight & Progress
@@ -2296,10 +2079,10 @@ class FilamentHubApp {
     if (nozzleEl) {
       const minN = spool.nozzle_temp_min;
       const maxN = spool.nozzle_temp_max;
-      nozzleEl.textContent = minN && maxN ? `${minN} - ${maxN} °C` : minN ? `${minN} °C` : maxN ? `${maxN} °C` : 'Non specificata';
+      nozzleEl.textContent = minN && maxN ? `${minN} - ${maxN} °C` : minN ? `${minN} °C` : maxN ? `${maxN} °C` : 'Not specified';
     }
     if (bedEl) {
-      bedEl.textContent = spool.bed_temp ? `${spool.bed_temp} °C` : 'Non specificata';
+      bedEl.textContent = spool.bed_temp ? `${spool.bed_temp} °C` : 'Not specified';
     }
 
     // Slicer calibration
@@ -2315,7 +2098,7 @@ class FilamentHubApp {
     const priceEl = document.getElementById('detailSpoolPrice');
     if (locEl) {
       const loc = [spool.slot_location, spool.location_shelf].filter(Boolean).join(' - ');
-      locEl.textContent = loc || 'Nessuna assegnata';
+      locEl.textContent = loc || 'None assigned';
     }
     if (priceEl) {
       priceEl.textContent = spool.price_eur ? `€ ${Number(spool.price_eur).toFixed(2)}` : '--';
@@ -2333,11 +2116,9 @@ class FilamentHubApp {
 
     // Action buttons
     const btnWeigh = document.getElementById('detailBtnWeigh');
-    const btnLabel = document.getElementById('detailBtnLabel');
     const btnEdit = document.getElementById('detailBtnEdit');
 
     if (btnWeigh) btnWeigh.onclick = () => { this.closeSpoolDetailModal(); this.openQuickWeighModal(spool.id); };
-    if (btnLabel) btnLabel.onclick = () => { this.closeSpoolDetailModal(); this.openLabelModal(spool.id); };
     if (btnEdit) btnEdit.onclick = () => { this.closeSpoolDetailModal(); this.openSpoolModal(spool.id); };
 
     modal.classList.remove('hidden');
@@ -2380,7 +2161,7 @@ class FilamentHubApp {
 
     const badge = document.getElementById('spoolNetCalculatedBadge');
     if (badge) {
-      badge.innerHTML = `<span class="text-sm font-bold text-emerald-300 font-mono">${net} g netti</span><span class="text-xs text-emerald-400 font-mono">${percent}% residuo</span>`;
+      badge.innerHTML = `<span class="text-sm font-bold text-emerald-300 font-mono">${net} g net</span><span class="text-xs text-emerald-400 font-mono">${percent}% remaining</span>`;
     }
   }
 
@@ -2390,7 +2171,7 @@ class FilamentHubApp {
       const tareInput = document.getElementById('spoolTare');
       if (tareInput) tareInput.value = matchedTare.tare_weight_g;
       this.recalculateNetWeight();
-      this.showToast(`Tara impostata per ${matchedTare.brand_name}: ${matchedTare.tare_weight_g}g`, 'info');
+      this.showToast(`Tare set for ${matchedTare.brand_name}: ${matchedTare.tare_weight_g}g`, 'info');
     }
   }
 
@@ -2444,12 +2225,12 @@ class FilamentHubApp {
     const titleEl = document.getElementById('aiExtractionTitle');
     const summaryEl = document.getElementById('aiExtractionSummary');
     if (banner && summaryEl) {
-      const brand = data.brand || 'Filamento';
+      const brand = data.brand || 'Filament';
       const mat = data.material || '';
       const col = data.color_name ? ` • ${data.color_name}` : '';
       const code = data.barcode ? ` • Barcode: ${data.barcode}` : '';
-      const tareStr = data.tare_weight_g ? ` • Tara: ${Math.round(data.tare_weight_g)}g` : '';
-      if (titleEl) titleEl.textContent = `✨ Riconosciuto da ${sourceLabel}`;
+      const tareStr = data.tare_weight_g ? ` • Tare: ${Math.round(data.tare_weight_g)}g` : '';
+      if (titleEl) titleEl.textContent = `✨ Recognized by ${sourceLabel}`;
       summaryEl.textContent = `${brand} ${mat}${col}${code}${tareStr}`;
       banner.classList.remove('hidden');
     }
@@ -2480,7 +2261,7 @@ class FilamentHubApp {
     if (missingList.includes('brand')) {
       html += `
         <div class="space-y-1">
-          <label class="block text-[11px] font-semibold text-amber-300">Marca / Produttore:</label>
+          <label class="block text-[11px] font-semibold text-amber-300">Brand / Manufacturer:</label>
           <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar flex-nowrap py-0.5">
             <button type="button" onclick="app.pickMissingFieldValue('brand', 'Bambu Lab', 250)" class="missing-chip-btn shrink-0">🌿 Bambu Lab</button>
             <button type="button" onclick="app.pickMissingFieldValue('brand', 'Sunlu', 195)" class="missing-chip-btn shrink-0">☀️ Sunlu</button>
@@ -2489,7 +2270,7 @@ class FilamentHubApp {
             <button type="button" onclick="app.pickMissingFieldValue('brand', 'Elegoo', 160)" class="missing-chip-btn shrink-0">Elegoo</button>
             <button type="button" onclick="app.pickMissingFieldValue('brand', 'Creality', 200)" class="missing-chip-btn shrink-0">Creality</button>
           </div>
-          <input type="text" id="missingInputBrand" placeholder="Oppure scrivi marca..." class="w-full px-2.5 py-1.5 bg-[#0b0f19] border border-amber-800/80 rounded-lg text-white text-xs mt-1">
+          <input type="text" id="missingInputBrand" placeholder="Or type brand..." class="w-full px-2.5 py-1.5 bg-[#0b0f19] border border-amber-800/80 rounded-lg text-white text-xs mt-1">
         </div>
       `;
     }
@@ -2497,7 +2278,7 @@ class FilamentHubApp {
     if (missingList.includes('material')) {
       html += `
         <div class="space-y-1 pt-1">
-          <label class="block text-[11px] font-semibold text-amber-300">Materiale:</label>
+          <label class="block text-[11px] font-semibold text-amber-300">Material:</label>
           <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar flex-nowrap py-0.5">
             <button type="button" onclick="app.pickMissingFieldValue('material', 'PLA')" class="missing-chip-btn shrink-0">PLA</button>
             <button type="button" onclick="app.pickMissingFieldValue('material', 'PLA+')" class="missing-chip-btn shrink-0">PLA+</button>
@@ -2506,7 +2287,7 @@ class FilamentHubApp {
             <button type="button" onclick="app.pickMissingFieldValue('material', 'ASA')" class="missing-chip-btn shrink-0">ASA</button>
             <button type="button" onclick="app.pickMissingFieldValue('material', 'TPU')" class="missing-chip-btn shrink-0">TPU</button>
           </div>
-          <input type="text" id="missingInputMaterial" placeholder="Oppure scrivi materiale..." class="w-full px-2.5 py-1.5 bg-[#0b0f19] border border-amber-800/80 rounded-lg text-white text-xs mt-1">
+          <input type="text" id="missingInputMaterial" placeholder="Or type material..." class="w-full px-2.5 py-1.5 bg-[#0b0f19] border border-amber-800/80 rounded-lg text-white text-xs mt-1">
         </div>
       `;
     }
@@ -2514,7 +2295,7 @@ class FilamentHubApp {
     if (missingList.includes('color_name')) {
       html += `
         <div class="space-y-1 pt-1">
-          <label class="block text-[11px] font-semibold text-amber-300">Nome Colore:</label>
+          <label class="block text-[11px] font-semibold text-amber-300">Color Name:</label>
           <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar flex-nowrap py-0.5">
             <button type="button" onclick="app.pickMissingFieldValue('color_name', 'Black', '#111111')" class="missing-chip-btn shrink-0">⚫ Black</button>
             <button type="button" onclick="app.pickMissingFieldValue('color_name', 'White', '#ffffff')" class="missing-chip-btn shrink-0">⚪ White</button>
@@ -2524,7 +2305,7 @@ class FilamentHubApp {
             <button type="button" onclick="app.pickMissingFieldValue('color_name', 'Green', '#16a34a')" class="missing-chip-btn shrink-0">🟢 Green</button>
             <button type="button" onclick="app.pickMissingFieldValue('color_name', 'Orange', '#ea580c')" class="missing-chip-btn shrink-0">🟠 Orange</button>
           </div>
-          <input type="text" id="missingInputColorName" placeholder="es. Charcoal Black, Jade White..." class="w-full px-2.5 py-1.5 bg-[#0b0f19] border border-amber-800/80 rounded-lg text-white text-xs mt-1">
+          <input type="text" id="missingInputColorName" placeholder="e.g. Charcoal Black, Jade White..." class="w-full px-2.5 py-1.5 bg-[#0b0f19] border border-amber-800/80 rounded-lg text-white text-xs mt-1">
         </div>
       `;
     }
@@ -2545,7 +2326,7 @@ class FilamentHubApp {
     };
     const input = document.getElementById(inputMap[field]);
     if (input) input.value = val;
-    this.showToast(`Selezionato: ${val}`, 'info');
+    this.showToast(`Selected: ${val}`, 'info');
   }
 
   applyMissingFieldsPrompt() {
@@ -2574,7 +2355,7 @@ class FilamentHubApp {
 
     this.recalculateNetWeight();
     this.hideMissingFieldsDialog();
-    this.showToast('✨ Dati mancanti applicati con successo!', 'success');
+    this.showToast('✨ Missing info applied successfully!', 'success');
   }
 
   skipMissingFieldsPrompt() {
@@ -2583,7 +2364,7 @@ class FilamentHubApp {
     if (colorInput && !colorInput.value.trim()) {
       colorInput.value = 'Standard';
     }
-    this.showToast('Informazioni mancanti saltate. Puoi procedere al salvataggio.', 'info');
+    this.showToast('Missing info skipped. Ready to save.', 'info');
   }
 
   hideMissingFieldsDialog() {
@@ -2613,7 +2394,7 @@ class FilamentHubApp {
     };
 
     const spoolData = {
-      brand: getStr('spoolBrand') || 'Generico',
+      brand: getStr('spoolBrand') || 'Generic',
       material: (getStr('spoolMaterial') || 'PLA').toUpperCase(),
       subtype: getStr('spoolSubtype') || '',
       color_name: getStr('spoolColorName') || 'Standard',
@@ -2630,7 +2411,7 @@ class FilamentHubApp {
       slot_location: '',
       opened_at: isOpened ? (this.currentEditingSpool?.opened_at || new Date().toISOString()) : '',
 
-      // Calibrazione & Slicer con valori numerici di default sicuri
+      // Calibration & Slicer defaults
       k_factor: parseFloat(document.getElementById('spoolKFactor')?.value) || 0.020,
       flow_ratio: parseFloat(document.getElementById('spoolFlowRatio')?.value) || 0.98,
       max_volumetric_speed: parseFloat(document.getElementById('spoolMVS')?.value) || 15.0,
@@ -2653,13 +2434,13 @@ class FilamentHubApp {
       if (res.ok) {
         this.closeSpoolModal();
         await this.loadSpools();
-        this.showToast(isEdit ? 'Bobina aggiornata con successo!' : 'Bobina creata con successo!', 'success');
+        this.showToast(isEdit ? 'Spool updated successfully!' : 'Spool created successfully!', 'success');
       } else {
         const err = await res.json().catch(() => ({}));
-        this.showToast(this.formatError(err, 'Errore salvataggio bobina'), 'error');
+        this.showToast(this.formatError(err, 'Error saving spool'), 'error');
       }
     } catch (e) {
-      this.showToast(this.formatError(e, 'Errore di comunicazione con il server'), 'error');
+      this.showToast(this.formatError(e, 'Server communication error'), 'error');
     }
   }
 
@@ -2676,13 +2457,13 @@ class FilamentHubApp {
   async handleNativeCameraPhoto(event) {
     if (!this.settings?.gemini_configured) {
       if (event.target) event.target.value = '';
-      this.showToast('Inserisci prima una API Key Gemini valida nelle Impostazioni.', 'warning');
+      this.showToast('Please configure a valid Gemini API key in Settings first.', 'warning');
       return;
     }
     const file = event.target.files && event.target.files[0];
     if (!file) return;
 
-    this.showToast('Foto acquisita! Avvio analisi con Gemini Flash...', 'info');
+    this.showToast('Photo captured! Analyzing with Gemini Flash...', 'info');
     await this.loadImageBlobToCanvas(file);
     const modal = document.getElementById('spoolModal');
     if (modal && modal.classList.contains('hidden')) {
@@ -2695,12 +2476,12 @@ class FilamentHubApp {
   async handleAiPhotoUpload(event) {
     if (!this.settings?.gemini_configured) {
       if (event.target) event.target.value = '';
-      this.showToast('Inserisci prima una API Key Gemini valida nelle Impostazioni.', 'warning');
+      this.showToast('Please configure a valid Gemini API key in Settings first.', 'warning');
       return;
     }
     const file = event.target.files && event.target.files[0];
     if (!file) return;
-    this.showToast('Foto caricata! Avvio analisi con Gemini Flash...', 'info');
+    this.showToast('Photo uploaded! Analyzing with Gemini Flash...', 'info');
     await this.loadImageBlobToCanvas(file);
     const modal = document.getElementById('spoolModal');
     if (modal && modal.classList.contains('hidden')) {
@@ -2762,11 +2543,11 @@ class FilamentHubApp {
     const isExpanded = canvas.classList.contains('max-h-64');
     if (isExpanded) {
       canvas.className = 'h-20 w-auto max-w-[120px] object-contain cursor-crosshair';
-      if (text) text.textContent = 'Ingrandisci Colore';
+      if (text) text.textContent = 'Expand Color Picker';
     } else {
       canvas.className = 'max-h-64 w-full object-contain cursor-crosshair';
-      if (text) text.textContent = 'Riduci';
-      this.showToast('Tocca col dito un punto della bobina per campionare il colore!', 'info');
+      if (text) text.textContent = 'Shrink';
+      this.showToast('Tap anywhere on the spool image to sample its color!', 'info');
     }
   }
 
@@ -2794,7 +2575,7 @@ class FilamentHubApp {
     const pickerInput = document.getElementById('spoolColorPicker');
     if (hexInput) hexInput.value = this.activeEyedropperHex;
     if (pickerInput) pickerInput.value = this.activeEyedropperHex;
-    this.showToast(`Colore impostato: ${this.activeEyedropperHex}`, 'info');
+    this.showToast(`Color set to: ${this.activeEyedropperHex}`, 'info');
   }
 
   // =========================================================================
@@ -2810,7 +2591,7 @@ class FilamentHubApp {
     document.body.classList.add('overflow-hidden');
 
     if (timer) timer.textContent = '0.0s';
-    if (stepText) stepText.textContent = 'Connessione a Google Gemini Vision...';
+    if (stepText) stepText.textContent = 'Connecting to Google Gemini Vision...';
 
     this.aiLoadingStartTime = Date.now();
     this.aiAbortController = new AbortController();
@@ -2820,12 +2601,12 @@ class FilamentHubApp {
     }
 
     const steps = [
-      { at: 0, text: 'Invio foto ad alta risoluzione a Google Gemini Vision...' },
-      { at: 1800, text: 'Riconoscimento neurale di brand e tipo materiale...' },
-      { at: 3500, text: 'Campionamento cromatico ed estrazione finitura...' },
-      { at: 5500, text: 'Decodifica barcode/QR ed estrazione parametri slicer...' },
-      { at: 8000, text: 'Finalizzazione scheda tecnica e validazione pesi...' },
-      { at: 12000, text: 'Elaborazione neurale avanzata in corso, quasi pronto...' }
+      { at: 0, text: 'Uploading high-res image to Google Gemini Vision...' },
+      { at: 1800, text: 'Neural recognition of brand and material type...' },
+      { at: 3500, text: 'Color sampling and surface finish extraction...' },
+      { at: 5500, text: 'Decoding barcode/QR and slicer parameters...' },
+      { at: 8000, text: 'Finalizing technical specs and validating weights...' },
+      { at: 12000, text: 'Advanced neural processing in progress, almost ready...' }
     ];
 
     this.aiLoadingTimerInterval = setInterval(() => {
@@ -2864,12 +2645,12 @@ class FilamentHubApp {
       this.aiAbortController.abort();
     }
     this.hideAiLoadingOverlay();
-    this.showToast('Analisi Vision AI annullata.', 'info');
+    this.showToast('Vision AI analysis cancelled.', 'info');
   }
 
   async analyzeImageWithGemini() {
     if (!this.settings?.gemini_configured) {
-      this.showToast('API Gemini non configurata! Inserisci una chiave valida nelle Impostazioni.', 'warning');
+      this.showToast('Gemini API not configured! Enter a valid key in Settings.', 'warning');
       this.openSettingsModal();
       return;
     }
@@ -2882,7 +2663,7 @@ class FilamentHubApp {
     }
 
     if (!this.aiImageBase64) {
-      this.showToast('Nessuna immagine fornita. Scatta o carica una foto dell\'etichetta.', 'warning');
+      this.showToast('No image provided. Take or upload a label photo first.', 'warning');
       return;
     }
 
@@ -2890,11 +2671,10 @@ class FilamentHubApp {
     const statusText = document.getElementById('geminiStatusText');
     if (btn) {
       btn.disabled = true;
-      btn.innerHTML = '<span class="inline-block animate-spin mr-1.5">&#x21bb;</span> Analisi in corso...';
+      btn.innerHTML = '<span class="inline-block animate-spin mr-1.5">&#x21bb;</span> Analyzing...';
     }
-    if (statusText) statusText.textContent = 'Elaborazione Vision AI in corso...';
+    if (statusText) statusText.textContent = 'Vision AI processing...';
 
-    // Show prominent visual progress HUD with live stopwatch and step messages
     this.showAiLoadingOverlay();
 
     try {
@@ -2914,35 +2694,35 @@ class FilamentHubApp {
         if (data.configured === false) {
           this.settings.gemini_configured = false;
           this.updateSettingsUi();
-          this.showToast('API Gemini non configurata! Inserisci la tua chiave gratuita.', 'warning');
+          this.showToast('Gemini API not configured! Please enter your free API key.', 'warning');
           this.openSettingsModal();
           return;
         }
 
         this.applyExtractedSpoolData(data, 'Gemini Vision AI');
-        if (statusText) statusText.textContent = '✓ Dati estratti da Gemini Flash';
-        this.showToast('Dati etichetta estratti con successo da Gemini Flash!', 'success');
+        if (statusText) statusText.textContent = '✓ Extracted by Gemini Flash';
+        this.showToast('Label data extracted successfully by Gemini Flash!', 'success');
       } else {
         const err = await res.json().catch(() => ({}));
         if (res.status === 400 && String(err.detail).includes('GEMINI_API_KEY')) {
           this.settings.gemini_configured = false;
           this.updateSettingsUi();
-          this.showToast('Chiave Gemini mancante o non valida! Clicca su Impostazioni.', 'warning');
+          this.showToast('Missing or invalid Gemini key! Open Settings to configure.', 'warning');
           this.openSettingsModal();
         } else {
-          this.showToast(this.formatError(err, 'Impossibile estrarre i dati dall\'etichetta'), 'warning');
+          this.showToast(this.formatError(err, 'Unable to extract data from label'), 'warning');
         }
       }
     } catch (e) {
       if (e.name === 'AbortError') {
-        return; // Analysis cancelled by user button
+        return;
       }
-      this.showToast(this.formatError(e, 'Errore di comunicazione con il servizio Vision AI'), 'error');
+      this.showToast(this.formatError(e, 'Error communicating with Vision AI service'), 'error');
     } finally {
       this.hideAiLoadingOverlay();
       if (btn) {
         btn.disabled = !this.settings?.gemini_configured;
-        btn.innerHTML = '<i data-lucide="cpu" class="w-3 h-3"></i><span>Rianalizza AI</span>';
+        btn.innerHTML = '<i data-lucide="cpu" class="w-3 h-3"></i><span>Re-analyze AI</span>';
         if (window.lucide) lucide.createIcons();
       }
     }
@@ -2953,7 +2733,7 @@ class FilamentHubApp {
   // =========================================================================
   openAdminModal() {
     if (!this.user || this.user.role !== 'admin') {
-      this.showToast('Accesso riservato agli amministratori', 'warning');
+      this.showToast('Access restricted to administrators', 'warning');
       return;
     }
     this.closeAdminResetPasswordModal();
@@ -3011,8 +2791,8 @@ class FilamentHubApp {
       const isAdmin = u.role === 'admin';
       const isSelf = this.user && u.username === this.user.username;
       const roleBadge = isAdmin
-        ? `<span class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-amber-950 text-amber-400 border border-amber-800">Amministratore</span>`
-        : `<span class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-indigo-950 text-indigo-400 border border-indigo-800">Utente Standard</span>`;
+        ? `<span class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-amber-950 text-amber-400 border border-amber-800">Administrator</span>`
+        : `<span class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-indigo-950 text-indigo-400 border border-indigo-800">Standard User</span>`;
 
       const safeUsername = this.escapeHtml(u.username);
       const jsSafeUsername = String(u.username || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
@@ -3022,7 +2802,7 @@ class FilamentHubApp {
           <td class="p-2.5 font-bold text-slate-200">
             <div class="flex items-center gap-1.5">
               <span>${safeUsername}</span>
-              ${isSelf ? '<span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 text-[9px] font-normal">Tu</span>' : ''}
+              ${isSelf ? '<span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 text-[9px] font-normal">You</span>' : ''}
             </div>
           </td>
           <td class="p-2.5">
@@ -3032,10 +2812,10 @@ class FilamentHubApp {
                 <button
                   type="button"
                   onclick="app.toggleUserRole(${u.id}, '${u.role}', '${jsSafeUsername}')"
-                  title="Cambia ruolo tra Utente Standard e Amministratore"
+                  title="Switch role between Standard User and Administrator"
                   class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-[10px] font-semibold transition"
                 >
-                  ⇄ Cambia Ruolo
+                  ⇄ Switch Role
                 </button>
               ` : ''}
             </div>
@@ -3047,7 +2827,7 @@ class FilamentHubApp {
                 onclick="app.openAdminResetPasswordModal(${u.id}, '${jsSafeUsername}')"
                 class="px-2.5 py-1 rounded-lg bg-amber-950/70 hover:bg-amber-900/80 text-amber-300 border border-amber-700/70 text-[11px] font-bold transition"
               >
-                🔑 Nuova Password
+                🔑 New Password
               </button>
               ${!isSelf ? `
                 <button
@@ -3055,7 +2835,7 @@ class FilamentHubApp {
                   onclick="app.deleteUser(${u.id})"
                   class="text-red-400 hover:text-red-300 px-2 py-1 rounded-lg hover:bg-red-950/40 text-[11px] font-semibold transition"
                 >
-                  Elimina
+                  Delete
                 </button>
               ` : ''}
             </div>
@@ -3096,19 +2876,19 @@ class FilamentHubApp {
   async handleAdminResetPassword(e) {
     e.preventDefault();
     const userId = document.getElementById('adminResetPassUserId')?.value;
-    const username = document.getElementById('adminResetPassUsername')?.textContent || 'utente';
+    const username = document.getElementById('adminResetPassUsername')?.textContent || 'user';
     const newPassword = document.getElementById('adminResetPassInput')?.value || '';
     const submitBtn = document.getElementById('adminResetPassSubmitBtn');
 
     if (!userId) return;
     if (newPassword.trim().length < 8) {
-      this.showToast('La nuova password deve contenere almeno 8 caratteri.', 'warning');
+      this.showToast('New password must be at least 8 characters long.', 'warning');
       return;
     }
 
     if (submitBtn) {
       submitBtn.disabled = true;
-      submitBtn.textContent = 'Salvataggio...';
+      submitBtn.textContent = 'Saving...';
     }
 
     try {
@@ -3120,17 +2900,17 @@ class FilamentHubApp {
 
       if (res.ok) {
         this.closeAdminResetPasswordModal();
-        this.showToast(`Password aggiornata per ${username}`, 'success');
+        this.showToast(`Password updated for ${username}`, 'success');
       } else {
         const err = await res.json().catch(() => ({}));
-        this.showToast(this.formatError(err, 'Errore durante l\'aggiornamento della password'), 'error');
+        this.showToast(this.formatError(err, 'Error updating password'), 'error');
       }
     } catch (err) {
-      this.showToast(this.formatError(err, 'Errore di comunicazione'), 'error');
+      this.showToast(this.formatError(err, 'Communication error'), 'error');
     } finally {
       if (submitBtn) {
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Salva Password';
+        submitBtn.textContent = 'Save Password';
       }
     }
   }
@@ -3146,13 +2926,13 @@ class FilamentHubApp {
       });
       if (res.ok) {
         await this.loadAdminUsers();
-        this.showToast(`Ruolo di ${username} aggiornato a ${nextLabel}`, 'success');
+        this.showToast(`Role for ${username} updated to ${nextLabel}`, 'success');
       } else {
         const err = await res.json().catch(() => ({}));
-        this.showToast(this.formatError(err, 'Impossibile aggiornare il ruolo'), 'error');
+        this.showToast(this.formatError(err, 'Unable to update role'), 'error');
       }
     } catch (err) {
-      this.showToast(this.formatError(err, 'Errore di comunicazione'), 'error');
+      this.showToast(this.formatError(err, 'Communication error'), 'error');
     }
   }
 
@@ -3163,7 +2943,7 @@ class FilamentHubApp {
     const role = document.getElementById('newUserRole')?.value || 'editor';
 
     if (password.length < 8) {
-      this.showToast('La password deve contenere almeno 8 caratteri', 'warning');
+      this.showToast('Password must be at least 8 characters long', 'warning');
       return;
     }
 
@@ -3179,29 +2959,29 @@ class FilamentHubApp {
         const roleSel = document.getElementById('newUserRole');
         if (roleSel) roleSel.value = 'editor';
         this.loadAdminUsers();
-        this.showToast(`Utente ${username} (${this.getRoleDisplayName(role)}) creato!`, 'success');
+        this.showToast(`User ${username} (${this.getRoleDisplayName(role)}) created!`, 'success');
       } else {
         const err = await res.json().catch(() => ({}));
-        this.showToast(this.formatError(err, 'Errore creazione utente'), 'error');
+        this.showToast(this.formatError(err, 'Error creating user'), 'error');
       }
     } catch (err) {
-      this.showToast(this.formatError(err, 'Errore di comunicazione'), 'error');
+      this.showToast(this.formatError(err, 'Communication error'), 'error');
     }
   }
 
   async deleteUser(id) {
-    if (!confirm('Sei sicuro di voler eliminare questo utente e il suo archivio personale?')) return;
+    if (!confirm('Are you sure you want to delete this user and their personal inventory?')) return;
     try {
       const res = await fetch(`/api/admin/users/${id}`, { method: 'DELETE' });
       if (res.ok) {
         this.loadAdminUsers();
-        this.showToast('Utente eliminato', 'info');
+        this.showToast('User deleted', 'info');
       } else {
         const err = await res.json().catch(() => ({}));
-        this.showToast(this.formatError(err, 'Impossibile eliminare utente'), 'error');
+        this.showToast(this.formatError(err, 'Unable to delete user'), 'error');
       }
     } catch (e) {
-      this.showToast('Errore', 'error');
+      this.showToast('Error deleting user', 'error');
     }
   }
 
@@ -3217,7 +2997,7 @@ class FilamentHubApp {
             <td class="p-2.5 font-bold text-slate-200">${this.escapeHtml(t.brand_name)}</td>
             <td class="p-2.5 font-bold text-emerald-400">${Math.round(t.tare_weight_g)} g</td>
             <td class="p-2.5 text-right">
-              <button onclick="app.deleteTare(${t.id})" class="text-red-400 hover:text-red-300 px-2 py-1 rounded hover:bg-red-950/40">Elimina</button>
+              <button onclick="app.deleteTare(${t.id})" class="text-red-400 hover:text-red-300 px-2 py-1 rounded hover:bg-red-950/40">Delete</button>
             </td>
           </tr>
         `).join('');
@@ -3242,23 +3022,23 @@ class FilamentHubApp {
         document.getElementById('newTareBrand').value = '';
         document.getElementById('newTareWeight').value = '';
         this.loadAdminTares();
-        this.showToast(`Tara salvata per ${brand_name}`, 'success');
+        this.showToast(`Tare saved for ${brand_name}`, 'success');
       }
     } catch (e) {
-      this.showToast('Errore', 'error');
+      this.showToast('Error saving tare', 'error');
     }
   }
 
   async deleteTare(id) {
-    if (!confirm('Eliminare questa voce di tara?')) return;
+    if (!confirm('Delete this tare entry?')) return;
     try {
       const res = await fetch(`/api/admin/tares/${id}`, { method: 'DELETE' });
       if (res.ok) {
         this.loadAdminTares();
-        this.showToast('Tara eliminata', 'info');
+        this.showToast('Tare entry deleted', 'info');
       }
     } catch (e) {
-      this.showToast('Errore', 'error');
+      this.showToast('Error deleting tare', 'error');
     }
   }
 
@@ -3270,7 +3050,7 @@ class FilamentHubApp {
         const tbody = document.getElementById('adminAuditLogsTableBody');
         if (!tbody) return;
         if (!logs || logs.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-500">Nessun evento registrato</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-500">No events recorded</td></tr>';
           return;
         }
         tbody.innerHTML = logs.map(l => `
@@ -3317,7 +3097,7 @@ class FilamentHubApp {
     const confirm = document.getElementById('changePassConfirm').value;
 
     if (new_password !== confirm) {
-      this.showToast('Le due nuove password non coincidono', 'warning');
+      this.showToast('New passwords do not match', 'warning');
       return;
     }
 
@@ -3330,20 +3110,20 @@ class FilamentHubApp {
 
       if (res.ok) {
         this.closeChangePasswordModal();
-        this.showToast('Password aggiornata con successo!', 'success');
+        this.showToast('Password updated successfully!', 'success');
       } else {
         const err = await res.json().catch(() => ({}));
-        this.showToast(this.formatError(err, 'Errore durante il cambio password'), 'error');
+        this.showToast(this.formatError(err, 'Error changing password'), 'error');
       }
     } catch (e) {
-      this.showToast(this.formatError(e, 'Errore di comunicazione'), 'error');
+      this.showToast(this.formatError(e, 'Communication error'), 'error');
     }
   }
 
   // =========================================================================
   // 20. TOAST NOTIFICATIONS & UTILS
   // =========================================================================
-  formatError(err, fallback = 'Errore imprevisto') {
+  formatError(err, fallback = 'Unexpected error') {
     if (!err) return fallback;
     if (typeof err === 'string') return err;
     if (Array.isArray(err)) {
@@ -3422,9 +3202,14 @@ class FilamentHubApp {
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#039;');
   }
+
   // =========================================================================
-  // 19. SHOPPING LIST (WISHLIST) CONTROLLER & 1-TAP INVENTORY CONVERSION
+  // 21. SHOPPING LIST (WISHLIST) CONTROLLER & 1-TAP INVENTORY CONVERSION
   // =========================================================================
+  switchMainSection(view) {
+    this.switchActiveView(view);
+  }
+
   switchActiveView(view) {
     this.activeMainView = view || 'spools';
     const isSpools = this.activeMainView === 'spools';
@@ -3450,7 +3235,7 @@ class FilamentHubApp {
     // Update topbar subtitle
     const topbarSubtitle = document.getElementById('topbarSubtitle');
     if (topbarSubtitle) {
-      topbarSubtitle.textContent = isSpools ? 'Spool Database • v1.6' : 'Lista Acquisti Filamenti • v1.6';
+      topbarSubtitle.textContent = isSpools ? 'Spool Database • v2.0' : 'Shopping List • v2.0';
     }
 
     // Update bottom nav tab buttons
@@ -3501,7 +3286,7 @@ class FilamentHubApp {
         this.shoppingItems = [];
       }
     } catch (err) {
-      console.warn('Errore caricamento lista acquisti:', err);
+      console.warn('Error loading shopping list:', err);
       this.shoppingItems = [];
     }
     this.updateShoppingBadges();
@@ -3523,7 +3308,7 @@ class FilamentHubApp {
     // Mobile menu badge
     const menuBadge = document.getElementById('menuShoppingBadge');
     if (menuBadge) {
-      menuBadge.textContent = `${pendingCount} da ordinare`;
+      menuBadge.textContent = `${pendingCount} to buy`;
     }
 
     // Segmented tab badges
@@ -3582,6 +3367,25 @@ class FilamentHubApp {
       );
     }
 
+    // Sort Shopping List by Brand or Material when selected
+    if (this.sortBy === 'brand_asc') {
+      items.sort((a, b) => {
+        const cmp = (a.brand || '').localeCompare(b.brand || '');
+        if (cmp !== 0) return cmp;
+        const mcmp = (a.material || '').localeCompare(b.material || '');
+        if (mcmp !== 0) return mcmp;
+        return (a.color_name || '').localeCompare(b.color_name || '');
+      });
+    } else if (this.sortBy === 'material_asc') {
+      items.sort((a, b) => {
+        const cmp = (a.material || '').localeCompare(b.material || '');
+        if (cmp !== 0) return cmp;
+        const scmp = (a.subtype || '').localeCompare(b.subtype || '');
+        if (scmp !== 0) return scmp;
+        return (a.brand || '').localeCompare(b.brand || '');
+      });
+    }
+
     // Calculate estimated total for items currently shown
     const totalEst = items.reduce((sum, item) => sum + ((item.price_eur || 0) * (item.quantity || 1)), 0);
     const totalEl = document.getElementById('shoppingEstimatedTotal');
@@ -3602,9 +3406,9 @@ class FilamentHubApp {
 
     container.innerHTML = items.map(item => {
       const isBought = Boolean(item.is_bought);
-      const priceStr = item.price_eur > 0 ? `€${item.price_eur.toFixed(2)}` : 'N/D';
+      const priceStr = item.price_eur > 0 ? `€${item.price_eur.toFixed(2)}` : 'N/A';
       const totalItemPrice = item.price_eur > 0 && item.quantity > 1
-        ? ` <span class="text-[10px] text-slate-400 font-normal">(Tot: €${(item.price_eur * item.quantity).toFixed(2)})</span>`
+        ? ` <span class="text-[10px] text-slate-400 font-normal">(Total: €${(item.price_eur * item.quantity).toFixed(2)})</span>`
         : '';
 
       return `
@@ -3620,14 +3424,14 @@ class FilamentHubApp {
             ></span>
           </div>
 
-          <!-- Center: 3 Clean Full-Width Rows (consistent with Bobine list) -->
+          <!-- Center: 3 Clean Full-Width Rows -->
           <div class="flex-1 min-w-0 space-y-0.5 cursor-pointer" onclick="app.openShoppingItemModal(${item.id})">
             <!-- Row 1: Brand logo + Brand name + Status Badge -->
             <div class="flex items-center gap-1.5 truncate">
               ${this.renderBrandLogo(item.brand, 'sm')}
               <span class="text-[13px] sm:text-sm font-extrabold uppercase tracking-wider text-amber-600 dark:text-amber-400 truncate">${this.escapeHtml(item.brand)}</span>
               <span class="px-1.5 py-0.5 rounded-full text-[9px] font-bold ${isBought ? 'bg-emerald-500/20 text-emerald-500 border border-emerald-500/40' : 'bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/40'}">
-                ${isBought ? 'ORDINATO' : 'DA COMPRARE'}
+                ${isBought ? 'ORDERED' : 'TO BUY'}
               </span>
             </div>
 
@@ -3655,7 +3459,7 @@ class FilamentHubApp {
             ` : ''}
           </div>
 
-          <!-- Right: Price on top + Green 'Ricevuto' button on bottom -->
+          <!-- Right: Price on top + Green 'Received' button on bottom -->
           <div class="shrink-0 flex flex-col items-end justify-between gap-1.5">
             <div class="text-sm font-bold font-mono text-emerald-600 dark:text-emerald-400 leading-tight">
               ${priceStr}${totalItemPrice}
@@ -3666,10 +3470,10 @@ class FilamentHubApp {
                 type="button"
                 onclick="event.stopPropagation(); app.convertShoppingItemToSpool(${item.id})"
                 class="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-sm transition"
-                title="Bobina Ricevuta: aggiungi all'inventario"
+                title="Spool Received: add to inventory"
               >
                 <i data-lucide="package-check" class="w-3.5 h-3.5"></i>
-                <span class="text-xs">Ricevuto</span>
+                <span class="text-xs">Received</span>
               </button>
 
               <!-- Delete Button -->
@@ -3677,7 +3481,7 @@ class FilamentHubApp {
                 type="button"
                 onclick="event.stopPropagation(); app.deleteShoppingItem(${item.id})"
                 class="p-1.5 text-slate-400 hover:text-rose-500 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-                title="Elimina"
+                title="Delete"
               >
                 <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
               </button>
@@ -3690,7 +3494,7 @@ class FilamentHubApp {
     if (window.lucide) lucide.createIcons();
   }
 
-    openShoppingItemModal(id = null) {
+  openShoppingItemModal(id = null) {
     const title = document.getElementById('shoppingItemModalTitle');
     const idInput = document.getElementById('shoppingItemId');
     const brandInput = document.getElementById('shoppingItemBrand');
@@ -3711,7 +3515,7 @@ class FilamentHubApp {
       const item = this.shoppingItems.find(i => i.id === id);
       if (!item) return;
 
-      if (title) title.innerHTML = '<i data-lucide="pencil" class="w-4 h-4 text-amber-500"></i> Modifica Filamento da Acquistare';
+      if (title) title.innerHTML = '<i data-lucide="pencil" class="w-4 h-4 text-amber-500"></i> Edit Filament to Buy';
       idInput.value = item.id;
       if (brandInput) brandInput.value = item.brand || '';
       if (materialInput) materialInput.value = item.material || '';
@@ -3725,7 +3529,7 @@ class FilamentHubApp {
       if (storeUrlInput) storeUrlInput.value = item.store_url || '';
       if (notesInput) notesInput.value = item.notes || '';
     } else {
-      if (title) title.innerHTML = '<i data-lucide="plus-circle" class="w-4 h-4 text-amber-500"></i> Nuovo Filamento da Acquistare';
+      if (title) title.innerHTML = '<i data-lucide="plus-circle" class="w-4 h-4 text-amber-500"></i> New Filament to Buy';
       idInput.value = '';
       if (brandInput) brandInput.value = '';
       if (materialInput) materialInput.value = 'PLA';
@@ -3766,7 +3570,7 @@ class FilamentHubApp {
     const notes = document.getElementById('shoppingItemNotes')?.value.trim();
 
     if (!brand || !material || !color_name) {
-      this.showToast('Compila i campi obbligatori: Brand, Materiale e Colore.', 'warning');
+      this.showToast('Please fill in required fields: Brand, Material, and Color.', 'warning');
       return;
     }
 
@@ -3786,7 +3590,7 @@ class FilamentHubApp {
     const saveBtn = document.getElementById('shoppingItemSaveBtn');
     if (saveBtn) {
       saveBtn.disabled = true;
-      saveBtn.textContent = 'Salvataggio...';
+      saveBtn.textContent = 'Saving...';
     }
 
     try {
@@ -3800,39 +3604,39 @@ class FilamentHubApp {
       });
 
       if (res.ok) {
-        this.showToast(id ? 'Elemento aggiornato nella lista!' : 'Filamento aggiunto alla lista acquisti!', 'success');
+        this.showToast(id ? 'Item updated in shopping list!' : 'Filament added to shopping list!', 'success');
         this.closeShoppingItemModal();
         await this.loadShoppingList();
       } else {
         const err = await res.json().catch(() => ({}));
-        this.showToast(this.formatError(err, 'Errore salvataggio filamento'), 'error');
+        this.showToast(this.formatError(err, 'Error saving filament'), 'error');
       }
     } catch (e) {
-      this.showToast(this.formatError(e, 'Errore di connessione'), 'error');
+      this.showToast(this.formatError(e, 'Connection error'), 'error');
     } finally {
       if (saveBtn) {
         saveBtn.disabled = false;
-        saveBtn.textContent = 'Salva nella Lista';
+        saveBtn.textContent = 'Save to List';
       }
     }
   }
 
   async deleteShoppingItem(id) {
-    if (!confirm('Sei sicuro di voler eliminare questo filamento dalla lista acquisti?')) {
+    if (!confirm('Are you sure you want to remove this filament from the shopping list?')) {
       return;
     }
 
     try {
       const res = await fetch(`/api/shopping/${id}`, { method: 'DELETE' });
       if (res.ok) {
-        this.showToast('Filamento rimosso dalla lista acquisti.', 'info');
+        this.showToast('Filament removed from shopping list.', 'info');
         await this.loadShoppingList();
       } else {
         const err = await res.json().catch(() => ({}));
-        this.showToast(this.formatError(err, 'Errore eliminazione'), 'error');
+        this.showToast(this.formatError(err, 'Error deleting item'), 'error');
       }
     } catch (e) {
-      this.showToast(this.formatError(e, 'Errore di rete'), 'error');
+      this.showToast(this.formatError(e, 'Network error'), 'error');
     }
   }
 
@@ -3845,7 +3649,7 @@ class FilamentHubApp {
       });
       if (res.ok) {
         await this.loadShoppingList();
-        this.showToast(!currentStatus ? 'Segnato come Già Ordinato!' : 'Rimesso in Da Acquistare', 'success');
+        this.showToast(!currentStatus ? 'Marked as Ordered!' : 'Moved back to To Buy', 'success');
       }
     } catch (e) {
       console.warn(e);
@@ -3856,9 +3660,7 @@ class FilamentHubApp {
     const item = this.shoppingItems.find(i => i.id === id);
     if (!item) return;
 
-    const promptMsg = window.i18n
-      ? window.i18n.t('shopping.convert_confirm', { name: `${item.brand} ${item.material} - ${item.color_name}` })
-      : `Confermi di aver ricevuto la bobina "${item.brand} ${item.material} - ${item.color_name}"?\n\nVerrà generato un nuovo codice univoco SP-xxxx e la bobina verrà inserita nel tuo inventario attivo.`;
+    const promptMsg = `Confirm you received spool "${item.brand} ${item.material} - ${item.color_name}"?\n\nA new unique SP-xxxx code will be generated and the spool will be added to your active inventory.`;
     const shouldRemove = confirm(promptMsg);
 
     if (!shouldRemove) return;
@@ -3876,18 +3678,17 @@ class FilamentHubApp {
 
       if (res.ok) {
         const data = await res.json();
-        this.showToast(`🎉 ${data.message || 'Bobina creata con successo!'}`, 'success');
+        this.showToast(`🎉 ${data.message || 'Spool created successfully!'}`, 'success');
         await this.loadSpools();
         await this.loadShoppingList();
       } else {
         const err = await res.json().catch(() => ({}));
-        this.showToast(this.formatError(err, 'Errore durante la conversione in bobina'), 'error');
+        this.showToast(this.formatError(err, 'Error converting item to spool'), 'error');
       }
     } catch (e) {
-      this.showToast(this.formatError(e, 'Errore durante la richiesta di conversione'), 'error');
+      this.showToast(this.formatError(e, 'Error requesting conversion'), 'error');
     }
   }
-
 }
 
 // Global Application Instance

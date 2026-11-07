@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="it" class="dark">
+<html lang="en" class="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Scheda Rapida Spool NFC - FilamentHub 3D</title>
+  <title>Spool Quick View - FilamentHub 3D</title>
   <link rel="icon" type="image/svg+xml" href="/static/icon.svg">
   <meta name="theme-color" content="#0b0f19">
 
@@ -44,11 +44,11 @@
   <header class="w-full flex items-center justify-between py-2 mb-4 border-b border-gray-800">
     <a href="/" class="flex items-center gap-2 text-indigo-400 hover:text-indigo-300 transition">
       <i data-lucide="arrow-left" class="w-5 h-5"></i>
-      <span class="text-xs font-semibold">Dashboard Completa</span>
+      <span class="text-xs font-semibold">Full Dashboard</span>
     </a>
     <div class="flex items-center gap-2">
       <img src="/static/icon.svg" alt="Logo" class="w-6 h-6">
-      <span class="text-xs font-bold font-mono tracking-wider text-gray-300">NFC / Quick View</span>
+      <span class="text-xs font-bold font-mono tracking-wider text-gray-300">NFC / Quick View • v2.0</span>
     </div>
   </header>
 
@@ -57,7 +57,7 @@
   <!-- ========================================================================= -->
   <div id="loadingView" class="py-16 text-center space-y-3">
     <div class="inline-block w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-    <p class="text-xs text-gray-400 font-mono">Caricamento scheda bobina...</p>
+    <p class="text-xs text-gray-400 font-mono">Loading spool details...</p>
   </div>
 
   <!-- ========================================================================= -->
@@ -68,11 +68,11 @@
       <i data-lucide="alert-triangle" class="w-7 h-7"></i>
     </div>
     <div>
-      <h2 class="text-base font-bold text-gray-200">Bobina non trovata</h2>
-      <p class="text-xs text-gray-400 mt-1" id="errorMessage">Nessun filamento associato a questo codice UID.</p>
+      <h2 class="text-base font-bold text-gray-200">Spool Not Found</h2>
+      <p class="text-xs text-gray-400 mt-1" id="errorMessage">No filament found for this UID code.</p>
     </div>
     <a href="/" class="inline-block px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold transition">
-      Vai alla Dashboard
+      Go to Dashboard
     </a>
   </div>
 
@@ -82,17 +82,17 @@
   <div id="inlineLoginView" class="hidden w-full glass-card rounded-2xl p-6 border border-gray-800 shadow-2xl space-y-4 my-6">
     <div class="text-center">
       <img src="/static/icon.svg" alt="Logo" class="w-12 h-12 mx-auto mb-2">
-      <h2 class="text-base font-bold text-gray-100">Accesso Richiesto</h2>
-      <p class="text-xs text-gray-400 mt-0.5">Accedi a FilamentHub per gestire questa bobina</p>
+      <h2 class="text-base font-bold text-gray-100">Sign In Required</h2>
+      <p class="text-xs text-gray-400 mt-0.5">Sign in to FilamentHub to manage this spool</p>
     </div>
 
     <div id="inlineLoginError" class="hidden p-2.5 bg-red-950/60 border border-red-800 rounded-xl text-xs text-red-300">
-      Credenziali non valide.
+      Invalid credentials.
     </div>
 
     <form onsubmit="quickApp.handleInlineLogin(event)" class="space-y-3 text-xs">
       <div>
-        <label class="block text-gray-400 mb-1">Nome Utente</label>
+        <label class="block text-gray-400 mb-1">Username</label>
         <input type="text" id="inlineUsername" required class="w-full px-3 py-2 bg-gray-950 border border-gray-700 rounded-xl text-gray-100">
       </div>
       <div>
@@ -100,7 +100,7 @@
         <input type="password" id="inlinePassword" required class="w-full px-3 py-2 bg-gray-950 border border-gray-700 rounded-xl text-gray-100">
       </div>
       <button type="submit" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition">
-        Accedi e Continua
+        Sign In & Continue
       </button>
     </form>
   </div>
@@ -116,7 +116,7 @@
       <div class="flex items-center justify-between">
         <span class="font-mono font-bold text-sm text-indigo-400" id="spoolUidLabel">SP-0001</span>
         <div id="spoolStatusBadge" class="px-2 py-0.5 rounded-full text-[11px] font-mono font-bold">
-          <!-- In Uso / Slot or Archivio -->
+          <!-- In Use / Slot or Storage -->
         </div>
       </div>
 
@@ -130,21 +130,21 @@
           <h2 class="text-lg font-black text-gray-100 truncate" id="spoolMaterialLabel">PLA Matte</h2>
           <div class="flex items-center gap-1.5 text-xs text-gray-300 mt-0.5">
             <span id="spoolColorDot" class="w-3 h-3 rounded-full inline-block border border-white/20"></span>
-            <span class="truncate" id="spoolColorNameLabel">Nero Carbone</span>
+            <span class="truncate" id="spoolColorNameLabel">Charcoal Black</span>
           </div>
         </div>
       </div>
 
       <!-- Large Net Grams Remaining -->
       <div class="p-3 bg-gray-950/80 rounded-xl border border-gray-800/80 text-center">
-        <p class="text-[11px] text-gray-400 font-medium uppercase tracking-wider">Netto Residuo Stimato</p>
+        <p class="text-[11px] text-gray-400 font-medium uppercase tracking-wider">Estimated Net Remaining</p>
         <div class="text-3xl font-black font-mono my-1" id="spoolNetRemainingLabel">642 g</div>
         <div class="w-full bg-gray-800 rounded-full h-2 mt-2 overflow-hidden">
           <div id="spoolProgressBar" class="h-full rounded-full bg-emerald-500" style="width: 64%;"></div>
         </div>
         <div class="flex justify-between text-[10px] font-mono text-gray-500 mt-1.5">
-          <span id="spoolGrossLabel">Lordo: 892g</span>
-          <span id="spoolTareLabel">Tara: 250g</span>
+          <span id="spoolGrossLabel">Gross: 892g</span>
+          <span id="spoolTareLabel">Tare: 250g</span>
           <span id="spoolPercentLabel">64%</span>
         </div>
       </div>
@@ -176,9 +176,9 @@
       <div class="flex items-center justify-between">
         <h3 class="text-xs font-bold text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
           <i data-lucide="scale" class="w-4 h-4 text-emerald-400"></i>
-          Aggiorna Peso Lordo Bilancia (g)
+          Update Scale Gross Weight (g)
         </h3>
-        <span class="text-[10px] font-mono text-gray-500">Salvataggio istantaneo</span>
+        <span class="text-[10px] font-mono text-gray-500">Instant save</span>
       </div>
 
       <!-- Giant Numeric Input -->
@@ -190,7 +190,7 @@
           oninput="quickApp.updateWeightDelta()"
           class="w-full px-4 py-3 bg-gray-950 border border-gray-700 focus:border-emerald-500 rounded-2xl font-mono text-3xl font-extrabold text-center text-gray-100 focus:outline-none"
         />
-        <span class="absolute right-4 top-4 text-xs text-gray-500 font-mono font-medium">grammi</span>
+        <span class="absolute right-4 top-4 text-xs text-gray-500 font-mono font-medium">grams</span>
       </div>
 
       <!-- Quick +/- Buttons -->
@@ -203,7 +203,7 @@
 
       <!-- Live Delta Display -->
       <div class="p-2.5 bg-gray-950/70 border border-gray-800 rounded-xl text-xs font-mono flex items-center justify-between">
-        <span class="text-gray-400">Delta vs Ultima Pesata:</span>
+        <span class="text-gray-400">Delta vs Last Weigh:</span>
         <span id="weightDeltaPreview" class="font-bold text-gray-300">0 g</span>
       </div>
 
@@ -214,7 +214,7 @@
         class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl text-sm font-extrabold shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 transition"
       >
         <i data-lucide="check" class="w-4 h-4"></i>
-        <span>Salva Nuova Pesata</span>
+        <span>Save New Weight</span>
       </button>
     </div>
 
@@ -222,7 +222,7 @@
     <div class="glass-card rounded-2xl p-4 border border-gray-800 shadow-xl space-y-3">
       <h3 class="text-xs font-bold text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
         <i data-lucide="refresh-cw" class="w-4 h-4 text-indigo-400"></i>
-        Assegna Slot Stampante (1-Tap)
+        Assign Printer Slot (1-Tap)
       </h3>
 
       <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs font-bold font-mono">
@@ -238,11 +238,11 @@
         <button onclick="quickApp.setSlot('Slot 4')" id="btnSlot4" class="py-2.5 bg-gray-950 hover:bg-indigo-950/50 border border-gray-800 rounded-xl flex items-center justify-center gap-1.5">
           <span class="w-2 h-2 rounded-full bg-emerald-400"></span> Slot 4
         </button>
-        <button onclick="quickApp.setSlot('Esterno')" id="btnSlotEsterno" class="py-2.5 bg-gray-950 hover:bg-indigo-950/50 border border-gray-800 rounded-xl flex items-center justify-center gap-1.5">
-          <i data-lucide="arrow-up-right" class="w-3.5 h-3.5 text-cyan-400"></i> Esterno
+        <button onclick="quickApp.setSlot('External')" id="btnSlotExternal" class="py-2.5 bg-gray-950 hover:bg-indigo-950/50 border border-gray-800 rounded-xl flex items-center justify-center gap-1.5">
+          <i data-lucide="arrow-up-right" class="w-3.5 h-3.5 text-cyan-400"></i> External
         </button>
-        <button onclick="quickApp.setSlot('')" id="btnSlotSmonta" class="py-2.5 bg-gray-950 hover:bg-red-950/40 text-red-400 border border-gray-800 rounded-xl flex items-center justify-center gap-1.5">
-          <i data-lucide="slash" class="w-3.5 h-3.5"></i> Smonta
+        <button onclick="quickApp.setSlot('')" id="btnSlotUnload" class="py-2.5 bg-gray-950 hover:bg-red-950/40 text-red-400 border border-gray-800 rounded-xl flex items-center justify-center gap-1.5">
+          <i data-lucide="slash" class="w-3.5 h-3.5"></i> Unload
         </button>
       </div>
     </div>
@@ -250,19 +250,19 @@
     <!-- 4. QUICK DRY & MAINTENANCE -->
     <div class="glass-card rounded-2xl p-4 border border-gray-800 shadow-xl flex items-center justify-between">
       <div>
-        <span class="text-xs font-bold text-gray-200 block">Ciclo Essiccazione</span>
-        <span class="text-[11px] text-gray-500 font-mono" id="lastDriedDateLabel">Ultima: Mai</span>
+        <span class="text-xs font-bold text-gray-200 block">Drying Cycle</span>
+        <span class="text-[11px] text-gray-500 font-mono" id="lastDriedDateLabel">Last dried: Never</span>
       </div>
       <button onclick="quickApp.markDriedToday()" class="px-4 py-2 bg-orange-600/20 hover:bg-orange-600/40 text-orange-400 border border-orange-500/30 rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
         <i data-lucide="flame" class="w-4 h-4"></i>
-        <span>Segna Essiccata Oggi</span>
+        <span>Mark Dried Today</span>
       </button>
     </div>
 
     <!-- 5. RECENT WEIGH HISTORY -->
     <div id="weighHistoryCard" class="hidden glass-card rounded-2xl p-4 border border-gray-800 shadow-xl space-y-2">
       <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
-        <i data-lucide="history" class="w-3.5 h-3.5"></i> Storico Ultime Pesate
+        <i data-lucide="history" class="w-3.5 h-3.5"></i> Recent Weigh History
       </h4>
       <div id="weighHistoryList" class="space-y-1.5 text-xs font-mono">
         <!-- Rendered via JS -->
@@ -296,7 +296,7 @@
 
       async init() {
         if (!this.uidCode) {
-          this.showError('Nessun codice UID specificato');
+          this.showError('No UID code specified');
           return;
         }
         await this.loadSpoolData();
@@ -311,10 +311,10 @@
           } else if (res.status === 401) {
             this.showInlineLogin();
           } else {
-            this.showError(`Bobina ${this.uidCode} non trovata.`);
+            this.showError(`Spool ${this.uidCode} not found.`);
           }
         } catch (e) {
-          this.showError('Errore di connessione al server.');
+          this.showError('Server connection error.');
         }
       }
 
@@ -343,7 +343,7 @@
             errEl.classList.remove('hidden');
           }
         } catch (e) {
-          errEl.textContent = 'Errore di connessione';
+          errEl.textContent = 'Connection error';
           errEl.classList.remove('hidden');
         }
       }
@@ -364,17 +364,17 @@
         document.getElementById('spoolUidLabel').textContent = s.uid_code;
         document.getElementById('spoolBrandLabel').textContent = s.brand;
         document.getElementById('spoolMaterialLabel').textContent = `${s.material} ${s.subtype || ''}`;
-        document.getElementById('spoolColorNameLabel').textContent = s.color_name || 'N/D';
+        document.getElementById('spoolColorNameLabel').textContent = s.color_name || 'N/A';
         document.getElementById('spoolColorDot').style.backgroundColor = s.color_hex;
 
         // Status Badge
         const statusBadge = document.getElementById('spoolStatusBadge');
         if (s.in_use) {
           statusBadge.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-emerald-950 text-emerald-400 border border-emerald-800';
-          statusBadge.textContent = s.slot_location || 'In Uso';
+          statusBadge.textContent = s.slot_location || 'In Use';
         } else {
           statusBadge.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-mono text-gray-400 bg-gray-900 border border-gray-800';
-          statusBadge.textContent = s.location_shelf || 'Archivio';
+          statusBadge.textContent = s.location_shelf || 'Storage';
         }
 
         // SVG Spool Render
@@ -387,8 +387,8 @@
         document.getElementById('spoolNetRemainingLabel').className = `text-3xl font-black font-mono my-1 ${percent < 15 ? 'text-red-400' : percent < 35 ? 'text-amber-400' : 'text-emerald-400'}`;
         document.getElementById('spoolProgressBar').style.width = `${percent}%`;
         document.getElementById('spoolProgressBar').className = `h-full rounded-full ${percent < 15 ? 'bg-red-500' : percent < 35 ? 'bg-amber-500' : 'bg-emerald-500'}`;
-        document.getElementById('spoolGrossLabel').textContent = `Lordo: ${Math.round(s.current_gross_g || 0)}g`;
-        document.getElementById('spoolTareLabel').textContent = `Tara: ${Math.round(s.tare_weight_g || 0)}g`;
+        document.getElementById('spoolGrossLabel').textContent = `Gross: ${Math.round(s.current_gross_g || 0)}g`;
+        document.getElementById('spoolTareLabel').textContent = `Tare: ${Math.round(s.tare_weight_g || 0)}g`;
         document.getElementById('spoolPercentLabel').textContent = `${percent}%`;
 
         // Technical specs
@@ -404,9 +404,9 @@
         // Dried date
         const driedEl = document.getElementById('lastDriedDateLabel');
         if (s.last_dried_at) {
-          driedEl.textContent = `Ultima: ${s.last_dried_at.replace('T', ' ').substring(0, 16)}`;
+          driedEl.textContent = `Last dried: ${s.last_dried_at.replace('T', ' ').substring(0, 16)}`;
         } else {
-          driedEl.textContent = 'Ultima: Mai';
+          driedEl.textContent = 'Last dried: Never';
         }
 
         // Weight History if present
@@ -417,8 +417,8 @@
           histList.innerHTML = s.weight_history.slice(-5).reverse().map(h => `
             <div class="flex justify-between py-1 border-b border-gray-800 text-gray-400">
               <span>${h.timestamp ? h.timestamp.replace('T', ' ').substring(0, 16) : '--'}</span>
-              <span>Lordo: ${Math.round(h.gross_weight_g)}g</span>
-              <span class="font-bold text-gray-200">${Math.round(h.net_weight_g)}g netti</span>
+              <span>Gross: ${Math.round(h.gross_weight_g)}g</span>
+              <span class="font-bold text-gray-200">${Math.round(h.net_weight_g)}g net</span>
               <span class="${h.delta_g < 0 ? 'text-indigo-400' : 'text-emerald-400'}">${h.delta_g > 0 ? '+' : ''}${Math.round(h.delta_g)}g</span>
             </div>
           `).join('');
@@ -473,13 +473,13 @@
 
         const deltaEl = document.getElementById('weightDeltaPreview');
         if (delta < 0) {
-          deltaEl.textContent = `${delta}g consumati (Nuovo Netto: ${newNet}g)`;
+          deltaEl.textContent = `${delta}g used (New Net: ${newNet}g)`;
           deltaEl.className = 'font-bold text-indigo-400';
         } else if (delta > 0) {
-          deltaEl.textContent = `+${delta}g ricaricati (Nuovo Netto: ${newNet}g)`;
+          deltaEl.textContent = `+${delta}g added (New Net: ${newNet}g)`;
           deltaEl.className = 'font-bold text-emerald-400';
         } else {
-          deltaEl.textContent = `Invariato (Netto: ${newNet}g)`;
+          deltaEl.textContent = `Unchanged (Net: ${newNet}g)`;
           deltaEl.className = 'font-bold text-gray-400';
         }
       }
@@ -488,7 +488,7 @@
         if (!this.spool) return;
         const gross = parseFloat(document.getElementById('giantWeightInput').value);
         if (isNaN(gross) || gross < 0) {
-          this.showToast('Inserisci un peso valido');
+          this.showToast('Please enter a valid weight');
           return;
         }
 
@@ -507,12 +507,12 @@
             const spoolObj = updated.spool || updated;
             this.spool = { ...this.spool, ...spoolObj };
             this.renderSpool();
-            this.showToast(`Pesata salvata! Netto residuo: ${spoolObj.net_remaining_g}g`);
+            this.showToast(`Weight saved! Net remaining: ${spoolObj.net_remaining_g}g`);
           } else {
-            this.showToast('Errore durante il salvataggio');
+            this.showToast('Error saving weight');
           }
         } catch (e) {
-          this.showToast('Errore di connessione');
+          this.showToast('Connection error');
         } finally {
           btn.disabled = false;
         }
@@ -534,12 +534,12 @@
             const spoolObj = updated.spool || updated;
             this.spool = { ...this.spool, ...spoolObj };
             this.renderSpool();
-            this.showToast(in_use ? `Montata in ${slotLocation}` : 'Bobina smontata e archiviata');
+            this.showToast(in_use ? `Loaded in ${slotLocation}` : 'Spool unloaded and stored');
           } else {
-            this.showToast('Errore slot');
+            this.showToast('Error updating slot');
           }
         } catch (e) {
-          this.showToast('Errore di rete');
+          this.showToast('Network error');
         }
       }
 
@@ -559,10 +559,10 @@
             const spoolObj = updated.spool || updated;
             this.spool = { ...this.spool, ...spoolObj };
             this.renderSpool();
-            this.showToast('Ciclo essiccazione registrato!');
+            this.showToast('Drying cycle recorded!');
           }
         } catch (e) {
-          this.showToast('Errore di rete');
+          this.showToast('Network error');
         }
       }
 

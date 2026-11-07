@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="it" class="dark">
+<html lang="en" class="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>FilamentHub 3D - Gestione Bobine & Calibrazioni</title>
+  <title>FilamentHub 3D - Spool Inventory & Calibration</title>
   <link rel="manifest" href="/static/manifest.json">
   <link rel="icon" type="image/svg+xml" href="/static/icon.svg">
   <meta name="theme-color" content="#0f172a">
@@ -50,7 +50,7 @@
   <script src="https://unpkg.com/lucide@latest"></script>
 
   <!-- Custom Adaptive Tech Styles -->
-  <link rel="stylesheet" href="/static/css/styles.css?v=1.9">
+  <link rel="stylesheet" href="/static/css/styles.css?v=2.0">
 </head>
 <body class="bg-slate-50 dark:bg-[#0a0f1d] text-slate-900 dark:text-slate-100 h-[100dvh] w-full overflow-hidden flex flex-col antialiased selection:bg-indigo-600 selection:text-white">
 
@@ -73,11 +73,11 @@
             <h1 class="text-base sm:text-lg font-black tracking-tight text-slate-900 dark:text-white leading-none">
               FilamentHub
             </h1>
-            <p id="topbarSubtitle" class="text-[10px] text-slate-500 dark:text-slate-400 font-mono">Spool Database • v1.9</p>
+            <p id="topbarSubtitle" class="text-[10px] text-slate-500 dark:text-slate-400 font-mono">Spool Database • v2.0</p>
           </div>
         </div>
 
-        <!-- Action Buttons when on 'spools' view (Foto AI & Nuova Bobina) -->
+        <!-- Action Buttons when on 'spools' view (AI Photo & New Spool) -->
         <div id="topbarSpoolsActions" class="flex items-center gap-1.5 sm:gap-2">
           <!-- 1-Tap Native Camera Photo AI Trigger -->
           <button
@@ -85,37 +85,37 @@
             id="topbarAiPhotoBtn"
             onclick="app.triggerCameraAiPhoto()"
             disabled
-            title="Configura prima una API Key Gemini valida nelle Impostazioni"
+            title="Configure a valid Gemini API key in Settings first"
             class="px-2.5 sm:px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 active:scale-95 border border-emerald-200 dark:border-emerald-500/50 text-emerald-700 dark:text-emerald-300 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 shrink-0 transition shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale disabled:active:scale-100"
           >
             <i data-lucide="camera" class="w-4 h-4 text-emerald-500"></i>
-            <span data-i18n="topbar.ai_photo">Foto AI</span>
+            <span>AI Photo</span>
           </button>
 
-          <!-- + Nuova Bobina Button -->
+          <!-- + New Spool Button -->
           <button
             type="button"
             id="topbarNewSpoolBtn"
             onclick="app.openSpoolModal(null)"
-            title="Aggiungi Nuova Bobina"
+            title="Add New Spool"
             class="px-3 sm:px-4 py-1.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 active:scale-95 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-indigo-600/30 flex items-center gap-1.5 transition shrink-0"
           >
             <i data-lucide="plus" class="w-4 h-4 stroke-[2.5]"></i>
-            <span data-i18n="topbar.new_spool">Nuova</span>
+            <span>New</span>
           </button>
         </div>
 
-        <!-- Action Buttons when on 'shopping' view (+ Aggiungi Filamento) -->
+        <!-- Action Buttons when on 'shopping' view (+ Add Filament) -->
         <div id="topbarShoppingActions" class="hidden flex items-center gap-1.5 sm:gap-2">
           <button
             type="button"
             id="topbarAddShoppingBtn"
             onclick="app.openShoppingItemModal()"
-            title="Aggiungi filamento alla lista acquisti"
+            title="Add filament to shopping list"
             class="px-3 sm:px-4 py-1.5 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 active:scale-95 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-amber-600/30 flex items-center gap-1.5 transition shrink-0"
           >
             <i data-lucide="plus" class="w-4 h-4 stroke-[2.5]"></i>
-            <span data-i18n="topbar.add_shopping">Aggiungi</span>
+            <span>Add</span>
           </button>
         </div>
       </div>
@@ -133,7 +133,7 @@
               type="search"
               id="searchInput"
               oninput="app.syncSearch(this.value)"
-              placeholder="Cerca marca, materiale, colore..." data-i18n-placeholder="topbar.search_placeholder"
+              placeholder="Search brand, material, color..."
               class="w-full pl-9 pr-8 py-2 bg-white dark:bg-[#0b0f19] border border-slate-300 dark:border-slate-700 rounded-xl text-base sm:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition shadow-inner"
             />
             <button id="clearSearchBtn" class="hidden absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" onclick="app.syncSearch('')">
@@ -146,11 +146,11 @@
             type="button"
             onclick="app.openFiltersSheet()"
             id="filtersSheetTriggerBtn"
-            title="Filtra per Marca, Materiale o Ordina"
+            title="Filter by Brand or Material"
             class="relative px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5 shrink-0 transition"
           >
             <i data-lucide="sliders-horizontal" class="w-4 h-4 text-indigo-500 dark:text-indigo-400"></i>
-            <span class="hidden sm:inline" data-i18n="topbar.filters">Filtri</span>
+            <span class="hidden sm:inline">Filters</span>
             <span id="activeFiltersDot" class="hidden w-2 h-2 rounded-full bg-indigo-500"></span>
           </button>
         </div>
@@ -164,7 +164,7 @@
               id="filterStatusAll"
               class="segmented-btn py-1.5 text-center font-bold active"
             >
-              <span data-i18n="topbar.tab_all">Tutte</span> (<span id="countTotal">0</span>)
+              <span>All</span> (<span id="countTotal">0</span>)
             </button>
             <button
               type="button"
@@ -172,7 +172,7 @@
               id="filterStatusOpened"
               class="segmented-btn py-1.5 text-center font-bold text-emerald-400"
             >
-              🟢 <span data-i18n="topbar.tab_opened">Aperte</span> (<span id="countOpened">0</span>)
+              🟢 <span>Opened</span> (<span id="countOpened">0</span>)
             </button>
             <button
               type="button"
@@ -180,7 +180,7 @@
               id="filterStatusNew"
               class="segmented-btn py-1.5 text-center font-bold text-blue-400"
             >
-              📦 <span data-i18n="topbar.tab_new">Nuove</span> (<span id="countNew">0</span>)
+              📦 <span>Sealed</span> (<span id="countNew">0</span>)
             </button>
           </div>
         </div>
@@ -198,12 +198,12 @@
               type="search"
               id="shoppingSearchInput"
               oninput="app.handleShoppingSearch(this.value)"
-              placeholder="Cerca per brand, materiale, colore..." data-i18n-placeholder="topbar.search_shopping_placeholder"
+              placeholder="Search brand, material, color..."
               class="w-full pl-9 pr-3 py-2 bg-white dark:bg-[#0b0f19] border border-slate-300 dark:border-slate-700 rounded-xl text-base sm:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-amber-500 transition shadow-inner"
             />
           </div>
           <div class="shrink-0 px-3 py-2 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs font-mono font-bold text-amber-600 dark:text-amber-400">
-            Tot: <span id="shoppingEstimatedTotal">€0.00</span>
+            Total: <span id="shoppingEstimatedTotal">€0.00</span>
           </div>
         </div>
 
@@ -216,7 +216,7 @@
               id="shoppingTabPending"
               class="segmented-btn py-1.5 text-center font-bold active"
             >
-              <span data-i18n="topbar.shopping_tab_pending">Da Comprare</span> (<span id="shoppingCountPending">0</span>)
+              <span>To Buy</span> (<span id="shoppingCountPending">0</span>)
             </button>
             <button
               type="button"
@@ -224,7 +224,7 @@
               id="shoppingTabBought"
               class="segmented-btn py-1.5 text-center font-bold text-emerald-400"
             >
-              <span data-i18n="topbar.shopping_tab_bought">Ordinati</span> (<span id="shoppingCountBought">0</span>)
+              <span>Ordered</span> (<span id="shoppingCountBought">0</span>)
             </button>
             <button
               type="button"
@@ -232,7 +232,7 @@
               id="shoppingTabAll"
               class="segmented-btn py-1.5 text-center font-bold"
             >
-              <span data-i18n="topbar.shopping_tab_all">Tutti</span> (<span id="shoppingCountAll">0</span>)
+              <span>All</span> (<span id="shoppingCountAll">0</span>)
             </button>
           </div>
         </div>
@@ -253,7 +253,7 @@
       <div id="spoolsViewContainer" class="space-y-3">
         <!-- Active Filter Indicators (if any brand/material filter applied) -->
         <div id="activeFilterTagsBar" class="hidden flex items-center gap-2 overflow-x-auto no-scrollbar text-xs py-1">
-          <span class="text-slate-400 text-[11px]" data-i18n="filters.active_filters">Filtri attivi:</span>
+          <span class="text-slate-400 text-[11px]">Active filters:</span>
           <span id="activeBrandTag" class="hidden px-2 py-0.5 rounded-lg bg-indigo-950 text-indigo-300 border border-indigo-800 font-mono flex items-center gap-1">
             <span id="activeBrandTagText">Brand</span>
             <button onclick="app.setBrandFilter('')" class="hover:text-white">✕</button>
@@ -262,7 +262,7 @@
             <span id="activeMaterialTagText">Material</span>
             <button onclick="app.setMaterialFilter('')" class="hover:text-white">✕</button>
           </span>
-          <button onclick="app.resetDropdownFilters()" class="text-slate-400 hover:text-white text-[11px] underline ml-auto">Reimposta</button>
+          <button onclick="app.resetDropdownFilters()" class="text-slate-400 hover:text-white text-[11px] underline ml-auto">Reset</button>
         </div>
 
         <!-- Spools Swipe List View (iOS Native Swipe-to-Action) -->
@@ -277,10 +277,10 @@
           <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-slate-900 border border-slate-800 text-slate-500 mb-3">
             <i data-lucide="package-search" class="w-7 h-7"></i>
           </div>
-          <p class="text-sm font-bold text-slate-300">Nessuna bobina trovata</p>
-          <p class="text-xs text-slate-500 mt-1">Modifica i filtri o aggiungi una nuova bobina.</p>
+          <p class="text-sm font-bold text-slate-300">No spools found</p>
+          <p class="text-xs text-slate-500 mt-1">Adjust your filters or add a new spool.</p>
           <button onclick="app.openSpoolModal(null)" class="mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow">
-            <i data-lucide="plus" class="w-4 h-4"></i> Aggiungi Bobina
+            <i data-lucide="plus" class="w-4 h-4"></i> Add Spool
           </button>
         </div>
       </div>
@@ -299,10 +299,10 @@
           <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 mb-3">
             <i data-lucide="shopping-bag" class="w-7 h-7"></i>
           </div>
-          <p class="text-sm font-bold text-white">Nessun filamento nella lista acquisti</p>
-          <p class="text-xs text-slate-400 max-w-xs mx-auto mt-1">Aggiungi i filamenti che prevedi di ordinare per monitorare colori, quantità, prezzi e link store.</p>
+          <p class="text-sm font-bold text-white">No filaments in your shopping list</p>
+          <p class="text-xs text-slate-400 max-w-xs mx-auto mt-1">Add filaments you plan to order to track colors, quantities, prices, and store links.</p>
           <button onclick="app.openShoppingItemModal()" class="mt-4 px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow-md shadow-amber-950/30">
-            <i data-lucide="plus" class="w-4 h-4"></i> Aggiungi Filamento
+            <i data-lucide="plus" class="w-4 h-4"></i> Add Filament
           </button>
         </div>
       </div>
@@ -311,70 +311,70 @@
   </main>
 
   <!-- ========================================================================= -->
-  <!-- NATIVE iOS FIXED BOTTOM BAR (4 BALANCED TABS: BOBINE, ACQUISTI, ORDINA, MENU) -->
+  <!-- NATIVE iOS FIXED BOTTOM BAR (4 BALANCED TABS: SPOOLS, SHOPPING, SORT, MENU) -->
   <!-- ========================================================================= -->
   <nav class="shrink-0 z-30 bg-white dark:bg-[#0f172a] border-t border-slate-200 dark:border-slate-800/80 px-2 py-1.5 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] flex items-center justify-around shadow-2xl w-full">
 
-    <!-- 1. Tab: Bobine (Inventario) -->
+    <!-- 1. Tab: Spools (Inventory) -->
     <button
       type="button"
       id="navTabSpools"
       onclick="app.switchActiveView('spools')"
       class="flex flex-col items-center justify-center py-1 px-2 rounded-xl text-indigo-600 dark:text-indigo-400 font-bold transition flex-1 min-w-0"
-      title="Inventario Bobine"
+      title="Spool Inventory"
     >
       <i data-lucide="layers" class="w-5 h-5 mb-0.5"></i>
-      <span class="text-[11px] truncate" data-i18n="nav.spools">Bobine</span>
+      <span class="text-[11px] truncate">Spools</span>
     </button>
 
-    <!-- 2. Tab: Acquisti (Wishlist) -->
+    <!-- 2. Tab: Shopping (Wishlist) -->
     <button
       type="button"
       id="navTabShopping"
       onclick="app.switchActiveView('shopping')"
       class="flex flex-col items-center justify-center py-1 px-2 rounded-xl text-slate-400 dark:text-slate-400 hover:text-amber-500 font-semibold transition flex-1 min-w-0 relative"
-      title="Lista Acquisti Filamenti"
+      title="Filament Shopping List"
     >
       <i data-lucide="shopping-cart" class="w-5 h-5 mb-0.5"></i>
-      <span class="text-[11px] truncate" data-i18n="nav.shopping">Acquisti</span>
+      <span class="text-[11px] truncate">Shopping</span>
       <span id="bottomNavShoppingBadge" class="hidden absolute top-0.5 right-1/4 px-1.5 py-0.2 bg-amber-500 text-slate-950 text-[10px] font-black rounded-full shadow">0</span>
     </button>
 
-    <!-- 3. Tab: Ordina / Filtri -->
+    <!-- 3. Tab: Quick Sort (Brand ↔ Material) -->
     <button
       type="button"
       id="navTabSort"
-      onclick="app.openFiltersSheet()"
+      onclick="app.cycleQuickSort()"
       class="flex flex-col items-center justify-center py-1 px-2 rounded-xl text-slate-400 dark:text-slate-400 hover:text-indigo-500 font-semibold transition flex-1 min-w-0"
-      title="Ordina e Filtra"
+      title="Toggle Sort: Brand or Material"
     >
       <i data-lucide="arrow-up-down" class="w-5 h-5 mb-0.5"></i>
-      <span class="text-[11px] truncate" data-i18n="nav.sort">Ordina</span>
+      <span id="navTabSortLabel" class="text-[11px] truncate">Sort: Brand</span>
     </button>
 
-    <!-- 4. Tab: Menu & Impostazioni -->
+    <!-- 4. Tab: Menu & Settings -->
     <button
       type="button"
       id="navTabMenu"
       onclick="app.openMobileMenuSheet(event)"
       class="flex flex-col items-center justify-center py-1 px-2 rounded-xl text-slate-400 dark:text-slate-400 hover:text-indigo-500 font-semibold transition flex-1 min-w-0 relative"
-      title="Menu e Impostazioni"
+      title="Menu & Settings"
     >
       <i data-lucide="settings" class="w-5 h-5 mb-0.5"></i>
-      <span class="text-[11px] truncate" data-i18n="nav.menu">Menu</span>
+      <span class="text-[11px] truncate">Menu</span>
       <span id="navMenuDot" class="hidden absolute top-1 right-1/4 w-2 h-2 rounded-full bg-emerald-500"></span>
     </button>
   </nav>
 
   <!-- ========================================================================= -->
-  <!-- MODAL / SHEET: FILTRI AVANZATI (MARCA, MATERIALE, ORDINAMENTO) -->
+  <!-- MODAL / SHEET: FILTER SPOOLS (MATERIAL & BRAND) -->
   <!-- ========================================================================= -->
   <div id="filtersSheet" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm hidden" onclick="if(event.target===this)app.closeFiltersSheet()">
     <div class="solid-modal w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl border-t sm:border border-slate-700 shadow-2xl p-5 space-y-4 mobile-sheet pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] text-xs" onclick="event.stopPropagation()">
       <div class="flex items-center justify-between border-b border-slate-800 pb-3">
         <h4 class="font-bold text-white text-sm flex items-center gap-2">
           <i data-lucide="sliders-horizontal" class="w-4 h-4 text-indigo-400"></i>
-          <span data-i18n="filters.title">Filtri & Ordinamento</span>
+          <span>Filter Spools</span>
         </h4>
         <button onclick="app.closeFiltersSheet()" class="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition">
           <i data-lucide="x" class="w-5 h-5"></i>
@@ -383,9 +383,9 @@
 
       <div class="space-y-3">
         <div>
-          <label class="block font-semibold text-slate-300 mb-1" data-i18n="filters.material_label">Materiale</label>
+          <label class="block font-semibold text-slate-300 mb-1">Material</label>
           <select id="materialFilter" onchange="app.setMaterialFilter(this.value)" class="w-full bg-slate-900 border border-slate-700 text-xs text-slate-100 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500">
-            <option value="" data-i18n="filters.all_materials">Tutti i Materiali</option>
+            <option value="">All Materials</option>
             <option value="PLA">PLA</option>
             <option value="PETG">PETG</option>
             <option value="ABS">ABS</option>
@@ -399,32 +399,19 @@
         </div>
 
         <div>
-          <label class="block font-semibold text-slate-300 mb-1" data-i18n="filters.brand_label">Marca / Produttore</label>
+          <label class="block font-semibold text-slate-300 mb-1">Brand / Manufacturer</label>
           <select id="brandFilter" onchange="app.setBrandFilter(this.value)" class="w-full bg-slate-900 border border-slate-700 text-xs text-slate-100 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500">
-            <option value="" data-i18n="filters.all_brands">Tutti i Brand</option>
-          </select>
-        </div>
-
-        <div>
-          <label class="block font-semibold text-slate-300 mb-1" data-i18n="filters.sort_label">Ordina Per</label>
-          <select id="sortSelector" onchange="app.setSorting(this.value)" class="w-full bg-slate-900 border border-slate-700 text-xs text-slate-100 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500">
-            <option value="in_use_desc" data-i18n="filters.sort_in_use">In Uso / Aperte prima</option>
-            <option value="status_desc" data-i18n="filters.sort_status">Stato (In Uso -> Aperte -> Nuove)</option>
-            <option value="net_desc" data-i18n="filters.sort_net_desc">Grammi Residui (Massimo)</option>
-            <option value="net_asc" data-i18n="filters.sort_net_asc">Grammi Residui (Minimo)</option>
-            <option value="brand_asc" data-i18n="filters.sort_brand_asc">Brand (A-Z)</option>
-            <option value="material_asc" data-i18n="filters.sort_material_asc">Materiale (A-Z)</option>
-            <option value="uid_asc" data-i18n="filters.sort_uid_asc">UID (Crescente)</option>
+            <option value="">All Brands</option>
           </select>
         </div>
       </div>
 
       <div class="pt-2 flex items-center justify-between gap-2 border-t border-slate-800">
         <button onclick="app.resetDropdownFilters(); app.closeFiltersSheet();" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-medium">
-          <span data-i18n="filters.reset">Reimposta</span>
+          <span>Reset</span>
         </button>
         <button onclick="app.closeFiltersSheet()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold">
-          <span data-i18n="filters.apply">Applica Filtri</span>
+          <span>Apply Filters</span>
         </button>
       </div>
     </div>
@@ -441,8 +428,8 @@
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-600 text-white flex items-center justify-center font-black text-sm uppercase shadow-md shadow-indigo-500/20" id="mobileUserAvatar">U</div>
           <div>
-            <h4 class="font-extrabold text-slate-900 dark:text-white text-base leading-tight" id="mobileUserFullName">Utente</h4>
-            <p class="text-xs text-slate-500 dark:text-slate-400 font-mono" id="mobileUserRole">Profilo Personale • Utente Standard</p>
+            <h4 class="font-extrabold text-slate-900 dark:text-white text-base leading-tight" id="mobileUserFullName">User</h4>
+            <p class="text-xs text-slate-500 dark:text-slate-400 font-mono" id="mobileUserRole">Personal Profile • Standard User</p>
           </div>
         </div>
         <button onclick="app.closeMobileMenuSheet()" class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition">
@@ -453,45 +440,15 @@
       <!-- Group 1: Core Tools (iOS Settings Card) -->
       <div class="rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 divide-y divide-slate-200 dark:divide-slate-800 overflow-hidden">
         
-        <!-- Interface Language Switcher Card -->
-        <div class="p-3.5 space-y-2.5 bg-indigo-50/40 dark:bg-indigo-950/20">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2.5">
-              <div class="w-7 h-7 rounded-lg bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
-                <i data-lucide="globe" class="w-4 h-4"></i>
-              </div>
-              <div>
-                <div class="text-sm font-bold text-slate-800 dark:text-slate-100" data-i18n="menu.language_title">Lingua Interfaccia</div>
-                <div class="text-[10px] text-slate-500 dark:text-slate-400" data-i18n="menu.language_subtitle">Seleziona la lingua preferita</div>
-              </div>
-            </div>
-            <span id="menuCurrentLangBadge" class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">EN</span>
-          </div>
-          <div class="grid grid-cols-4 gap-1.5 p-1 bg-slate-100 dark:bg-slate-950/80 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
-            <button type="button" onclick="i18n.setLanguage('en')" id="menuLangBtn_en" class="lang-pill py-2 rounded-lg font-bold flex flex-col items-center justify-center gap-0.5 transition" title="English">
-              <span class="text-base">🇬🇧</span><span class="text-[10px]">EN</span>
-            </button>
-            <button type="button" onclick="i18n.setLanguage('it')" id="menuLangBtn_it" class="lang-pill py-2 rounded-lg font-bold flex flex-col items-center justify-center gap-0.5 transition" title="Italiano">
-              <span class="text-base">🇮🇹</span><span class="text-[10px]">IT</span>
-            </button>
-            <button type="button" onclick="i18n.setLanguage('fr')" id="menuLangBtn_fr" class="lang-pill py-2 rounded-lg font-bold flex flex-col items-center justify-center gap-0.5 transition" title="Français">
-              <span class="text-base">🇫🇷</span><span class="text-[10px]">FR</span>
-            </button>
-            <button type="button" onclick="i18n.setLanguage('es')" id="menuLangBtn_es" class="lang-pill py-2 rounded-lg font-bold flex flex-col items-center justify-center gap-0.5 transition" title="Español">
-              <span class="text-base">🇪🇸</span><span class="text-[10px]">ES</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Lista Acquisti Filamenti -->
+        <!-- Filament Shopping List -->
         <button onclick="app.closeMobileMenuSheet(); app.switchActiveView('shopping');" class="w-full p-3.5 flex items-center justify-between text-left hover:bg-slate-100 dark:hover:bg-slate-800/60 transition group">
           <div class="flex items-center gap-3">
             <div class="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
               <i data-lucide="shopping-cart" class="w-4 h-4"></i>
             </div>
             <div>
-              <div class="text-sm font-bold text-slate-800 dark:text-slate-100">Lista Acquisti Filamenti</div>
-              <div class="text-[11px] text-slate-500 dark:text-slate-400">Pianifica le prossime bobine da ordinare</div>
+              <div class="text-sm font-bold text-slate-800 dark:text-slate-100">Filament Shopping List</div>
+              <div class="text-[11px] text-slate-500 dark:text-slate-400">Plan your next spools to order</div>
             </div>
           </div>
           <div class="flex items-center gap-2">
@@ -507,32 +464,15 @@
               <i data-lucide="sparkles" class="w-4 h-4"></i>
             </div>
             <div>
-              <div class="text-sm font-bold text-slate-800 dark:text-slate-100">Configura Gemini Vision AI</div>
-              <div class="text-[11px] text-slate-500 dark:text-slate-400">Chiave API personale per scansione foto</div>
+              <div class="text-sm font-bold text-slate-800 dark:text-slate-100">Configure Gemini Vision AI</div>
+              <div class="text-[11px] text-slate-500 dark:text-slate-400">Personal API key for photo scanning</div>
             </div>
           </div>
           <div class="flex items-center gap-2">
-            <span id="menuGeminiBadge" class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800">Non attiva</span>
+            <span id="menuGeminiBadge" class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800">Not configured</span>
             <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition"></i>
           </div>
         </button>
-
-        <!-- A4 Label Print Queue -->
-        <a href="/print-a4" class="w-full p-3.5 flex items-center justify-between text-left hover:bg-slate-100 dark:hover:bg-slate-800/60 transition group">
-          <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-xl bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
-              <i data-lucide="printer" class="w-4 h-4"></i>
-            </div>
-            <div>
-              <div class="text-sm font-bold text-slate-800 dark:text-slate-100">Stampa Etichette Foglio A4</div>
-              <div class="text-[11px] text-slate-500 dark:text-slate-400">Griglia 24 etichette laser / termica</div>
-            </div>
-          </div>
-          <div class="flex items-center gap-2">
-            <span id="mobileMenuA4Badge" class="bg-indigo-600 text-white font-bold text-xs px-2.5 py-0.5 rounded-full shadow-sm">0</span>
-            <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition"></i>
-          </div>
-        </a>
 
         <!-- Admin Panel -->
         <button id="mobileAdminMenuBtn" onclick="app.closeMobileMenuSheet(); app.openAdminModal();" class="w-full p-3.5 flex items-center justify-between text-left hover:bg-slate-100 dark:hover:bg-slate-800/60 transition group">
@@ -541,8 +481,8 @@
               <i data-lucide="shield" class="w-4 h-4"></i>
             </div>
             <div>
-              <div class="text-sm font-bold text-slate-800 dark:text-slate-100">Pannello Amministrazione</div>
-              <div class="text-[11px] text-slate-500 dark:text-slate-400">Gestione Utenti e Dizionario Tare</div>
+              <div class="text-sm font-bold text-slate-800 dark:text-slate-100">Admin Panel</div>
+              <div class="text-[11px] text-slate-500 dark:text-slate-400">User Management & Brand Tare Dictionary</div>
             </div>
           </div>
           <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition"></i>
@@ -558,7 +498,7 @@
             <div class="w-8 h-8 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center shrink-0">
               <i data-lucide="key" class="w-4 h-4"></i>
             </div>
-            <span class="text-sm font-bold text-slate-800 dark:text-slate-100">Cambia Password</span>
+            <span class="text-sm font-bold text-slate-800 dark:text-slate-100">Change Password</span>
           </div>
           <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition"></i>
         </button>
@@ -569,7 +509,7 @@
             <div class="w-8 h-8 rounded-xl bg-rose-500/15 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
               <i data-lucide="log-out" class="w-4 h-4"></i>
             </div>
-            <span class="text-sm font-bold text-rose-600 dark:text-rose-400">Disconnetti</span>
+            <span class="text-sm font-bold text-rose-600 dark:text-rose-400">Sign Out</span>
           </div>
           <i data-lucide="chevron-right" class="w-4 h-4 text-rose-400/50 group-hover:translate-x-0.5 transition"></i>
         </button>
@@ -577,7 +517,7 @@
 
       <!-- App Version Info -->
       <div class="text-center pt-2">
-        <p class="text-[11px] text-slate-400 dark:text-slate-500 font-mono">FilamentHub 3D v1.9</p>
+        <p class="text-[11px] text-slate-400 dark:text-slate-500 font-mono">FilamentHub 3D v2.0</p>
       </div>
     </div>
   </div>
@@ -592,37 +532,21 @@
         <h2 class="text-xl font-bold bg-gradient-to-r from-indigo-400 to-emerald-400 bg-clip-text text-transparent">
           FilamentHub 3D
         </h2>
-        <p class="text-xs text-slate-400 mt-1" data-i18n="login.subtitle">Accesso riservato</p>
-      </div>
-
-      <!-- Modern Centered Segmented Language Selector -->
-      <div class="flex items-center justify-center p-1 bg-slate-950 border border-slate-800 rounded-2xl mb-5 max-w-[270px] mx-auto shadow-inner">
-        <button type="button" onclick="i18n.setLanguage('en')" id="loginLangBtn_en" class="lang-pill flex-1 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 text-slate-400 hover:text-white" title="English">
-          <span>🇬🇧</span><span>EN</span>
-        </button>
-        <button type="button" onclick="i18n.setLanguage('it')" id="loginLangBtn_it" class="lang-pill flex-1 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 text-slate-400 hover:text-white" title="Italiano">
-          <span>🇮🇹</span><span>IT</span>
-        </button>
-        <button type="button" onclick="i18n.setLanguage('fr')" id="loginLangBtn_fr" class="lang-pill flex-1 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 text-slate-400 hover:text-white" title="Français">
-          <span>🇫🇷</span><span>FR</span>
-        </button>
-        <button type="button" onclick="i18n.setLanguage('es')" id="loginLangBtn_es" class="lang-pill flex-1 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 text-slate-400 hover:text-white" title="Español">
-          <span>🇪🇸</span><span>ES</span>
-        </button>
+        <p class="text-xs text-slate-400 mt-1">Authorized access only</p>
       </div>
 
       <div id="loginRateLimitAlert" class="hidden mb-4 p-3 rounded-xl bg-red-950/60 border border-red-800 text-xs text-red-300 flex items-start gap-2">
         <i data-lucide="shield-alert" class="w-4 h-4 shrink-0 text-red-400 mt-0.5"></i>
-        <span>Troppi tentativi falliti. Riprova tra 15 minuti.</span>
+        <span>Too many failed login attempts. Please try again in 15 minutes.</span>
       </div>
 
       <div id="loginErrorAlert" class="hidden mb-4 p-3 rounded-xl bg-red-950/60 border border-red-800 text-xs text-red-300">
-        Credenziali non valide.
+        Invalid credentials.
       </div>
 
       <form id="loginForm" onsubmit="app.handleLogin(event)" class="space-y-4">
         <div>
-          <label class="block text-xs font-medium text-slate-400 mb-1" data-i18n="login.username_label">Nome Utente</label>
+          <label class="block text-xs font-medium text-slate-400 mb-1">Username</label>
           <input
             type="text"
             id="loginUsername"
@@ -633,7 +557,7 @@
           />
         </div>
         <div>
-          <label class="block text-xs font-medium text-slate-400 mb-1" data-i18n="login.password_label">Password</label>
+          <label class="block text-xs font-medium text-slate-400 mb-1">Password</label>
           <input
             type="password"
             id="loginPassword"
@@ -648,14 +572,14 @@
           id="loginSubmitBtn"
           class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl text-sm transition shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2"
         >
-          <span data-i18n="login.submit_btn">Accedi all'inventario</span>
+          <span>Sign In to Inventory</span>
         </button>
       </form>
     </div>
   </div>
 
   <!-- ========================================================================= -->
-  <!-- MODAL 2: CREAZIONE / MODIFICA BOBINA (BOTTOM SHEET MOBILE) -->
+  <!-- MODAL 2: CREATE / EDIT SPOOL (MOBILE BOTTOM SHEET) -->
   <!-- ========================================================================= -->
   <div id="spoolModal" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md hidden overflow-hidden">
     <div class="solid-modal w-full sm:max-w-2xl rounded-t-3xl sm:rounded-2xl border-t sm:border border-slate-700 shadow-2xl overflow-hidden h-[94dvh] sm:h-auto sm:max-h-[92vh] flex flex-col mobile-sheet">
@@ -667,8 +591,8 @@
             <i data-lucide="layers" class="w-3.5 h-3.5"></i>
           </div>
           <div>
-            <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100" id="spoolModalTitle">Nuova Bobina</h3>
-            <p class="text-[10px] text-slate-500 dark:text-slate-400 font-mono" id="spoolModalSubtitle">Compila dati fisici e slicer</p>
+            <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100" id="spoolModalTitle">New Spool</h3>
+            <p class="text-[10px] text-slate-500 dark:text-slate-400 font-mono" id="spoolModalSubtitle">Fill in physical & slicer details</p>
           </div>
         </div>
         <button onclick="app.closeSpoolModal()" class="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-800 transition">
@@ -676,7 +600,7 @@
         </button>
       </div>
 
-      <!-- Quick AI Actions: SOLO 2 Grandi Pulsanti Affiancati (Fotocamera AI & Galleria AI) -->
+      <!-- Quick AI Actions: 2 Large Side-by-Side Buttons (AI Camera & AI Gallery) -->
       <div id="spoolModalAiBar" class="px-3 py-2 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shrink-0 space-y-1.5">
         <div class="grid grid-cols-2 gap-2">
           <!-- 1. AI Camera Photo -->
@@ -685,11 +609,11 @@
             id="modalAiCameraBtn"
             onclick="app.triggerCameraAiPhoto()"
             disabled
-            title="Configura prima una API Key Gemini valida nelle Impostazioni"
+            title="Configure a valid Gemini API key in Settings first"
             class="py-2.5 px-3 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 text-center transition shadow-md shadow-emerald-900/20 disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale"
           >
             <i data-lucide="camera" class="w-4 h-4"></i>
-            <span>Fotocamera AI</span>
+            <span>AI Camera</span>
           </button>
 
           <!-- 2. AI Gallery / File -->
@@ -698,28 +622,28 @@
             id="modalAiGalleryBtn"
             onclick="app.triggerGalleryAiPhoto()"
             disabled
-            title="Configura prima una API Key Gemini valida nelle Impostazioni"
+            title="Configure a valid Gemini API key in Settings first"
             class="py-2.5 px-3 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 text-center transition shadow-md shadow-indigo-900/20 disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale"
           >
             <i data-lucide="image" class="w-4 h-4"></i>
-            <span>Galleria AI</span>
+            <span>AI Gallery</span>
           </button>
         </div>
         <div id="spoolModalAiDisabledHint" class="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-amber-950/50 border border-amber-700/50 text-[11px] text-amber-300">
-          <span class="truncate">🔒 Specifica una API Key Gemini valida per attivare Foto AI</span>
-          <button type="button" onclick="app.openSettingsModal()" class="shrink-0 font-bold underline text-amber-400 hover:text-amber-200">Configura</button>
+          <span class="truncate">🔒 Configure a valid Gemini API key to enable AI Photo</span>
+          <button type="button" onclick="app.openSettingsModal()" class="shrink-0 font-bold underline text-amber-400 hover:text-amber-200">Configure</button>
         </div>
       </div>
 
-      <!-- Tab Navigation (1. Dati Principali vs 2. Parametri Slicer) -->
+      <!-- Tab Navigation (1. Main Info vs 2. Slicer Parameters) -->
       <div class="px-4 pt-1.5 border-b border-slate-200 dark:border-slate-800 flex gap-4 shrink-0 bg-slate-50 dark:bg-slate-950 text-xs">
         <button type="button" onclick="app.setSpoolModalTab(1)" id="tabBtn1" class="pb-2 border-b-2 border-indigo-500 text-indigo-400 font-bold flex items-center gap-1.5">
           <i data-lucide="box" class="w-3.5 h-3.5"></i>
-          <span>1. Dati Principali & Pesi</span>
+          <span>1. Main Info & Weights</span>
         </button>
         <button type="button" onclick="app.setSpoolModalTab(2)" id="tabBtn2" class="pb-2 border-b-2 border-transparent text-slate-400 hover:text-slate-200 font-semibold flex items-center gap-1.5">
           <i data-lucide="sliders" class="w-3.5 h-3.5"></i>
-          <span>2. Slicer & Calibrazione</span>
+          <span>2. Slicer & Calibration</span>
         </button>
       </div>
 
@@ -730,29 +654,29 @@
         <!-- Scrollable Fields Container -->
         <div class="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-3.5 text-xs w-full max-w-full box-border">
 
-        <!-- Banner Conferma Dati Estratti AI -->
+        <!-- AI Extracted Data Confirmation Banner -->
         <div id="aiExtractionBanner" class="hidden p-2.5 rounded-xl bg-emerald-950/80 border border-emerald-500/60 text-emerald-200 text-xs space-y-1">
           <div class="flex items-center justify-between font-bold text-emerald-300">
             <span class="flex items-center gap-1.5">
               <i data-lucide="sparkles" class="w-4 h-4 text-emerald-400"></i>
-              <span id="aiExtractionTitle">Dati Estratti con Successo</span>
+              <span id="aiExtractionTitle">Data Extracted Successfully</span>
             </span>
             <button type="button" onclick="document.getElementById('aiExtractionBanner').classList.add('hidden')" class="text-emerald-400 hover:text-white">✕</button>
           </div>
           <p id="aiExtractionSummary" class="text-[11px] text-emerald-100 font-mono"></p>
         </div>
 
-        <!-- Banner Wizard Campi Mancanti (Opzionale: Inserisci o Skippa) -->
+        <!-- Missing Fields Wizard Banner (Optional: Fill or Skip) -->
         <div id="aiMissingFieldsDialog" class="hidden p-3 rounded-xl bg-amber-950/70 border border-amber-500/70 text-amber-200 text-xs space-y-2.5">
           <div class="flex items-center justify-between">
             <span class="font-bold text-amber-300 flex items-center gap-1.5">
               <i data-lucide="alert-circle" class="w-4 h-4 text-amber-400"></i>
-              <span>Completa Dati Mancanti (Opzionale)</span>
+              <span>Complete Missing Info (Optional)</span>
             </span>
             <button type="button" onclick="app.skipMissingFieldsPrompt()" class="text-amber-400 hover:text-white">✕</button>
           </div>
           <p class="text-[11px] text-amber-100">
-            Alcune informazioni non erano leggibili sull'etichetta. Puoi completarle ora con 1-tap oppure ignorarle:
+            Some fields were not clearly readable on the label. You can fill them now with 1-tap or skip:
           </p>
           
           <div id="missingFieldsContainer" class="space-y-2">
@@ -761,25 +685,25 @@
 
           <div class="flex items-center justify-between gap-2 pt-1 border-t border-amber-900/50">
             <button type="button" onclick="app.skipMissingFieldsPrompt()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-[11px]">
-              ⏭️ Salta / Skippa
+              ⏭️ Skip
             </button>
             <button type="button" onclick="app.applyMissingFieldsPrompt()" class="px-3.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-[11px] shadow">
-              ✅ Applica Dati
+              ✅ Apply Info
             </button>
           </div>
         </div>
 
-        <!-- Mini-Barra Foto AI Compatta & Canvas (DENTRO L'AREA SCORREVOLE!) -->
+        <!-- Compact AI Photo Bar & Canvas (Inside Scrollable Area) -->
         <div id="aiCanvasBox" class="hidden p-2.5 bg-slate-900 border border-slate-700 rounded-xl space-y-2">
           <div class="flex items-center justify-between">
             <span class="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
               <i data-lucide="image" class="w-3.5 h-3.5 text-indigo-400"></i>
-              <span>Foto Etichetta Acquisita</span>
+              <span>Captured Label Photo</span>
             </span>
             <div class="flex items-center gap-2">
               <button type="button" onclick="app.toggleCanvasExpand()" id="canvasExpandBtn" class="text-[11px] text-indigo-400 hover:text-indigo-300 flex items-center gap-1">
                 <i data-lucide="maximize-2" class="w-3 h-3"></i>
-                <span id="canvasExpandText">Ingrandisci Colore</span>
+                <span id="canvasExpandText">Expand Color Picker</span>
               </button>
               <button type="button" onclick="app.closeAiCanvasBox()" class="text-xs text-slate-400 hover:text-white">✕</button>
             </div>
@@ -792,7 +716,7 @@
             </div>
             
             <div class="flex-1 min-w-0 space-y-1.5">
-              <div id="geminiStatusText" class="text-[11px] text-slate-300 font-mono">Pronta per analisi</div>
+              <div id="geminiStatusText" class="text-[11px] text-slate-300 font-mono">Ready for analysis</div>
               <div class="flex items-center gap-1.5">
                 <span class="w-3.5 h-3.5 rounded-full inline-block color-swatch-ring" id="eyedropperMiniSwatch" style="background: #10b981;"></span>
                 <span class="font-mono text-[10px] text-slate-400" id="eyedropperHex">#10B981</span>
@@ -800,10 +724,10 @@
               <div class="flex items-center gap-1.5 pt-0.5">
                 <button id="geminiAnalyzeBtn" type="button" onclick="app.analyzeImageWithGemini()" disabled class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-bold flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale">
                   <i data-lucide="cpu" class="w-3 h-3"></i>
-                  <span>Rianalizza AI</span>
+                  <span>Re-analyze AI</span>
                 </button>
                 <button type="button" onclick="app.applyEyedropperColor()" class="px-2 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[10px] font-semibold">
-                  Usa Colore
+                  Use Color
                 </button>
               </div>
             </div>
@@ -811,14 +735,14 @@
         </div>
 
         <!-- ============================== -->
-        <!-- TAB 1: DATI PRINCIPALI & PESI  -->
+        <!-- TAB 1: MAIN INFO & WEIGHTS     -->
         <!-- ============================== -->
         <div id="spoolTab1Content" class="space-y-3.5">
 
-          <!-- Brand Pills & Presets (DENTRO L'AREA SCORREVOLE!) -->
+          <!-- Brand Pills & Presets -->
           <div id="spoolModalCatalogBox" class="p-2.5 bg-slate-900 border border-slate-800 rounded-xl space-y-2">
             <div class="flex items-center gap-1 overflow-x-auto no-scrollbar flex-nowrap">
-              <span class="text-[10px] text-slate-400 mr-1 font-semibold shrink-0">Scelta Rapida:</span>
+              <span class="text-[10px] text-slate-400 mr-1 font-semibold shrink-0">Quick Pick:</span>
               <button type="button" onclick="app.quickSelectBrand('Bambu Lab', 250)" class="brand-pill-btn px-2.5 py-1 rounded-lg text-xs font-bold text-emerald-300 shrink-0">
                 🌿 Bambu Lab (250g)
               </button>
@@ -839,7 +763,7 @@
               </button>
             </div>
 
-            <!-- Ricerca Dinamica Catalogo Produttori -->
+            <!-- Dynamic Manufacturer Catalog Search -->
             <div class="relative w-full min-w-0" id="catalogSearchWrapper">
               <div class="relative flex items-center w-full">
                 <i data-lucide="search" class="w-4 h-4 text-indigo-400 absolute left-3 pointer-events-none"></i>
@@ -847,7 +771,7 @@
                   type="text"
                   id="catalogSearchInput"
                   autocomplete="off"
-                  placeholder="Cerca nel catalogo (es. Bambu PLA Matte, Sunlu...)"
+                  placeholder="Search catalog (e.g. Bambu PLA Matte, Sunlu...)"
                   onfocus="app.openCatalogDropdown()"
                   oninput="app.filterCatalogDropdown(this.value)"
                   class="w-full min-w-0 pl-9 pr-8 py-2 bg-white dark:bg-[#0b0f19] border border-indigo-500/40 focus:border-indigo-500 rounded-xl text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none transition"
@@ -862,19 +786,19 @@
                 </button>
               </div>
 
-              <!-- Dropdown Lista Filamenti (Larga ESATTAMENTE quanto il campo di ricerca: left-0 right-0 w-full) -->
+              <!-- Filament Catalog Dropdown List -->
               <div
                 id="catalogDropdownList"
                 class="hidden absolute left-0 right-0 top-full mt-1 w-full max-h-56 overflow-y-auto rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 shadow-2xl z-30 divide-y divide-slate-100 dark:divide-slate-800/80"
               >
-                <!-- Popolato dinamicamente da filterCatalogDropdown() -->
+                <!-- Dynamically populated by filterCatalogDropdown() -->
               </div>
             </div>
           </div>
 
-          <!-- Stato Bobina: 2 Pulsanti Toggle (Nuova vs Aperta) -->
+          <!-- Spool Condition: 2 Toggle Buttons (Sealed vs Opened) -->
           <div class="p-3 bg-slate-900 border border-slate-800 rounded-xl space-y-2">
-            <label class="block font-bold text-slate-200 text-xs">Stato Bobina</label>
+            <label class="block font-bold text-slate-200 text-xs">Spool Status</label>
             <div class="grid grid-cols-2 gap-2">
               <button
                 type="button"
@@ -882,7 +806,7 @@
                 onclick="app.setModalStatusChoice('new')"
                 class="py-2.5 px-3 rounded-xl border font-bold text-xs flex items-center justify-center gap-1.5 transition bg-blue-950/80 border-blue-500 text-blue-300"
               >
-                <span>📦 Nuova</span>
+                <span>📦 Sealed</span>
               </button>
               <button
                 type="button"
@@ -890,62 +814,62 @@
                 onclick="app.setModalStatusChoice('opened')"
                 class="py-2.5 px-3 rounded-xl border font-bold text-xs flex items-center justify-center gap-1.5 transition bg-slate-900 border-slate-700 text-slate-400"
               >
-                <span>🔓 Aperta</span>
+                <span>🔓 Opened</span>
               </button>
             </div>
             <input type="hidden" id="spoolInitialStatus" value="new">
           </div>
 
-          <!-- Marca -->
+          <!-- Brand -->
           <div>
-            <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Marca *</label>
+            <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Brand *</label>
             <input
               type="text"
               id="spoolBrand"
               required
               onchange="app.handleBrandSelect(this.value)"
-              placeholder="es. Bambu Lab, Sunlu..."
+              placeholder="e.g. Bambu Lab, Sunlu..."
               class="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
             />
           </div>
 
-          <!-- Materiale * e Finitura / Subtype (Affiancati sulla stessa riga) -->
+          <!-- Material * & Finish / Subtype (Side-by-Side) -->
           <div class="grid grid-cols-2 gap-2.5 w-full">
             <div class="min-w-0">
-              <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1 text-xs">Materiale *</label>
+              <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1 text-xs">Material *</label>
               <input
                 type="text"
                 id="spoolMaterial"
                 required
-                placeholder="es. PLA, PETG, ABS, TPU..."
+                placeholder="e.g. PLA, PETG, ABS, TPU..."
                 class="w-full min-w-0 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
               />
             </div>
             <div class="min-w-0">
-              <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1 text-xs">Finitura / Subtype</label>
+              <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1 text-xs">Finish / Subtype</label>
               <input
                 type="text"
                 id="spoolSubtype"
-                placeholder="es. Basic, Matte, Silk..."
+                placeholder="e.g. Basic, Matte, Silk..."
                 class="w-full min-w-0 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
               />
             </div>
           </div>
 
-          <!-- Nome Colore * e Colore Primario Hex (Affiancati sulla stessa riga) -->
+          <!-- Color Name * & Primary Color Hex (Side-by-Side) -->
           <div class="grid grid-cols-2 gap-2.5 w-full">
             <div class="min-w-0">
-              <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1 text-xs">Nome Colore *</label>
+              <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1 text-xs">Color Name *</label>
               <input
                 type="text"
                 id="spoolColorName"
                 required
-                placeholder="es. Charcoal Black, White..."
+                placeholder="e.g. Charcoal Black, White..."
                 class="w-full min-w-0 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
               />
             </div>
             <div class="min-w-0">
-              <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1 text-xs">Colore Hex</label>
+              <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1 text-xs">Color Hex</label>
               <div class="flex items-center gap-1.5 w-full min-w-0">
                 <input
                   type="color"
@@ -967,16 +891,16 @@
             </div>
           </div>
 
-          <!-- Pesi: Calcolo Automatico Netto Residuo -->
+          <!-- Weights: Automatic Net Remaining Calculation -->
           <div class="p-3 bg-slate-900 border border-slate-800 rounded-xl space-y-2.5">
             <div class="flex items-center justify-between">
-              <span class="font-bold text-slate-200 text-xs">Pesi & Calcolo Netto Residuo</span>
-              <span class="text-[10px] text-slate-400">Netto = Lordo - Tara</span>
+              <span class="font-bold text-slate-200 text-xs">Weights & Net Remaining Calculation</span>
+              <span class="text-[10px] text-slate-400">Net = Gross - Tare</span>
             </div>
             
             <div class="grid grid-cols-3 gap-2">
               <div>
-                <label class="block text-[11px] text-slate-400 mb-0.5">Netto Iniziale (g)</label>
+                <label class="block text-[11px] text-slate-400 mb-0.5">Initial Net (g)</label>
                 <input
                   type="number"
                   id="spoolNetInitial"
@@ -986,7 +910,7 @@
                 />
               </div>
               <div>
-                <label class="block text-[11px] text-slate-400 mb-0.5">Tara Spool (g)</label>
+                <label class="block text-[11px] text-slate-400 mb-0.5">Spool Tare (g)</label>
                 <input
                   type="number"
                   id="spoolTare"
@@ -996,7 +920,7 @@
                 />
               </div>
               <div>
-                <label class="block text-[11px] text-slate-400 mb-0.5">Peso Lordo (g)</label>
+                <label class="block text-[11px] text-slate-400 mb-0.5">Gross Weight (g)</label>
                 <input
                   type="number"
                   id="spoolGross"
@@ -1010,11 +934,11 @@
             <!-- Calculated Net Residue Banner -->
             <div id="spoolNetCalculatedBadge" class="p-2.5 bg-emerald-950/60 border border-emerald-800 rounded-xl font-mono flex items-center justify-between">
               <span class="text-sm font-bold text-emerald-300">1000 g</span>
-              <span class="text-xs text-emerald-400">100% residuo</span>
+              <span class="text-xs text-emerald-400">100% remaining</span>
             </div>
           </div>
 
-          <!-- Temperature Essenziali -->
+          <!-- Essential Temperatures -->
           <div class="grid grid-cols-3 gap-2">
             <div>
               <label class="block text-[11px] text-slate-400 mb-0.5">Nozzle Min (°C)</label>
@@ -1030,19 +954,19 @@
             </div>
           </div>
 
-          <!-- Barcode SKU (Gestito via Vision AI) -->
+          <!-- Barcode SKU (Managed via Vision AI) -->
           <input type="hidden" id="spoolBarcode" value="">
 
         </div>
 
         <!-- ============================== -->
-        <!-- TAB 2: SLICER & CALIBRAZIONE   -->
+        <!-- TAB 2: SLICER & CALIBRATION    -->
         <!-- ============================== -->
         <div id="spoolTab2Content" class="hidden space-y-3.5">
           <!-- Slicer Dynamics -->
           <div class="p-3 bg-slate-900 border border-slate-800 rounded-xl space-y-2.5">
             <h4 class="font-bold text-slate-200 text-xs flex items-center gap-1.5">
-              <i data-lucide="zap" class="w-3.5 h-3.5 text-indigo-400"></i> Parametri Slicer
+              <i data-lucide="zap" class="w-3.5 h-3.5 text-indigo-400"></i> Slicer Parameters
             </h4>
             <div class="grid grid-cols-3 gap-2">
               <div>
@@ -1060,26 +984,26 @@
             </div>
           </div>
 
-          <!-- Posizione, Prezzo & Soglia Scorta -->
+          <!-- Shelf Location, Price & Low Stock Threshold -->
           <div class="grid grid-cols-3 gap-2">
             <div>
-              <label class="block text-[11px] text-slate-400 mb-0.5">Posizione</label>
-              <input type="text" id="spoolLocationShelf" placeholder="Scaffale A-1" class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs">
+              <label class="block text-[11px] text-slate-400 mb-0.5">Shelf Location</label>
+              <input type="text" id="spoolLocationShelf" placeholder="Shelf A-1" class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs">
             </div>
             <div>
-              <label class="block text-[11px] text-slate-400 mb-0.5">Prezzo (€)</label>
+              <label class="block text-[11px] text-slate-400 mb-0.5">Price (€)</label>
               <input type="number" step="0.01" id="spoolPrice" placeholder="19.99" class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs font-mono">
             </div>
             <div>
-              <label class="block text-[11px] text-slate-400 mb-0.5">Soglia Scorta (g)</label>
+              <label class="block text-[11px] text-slate-400 mb-0.5">Low Stock Alert (g)</label>
               <input type="number" id="spoolLowStockThreshold" value="150" class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs font-mono">
             </div>
           </div>
 
-          <!-- Note -->
+          <!-- Notes -->
           <div>
-            <label class="block font-medium text-slate-300 mb-1">Note Libere</label>
-            <textarea id="spoolNotes" rows="2" placeholder="Note su calibrazione o test di stampa..." class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white"></textarea>
+            <label class="block font-medium text-slate-300 mb-1">Notes</label>
+            <textarea id="spoolNotes" rows="2" placeholder="Calibration notes or print test results..." class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white"></textarea>
           </div>
         </div>
 
@@ -1094,14 +1018,14 @@
             class="hidden px-3.5 py-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800/80 font-bold text-sm flex items-center justify-center gap-1.5 shrink-0 transition"
           >
             <i data-lucide="trash-2" class="w-4 h-4"></i>
-            <span>Elimina</span>
+            <span>Delete</span>
           </button>
           <button
             type="button"
             onclick="app.closeSpoolModal()"
             class="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-sm shrink-0 transition"
           >
-            Annulla
+            Cancel
           </button>
           <button
             type="submit"
@@ -1109,7 +1033,7 @@
             class="flex-1 py-2.5 px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-sm shadow-md shadow-indigo-600/25 flex items-center justify-center gap-1.5 transition"
           >
             <i data-lucide="check" class="w-4 h-4"></i>
-            <span>Salva</span>
+            <span>Save</span>
           </button>
         </div>
 
@@ -1119,7 +1043,7 @@
   </div>
 
   <!-- ========================================================================= -->
-  <!-- MODAL: READ-ONLY TECH SHEET (SCHEDA DETTAGLIO BOBINA)                    -->
+  <!-- MODAL: READ-ONLY TECH SHEET (SPOOL DETAIL MODAL)                          -->
   <!-- ========================================================================= -->
   <div id="spoolDetailModal" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md hidden" onclick="if(event.target===this)app.closeSpoolDetailModal()">
     <div class="solid-modal w-full sm:max-w-md max-h-[90vh] rounded-t-3xl sm:rounded-2xl border-t sm:border border-slate-700 shadow-2xl flex flex-col mobile-sheet overflow-hidden" onclick="event.stopPropagation()">
@@ -1129,7 +1053,7 @@
           <div id="detailSpoolSwatch" class="w-8 h-8 rounded-xl border border-slate-600 shadow-sm shrink-0 flex items-center justify-center text-xs"></div>
           <div>
             <div class="flex items-center gap-2">
-              <h3 id="detailSpoolTitle" class="text-sm sm:text-base font-bold text-white leading-tight">Filamento</h3>
+              <h3 id="detailSpoolTitle" class="text-sm sm:text-base font-bold text-white leading-tight">Filament</h3>
               <span id="detailSpoolStatusBadge" class="text-[10px] px-2 py-0.5 rounded-full font-bold"></span>
             </div>
             <p id="detailSpoolSubtitle" class="text-xs text-slate-400 font-mono mt-0.5">Brand &bull; SP-0000</p>
@@ -1145,7 +1069,7 @@
         <!-- Weight & Capacity Card -->
         <div class="p-3.5 bg-slate-900/80 rounded-2xl border border-slate-800 space-y-2.5">
           <div class="flex justify-between items-baseline">
-            <span class="text-slate-400 font-semibold uppercase tracking-wider text-[10px]">Stato Peso Residuo</span>
+            <span class="text-slate-400 font-semibold uppercase tracking-wider text-[10px]">Remaining Weight Status</span>
             <span id="detailSpoolPercent" class="font-bold text-emerald-400 text-sm">--%</span>
           </div>
           <div class="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden">
@@ -1153,15 +1077,15 @@
           </div>
           <div class="grid grid-cols-3 gap-2 pt-1 text-center">
             <div class="p-2 bg-slate-950/50 rounded-xl border border-slate-800/80">
-              <span class="block text-[10px] text-slate-400">Residuo Netto</span>
+              <span class="block text-[10px] text-slate-400">Net Remaining</span>
               <span id="detailSpoolNetG" class="font-black text-slate-100 text-xs sm:text-sm">--g</span>
             </div>
             <div class="p-2 bg-slate-950/50 rounded-xl border border-slate-800/80">
-              <span class="block text-[10px] text-slate-400">Peso Lordo</span>
+              <span class="block text-[10px] text-slate-400">Gross Weight</span>
               <span id="detailSpoolGrossG" class="font-bold text-slate-300 text-xs sm:text-sm">--g</span>
             </div>
             <div class="p-2 bg-slate-950/50 rounded-xl border border-slate-800/80">
-              <span class="block text-[10px] text-slate-400">Tara Spool</span>
+              <span class="block text-[10px] text-slate-400">Spool Tare</span>
               <span id="detailSpoolTareG" class="font-bold text-slate-400 text-xs sm:text-sm">--g</span>
             </div>
           </div>
@@ -1169,19 +1093,19 @@
 
         <!-- Temperature & Printer Settings -->
         <div class="p-3.5 bg-slate-900/80 rounded-2xl border border-slate-800 space-y-2">
-          <span class="text-slate-400 font-semibold uppercase tracking-wider text-[10px]">Temperature Consigliate</span>
+          <span class="text-slate-400 font-semibold uppercase tracking-wider text-[10px]">Recommended Temperatures</span>
           <div class="grid grid-cols-2 gap-2 text-center">
             <div class="p-2 bg-slate-950/50 rounded-xl border border-slate-800/80 flex items-center justify-around">
               <div class="flex items-center gap-1.5 text-amber-400 font-bold">
                 <i data-lucide="flame" class="w-4 h-4"></i>
-                <span class="text-[11px]">Ugello</span>
+                <span class="text-[11px]">Nozzle</span>
               </div>
               <span id="detailSpoolNozzleTemp" class="font-bold text-slate-200">--</span>
             </div>
             <div class="p-2 bg-slate-950/50 rounded-xl border border-slate-800/80 flex items-center justify-around">
               <div class="flex items-center gap-1.5 text-rose-400 font-bold">
                 <i data-lucide="thermometer" class="w-4 h-4"></i>
-                <span class="text-[11px]">Piatto</span>
+                <span class="text-[11px]">Bed</span>
               </div>
               <span id="detailSpoolBedTemp" class="font-bold text-slate-200">--</span>
             </div>
@@ -1190,7 +1114,7 @@
 
         <!-- Slicer Calibration Parameters -->
         <div class="p-3.5 bg-slate-900/80 rounded-2xl border border-slate-800 space-y-2">
-          <span class="text-slate-400 font-semibold uppercase tracking-wider text-[10px]">Parametri di Calibrazione Slicer</span>
+          <span class="text-slate-400 font-semibold uppercase tracking-wider text-[10px]">Slicer Calibration Parameters</span>
           <div class="grid grid-cols-3 gap-2 text-center">
             <div class="p-2 bg-slate-950/50 rounded-xl border border-slate-800/80">
               <span class="block text-[10px] text-slate-400">K-Factor / PA</span>
@@ -1209,14 +1133,14 @@
 
         <!-- Logistics, Storage & Barcode -->
         <div class="p-3.5 bg-slate-900/80 rounded-2xl border border-slate-800 space-y-2">
-          <span class="text-slate-400 font-semibold uppercase tracking-wider text-[10px]">Posizione & Magazzino</span>
+          <span class="text-slate-400 font-semibold uppercase tracking-wider text-[10px]">Location & Storage</span>
           <div class="grid grid-cols-2 gap-2">
             <div class="p-2 bg-slate-950/50 rounded-xl border border-slate-800/80">
-              <span class="text-[10px] text-slate-400 block">Posizione / Slot</span>
+              <span class="text-[10px] text-slate-400 block">Location / Slot</span>
               <span id="detailSpoolLocation" class="font-medium text-slate-200">--</span>
             </div>
             <div class="p-2 bg-slate-950/50 rounded-xl border border-slate-800/80">
-              <span class="text-[10px] text-slate-400 block">Prezzo Acquisto</span>
+              <span class="text-[10px] text-slate-400 block">Purchase Price</span>
               <span id="detailSpoolPrice" class="font-medium text-slate-200">--</span>
             </div>
           </div>
@@ -1225,13 +1149,13 @@
             <span id="detailSpoolBarcode" class="font-mono font-bold text-slate-300">--</span>
           </div>
           <div id="detailSpoolNotesBox" class="p-2.5 bg-slate-950/50 rounded-xl border border-slate-800/80 space-y-1">
-            <span class="text-[10px] text-slate-400 font-semibold block">Note</span>
+            <span class="text-[10px] text-slate-400 font-semibold block">Notes</span>
             <p id="detailSpoolNotes" class="text-slate-300 text-[11px] leading-relaxed whitespace-pre-wrap"></p>
           </div>
         </div>
       </div>
 
-      <!-- Action Footer (Pesa, Etichetta, Modifica) -->
+      <!-- Action Footer (Weigh & Edit) -->
       <div class="p-3 border-t border-slate-800 bg-slate-900/60 shrink-0 flex items-center gap-2 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
         <button
           type="button"
@@ -1239,15 +1163,7 @@
           class="flex-1 py-2.5 px-3 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition shadow"
         >
           <i data-lucide="scale" class="w-4 h-4"></i>
-          <span>Pesa</span>
-        </button>
-        <button
-          type="button"
-          id="detailBtnLabel"
-          class="flex-1 py-2.5 px-3 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 border border-slate-700 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition shadow"
-        >
-          <i data-lucide="printer" class="w-4 h-4 text-cyan-400"></i>
-          <span>Etichetta</span>
+          <span>Weigh</span>
         </button>
         <button
           type="button"
@@ -1255,14 +1171,14 @@
           class="flex-1 py-2.5 px-3 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition shadow shadow-indigo-600/30"
         >
           <i data-lucide="edit" class="w-4 h-4"></i>
-          <span>Modifica</span>
+          <span>Edit</span>
         </button>
       </div>
     </div>
   </div>
 
   <!-- ========================================================================= -->
-  <!-- MODAL 3: QUICK WEIGH (PESA ORA) -->
+  <!-- MODAL 3: QUICK WEIGH (WEIGH NOW) -->
   <!-- ========================================================================= -->
   <div id="quickWeighModal" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md hidden" onclick="if(event.target===this)app.closeQuickWeighModal()">
     <div class="solid-modal w-full sm:max-w-sm rounded-t-3xl sm:rounded-2xl p-5 border-t sm:border border-slate-700 shadow-2xl space-y-4 mobile-sheet pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]" onclick="event.stopPropagation()">
@@ -1272,7 +1188,7 @@
             <i data-lucide="scale" class="w-4 h-4"></i>
           </div>
           <div>
-            <h3 class="text-sm font-bold text-white" id="quickWeighTitle">Pesa Bobina</h3>
+            <h3 class="text-sm font-bold text-white" id="quickWeighTitle">Weigh Spool</h3>
             <p class="text-xs text-slate-400 font-mono" id="quickWeighUid">SP-0001</p>
           </div>
         </div>
@@ -1282,7 +1198,7 @@
       </div>
 
       <div>
-        <label class="block text-xs font-semibold text-slate-300 mb-1">Peso Lordo Bilancia (g)</label>
+        <label class="block text-xs font-semibold text-slate-300 mb-1">Scale Gross Weight (g)</label>
         <div class="relative">
           <input
             type="number"
@@ -1291,7 +1207,7 @@
             oninput="app.updateQuickWeighDelta()"
             class="w-full px-4 py-3 bg-[#0b0f19] border border-slate-700 rounded-xl font-mono text-2xl font-bold text-white focus:outline-none focus:border-emerald-500"
           />
-          <span class="absolute right-4 top-4 text-slate-500 font-mono text-sm">grammi</span>
+          <span class="absolute right-4 top-4 text-slate-500 font-mono text-sm">grams</span>
         </div>
       </div>
 
@@ -1306,96 +1222,31 @@
       <!-- Live Delta & Net Display -->
       <div class="p-3 bg-[#0b0f19] rounded-xl border border-slate-800 text-xs space-y-1.5 font-mono">
         <div class="flex justify-between text-slate-400">
-          <span>Tara Spool:</span>
+          <span>Spool Tare:</span>
           <span id="quickWeighTare">250 g</span>
         </div>
         <div class="flex justify-between text-slate-400">
-          <span>Nuovo Peso Netto:</span>
+          <span>New Net Weight:</span>
           <span id="quickWeighNewNet" class="font-bold text-white">1000 g</span>
         </div>
         <div class="flex justify-between text-xs pt-1 border-t border-slate-800 font-semibold" id="quickWeighDeltaRow">
-          <span>Delta Consumo:</span>
+          <span>Usage Delta:</span>
           <span id="quickWeighDelta" class="text-emerald-400">0 g</span>
         </div>
       </div>
 
       <div class="flex items-center gap-2 pt-1">
-        <button type="button" onclick="app.closeQuickWeighModal()" class="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium">Annulla</button>
+        <button type="button" onclick="app.closeQuickWeighModal()" class="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium">Cancel</button>
         <button type="button" onclick="app.saveQuickWeigh()" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-1.5">
           <i data-lucide="check" class="w-4 h-4"></i>
-          <span>Salva Pesata</span>
+          <span>Save Weight</span>
         </button>
       </div>
     </div>
   </div>
 
   <!-- ========================================================================= -->
-  <!-- MODAL 4: LABEL PRINTING PREVIEW (BROTHER & A4) -->
-  <!-- ========================================================================= -->
-  <div id="labelModal" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md hidden" onclick="if(event.target===this)app.closeLabelModal()">
-    <div class="solid-modal w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl p-5 border-t sm:border border-slate-700 shadow-2xl space-y-4 mobile-sheet pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]" onclick="event.stopPropagation()">
-      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-        <div class="flex items-center gap-2">
-          <div class="w-8 h-8 rounded-lg bg-indigo-600/20 text-indigo-400 flex items-center justify-center">
-            <i data-lucide="printer" class="w-4 h-4"></i>
-          </div>
-          <div>
-            <h3 class="text-sm font-bold text-white">Stampa Etichetta Spool</h3>
-            <p class="text-xs text-slate-400 font-mono" id="labelSpoolUid">SP-0001</p>
-          </div>
-        </div>
-        <button onclick="app.closeLabelModal()" class="text-slate-400 hover:text-white">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
-      </div>
-
-      <!-- Controls: Tape Width & Code Type -->
-      <div class="grid grid-cols-2 gap-2 text-xs">
-        <div>
-          <label class="block text-slate-400 mb-1">Nastro Brother</label>
-          <div class="flex bg-slate-900 p-1 rounded-xl border border-slate-800">
-            <button onclick="app.setLabelTape(12)" id="tape12Btn" class="flex-1 py-1 rounded-lg text-center font-mono">12mm</button>
-            <button onclick="app.setLabelTape(18)" id="tape18Btn" class="flex-1 py-1 rounded-lg text-center font-mono">18mm</button>
-            <button onclick="app.setLabelTape(24)" id="tape24Btn" class="flex-1 py-1 rounded-lg text-center font-mono bg-indigo-600 text-white font-bold">24mm</button>
-          </div>
-        </div>
-        <div>
-          <label class="block text-slate-400 mb-1">Tipo Codice</label>
-          <div class="flex bg-slate-900 p-1 rounded-xl border border-slate-800">
-            <button onclick="app.setLabelCodeType('barcode')" id="codeBarcodeBtn" class="flex-1 py-1 rounded-lg text-center bg-indigo-600 text-white font-bold">Barcode</button>
-            <button onclick="app.setLabelCodeType('qr')" id="codeQrBtn" class="flex-1 py-1 rounded-lg text-center text-slate-400">QR Code</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Label Preview -->
-      <div class="p-3 bg-white rounded-xl shadow-inner flex items-center justify-center min-h-[90px] overflow-hidden">
-        <img id="labelPreviewImg" src="" alt="Anteprima Etichetta" class="max-h-24 object-contain shadow-sm border border-gray-300">
-      </div>
-
-      <!-- Action Buttons -->
-      <div class="space-y-2 pt-1 text-xs">
-        <button onclick="app.shareOrDownloadBrotherLabel()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30 transition">
-          <i data-lucide="share-2" class="w-4 h-4"></i>
-          <span>Invia a Brother Bluetooth / Scarica PNG</span>
-        </button>
-
-        <div class="grid grid-cols-2 gap-2">
-          <button onclick="app.addCurrentSpoolToA4Queue()" class="py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 rounded-xl font-semibold flex items-center justify-center gap-1.5 transition">
-            <i data-lucide="plus-circle" class="w-4 h-4 text-emerald-400"></i>
-            <span>Aggiungi a Coda A4</span>
-          </button>
-          <a id="labelNfcLink" href="#" target="_blank" class="py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 rounded-xl font-semibold flex items-center justify-center gap-1.5 transition">
-            <i data-lucide="external-link" class="w-4 h-4 text-cyan-400"></i>
-            <span>Scheda NFC (/s/...)</span>
-          </a>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ========================================================================= -->
-  <!-- MODAL 5: PANNELLO ADMIN (UTENTI, TARE BRAND, SECURITY LOGS) -->
+  <!-- MODAL 5: ADMIN PANEL (USERS, BRAND TARES, SECURITY LOGS) -->
   <!-- ========================================================================= -->
   <div id="adminModal" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md hidden overflow-y-auto" onclick="if(event.target===this)app.closeAdminModal()">
     <div class="solid-modal w-full sm:max-w-3xl rounded-t-3xl sm:rounded-2xl border-t sm:border border-slate-700 shadow-2xl overflow-hidden h-[90dvh] sm:h-auto sm:max-h-[92vh] flex flex-col mobile-sheet" onclick="event.stopPropagation()">
@@ -1405,8 +1256,8 @@
             <i data-lucide="shield" class="w-4 h-4"></i>
           </div>
           <div>
-            <h3 class="text-base font-bold text-white">Pannello Amministrazione</h3>
-            <p class="text-xs text-slate-400 font-mono">Gestione Utenti, Tare Brand e Security Logs</p>
+            <h3 class="text-base font-bold text-white">Admin Panel</h3>
+            <p class="text-xs text-slate-400 font-mono">Manage Users, Brand Tares & Security Logs</p>
           </div>
         </div>
         <button onclick="app.closeAdminModal()" class="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition">
@@ -1415,36 +1266,36 @@
       </div>
 
       <div class="px-4 pt-2 border-b border-slate-800 flex gap-4 shrink-0 bg-slate-950 text-xs">
-        <button onclick="app.setAdminTab('users')" id="adminTabUsersBtn" class="pb-2 border-b-2 border-indigo-500 text-indigo-400 font-bold">Utenti</button>
-        <button onclick="app.setAdminTab('tares')" id="adminTabTaresBtn" class="pb-2 border-b-2 border-transparent text-slate-400 font-semibold">Tare Brand</button>
+        <button onclick="app.setAdminTab('users')" id="adminTabUsersBtn" class="pb-2 border-b-2 border-indigo-500 text-indigo-400 font-bold">Users</button>
+        <button onclick="app.setAdminTab('tares')" id="adminTabTaresBtn" class="pb-2 border-b-2 border-transparent text-slate-400 font-semibold">Brand Tares</button>
         <button onclick="app.setAdminTab('logs')" id="adminTabLogsBtn" class="pb-2 border-b-2 border-transparent text-slate-400 font-semibold">Security Logs</button>
       </div>
 
       <div class="p-4 overflow-y-auto flex-1 text-xs space-y-4">
-        <!-- Tab 1: Utenti -->
+        <!-- Tab 1: Users -->
         <div id="adminTabUsersContent" class="space-y-4">
           <form onsubmit="app.handleCreateUser(event)" class="p-3.5 bg-slate-900 border border-slate-800 rounded-xl space-y-2.5">
             <div class="flex items-center justify-between">
-              <h4 class="font-bold text-slate-200">Crea Nuovo Utente</h4>
-              <span class="text-[10px] text-slate-400 font-mono">Ogni utente ha il proprio archivio bobine personale</span>
+              <h4 class="font-bold text-slate-200">Create New User</h4>
+              <span class="text-[10px] text-slate-400 font-mono">Each user has their own personal spool inventory</span>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-4 gap-2">
               <input type="text" id="newUsername" required placeholder="Username" class="px-3 py-2 bg-[#0b0f19] border border-slate-700 rounded-xl text-white">
-              <input type="password" id="newUserPassword" required minlength="8" placeholder="Password (min 8 car.)" class="px-3 py-2 bg-[#0b0f19] border border-slate-700 rounded-xl text-white">
+              <input type="password" id="newUserPassword" required minlength="8" placeholder="Password (min 8 chars)" class="px-3 py-2 bg-[#0b0f19] border border-slate-700 rounded-xl text-white">
               <select id="newUserRole" class="px-3 py-2 bg-[#0b0f19] border border-slate-700 rounded-xl text-white">
-                <option value="editor" selected>Utente Standard (Archivio Personale)</option>
-                <option value="admin">Amministratore (Gestione Sistema)</option>
+                <option value="editor" selected>Standard User (Personal Inventory)</option>
+                <option value="admin">Administrator (System Management)</option>
               </select>
-              <button type="submit" class="py-2 px-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold shadow">Crea Utente</button>
+              <button type="submit" class="py-2 px-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold shadow">Create User</button>
             </div>
           </form>
 
-          <!-- Box / Dialog Imposta Nuova Password per Utente Esistente -->
+          <!-- Set New Password Dialog for Existing User -->
           <div id="adminResetPasswordBox" class="hidden p-3.5 bg-amber-950/50 border border-amber-600/60 rounded-xl space-y-2.5">
             <div class="flex items-center justify-between">
               <span class="font-bold text-amber-300 flex items-center gap-1.5">
                 <i data-lucide="key-round" class="w-4 h-4 text-amber-400"></i>
-                <span>Imposta Nuova Password per <strong id="adminResetPassUsername" class="text-white font-mono">utente</strong></span>
+                <span>Set New Password for <strong id="adminResetPassUsername" class="text-white font-mono">user</strong></span>
               </span>
               <button type="button" onclick="app.closeAdminResetPasswordModal()" class="text-amber-400 hover:text-white">✕</button>
             </div>
@@ -1455,12 +1306,12 @@
                 id="adminResetPassInput"
                 required
                 minlength="8"
-                placeholder="Nuova password (minimo 8 caratteri)..."
+                placeholder="New password (minimum 8 characters)..."
                 class="flex-1 px-3 py-2 bg-[#0b0f19] border border-amber-700 rounded-xl text-white font-mono text-xs focus:outline-none focus:border-amber-400"
               />
               <div class="flex items-center gap-2 shrink-0">
-                <button type="button" onclick="app.closeAdminResetPasswordModal()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-semibold">Annulla</button>
-                <button type="submit" id="adminResetPassSubmitBtn" class="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-bold shadow">Salva Password</button>
+                <button type="button" onclick="app.closeAdminResetPasswordModal()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-semibold">Cancel</button>
+                <button type="submit" id="adminResetPassSubmitBtn" class="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-bold shadow">Save Password</button>
               </div>
             </form>
           </div>
@@ -1469,9 +1320,9 @@
             <table class="w-full text-left font-mono">
               <thead class="bg-slate-950 text-slate-400 text-[11px]">
                 <tr>
-                  <th class="p-2.5">Utente</th>
-                  <th class="p-2.5">Ruolo</th>
-                  <th class="p-2.5 text-right">Azioni</th>
+                  <th class="p-2.5">User</th>
+                  <th class="p-2.5">Role</th>
+                  <th class="p-2.5 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody id="adminUsersTableBody" class="divide-y divide-slate-800"></tbody>
@@ -1479,13 +1330,14 @@
           </div>
         </div>
 
-        <!-- Tab 2: Tare Brand -->
+        <!-- Tab 2: Brand Tares -->
         <div id="adminTabTaresContent" class="hidden space-y-4">
           <form onsubmit="app.handleCreateTare(event)" class="p-3 bg-slate-900 border border-slate-800 rounded-xl flex gap-2">
-            <input type="text" id="newTareBrand" required placeholder="Brand (es. Bambu Lab, Sunlu)" class="flex-1 px-3 py-2 bg-[#0b0f19] border border-slate-700 rounded-xl text-white">
-            <input type="number" id="newTareWeight" required placeholder="Tara (g)" class="w-24 px-3 py-2 bg-[#0b0f19] border border-slate-700 rounded-xl text-white font-mono">
-            <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold">Aggiungi</button>
+            <input type="text" id="newTareBrand" required placeholder="Brand (e.g. Bambu Lab, Sunlu)" class="flex-1 px-3 py-2 bg-[#0b0f19] border border-slate-700 rounded-xl text-white">
+            <input type="number" id="newTareWeight" required placeholder="Tare (g)" class="w-24 px-3 py-2 bg-[#0b0f19] border border-slate-700 rounded-xl text-white font-mono">
+            <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold">Add</button>
           </form>
+
           <div class="overflow-x-auto border border-slate-800 rounded-xl">
             <table class="w-full text-left font-mono">
               <tbody id="adminTaresTableBody" class="divide-y divide-slate-800"></tbody>
@@ -1496,18 +1348,18 @@
         <!-- Tab 3: Security Logs -->
         <div id="adminTabLogsContent" class="hidden space-y-3">
           <div class="flex items-center justify-between">
-            <span class="text-slate-400 font-semibold">Ultimi Eventi di Sicurezza e Audit</span>
-            <button type="button" onclick="app.loadAdminAuditLogs()" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-[11px] font-semibold">Aggiorna</button>
+            <span class="text-slate-400 font-semibold">Recent Security & Audit Events</span>
+            <button type="button" onclick="app.loadAdminAuditLogs()" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-[11px] font-semibold">Refresh</button>
           </div>
           <div class="overflow-x-auto border border-slate-800 rounded-xl max-h-96">
             <table class="w-full text-left font-mono text-[11px]">
               <thead class="bg-slate-950 text-slate-400">
                 <tr>
-                  <th class="p-2">Data/Ora</th>
+                  <th class="p-2">Date/Time</th>
                   <th class="p-2">IP</th>
-                  <th class="p-2">Utente</th>
-                  <th class="p-2">Evento</th>
-                  <th class="p-2">Dettagli</th>
+                  <th class="p-2">User</th>
+                  <th class="p-2">Event</th>
+                  <th class="p-2">Details</th>
                 </tr>
               </thead>
               <tbody id="adminAuditLogsTableBody" class="divide-y divide-slate-800"></tbody>
@@ -1519,13 +1371,13 @@
   </div>
 
   <!-- ========================================================================= -->
-  <!-- MODAL 6: CAMBIO PASSWORD -->
+  <!-- MODAL 6: CHANGE PASSWORD -->
   <!-- ========================================================================= -->
   <div id="changePasswordModal" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md hidden" onclick="if(event.target===this)app.closeChangePasswordModal()">
     <div class="solid-modal w-full sm:max-w-sm rounded-t-3xl sm:rounded-2xl p-5 border-t sm:border border-slate-700 shadow-2xl space-y-4 mobile-sheet pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]" onclick="event.stopPropagation()">
       <div class="flex items-center justify-between border-b border-slate-800 pb-3">
         <h3 class="text-sm font-bold text-white flex items-center gap-2">
-          <i data-lucide="key" class="w-4 h-4 text-emerald-400"></i> Cambia Password
+          <i data-lucide="key" class="w-4 h-4 text-emerald-400"></i> Change Password
         </h3>
         <button onclick="app.closeChangePasswordModal()" class="text-slate-400 hover:text-white">
           <i data-lucide="x" class="w-5 h-5"></i>
@@ -1534,27 +1386,27 @@
 
       <form onsubmit="app.handleChangePassword(event)" class="space-y-3 text-xs">
         <div>
-          <label class="block text-slate-400 mb-1">Password Attuale</label>
+          <label class="block text-slate-400 mb-1">Current Password</label>
           <input type="password" id="changePassCurrent" required class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white">
         </div>
         <div>
-          <label class="block text-slate-400 mb-1">Nuova Password</label>
+          <label class="block text-slate-400 mb-1">New Password</label>
           <input type="password" id="changePassNew" required minlength="8" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white">
         </div>
         <div>
-          <label class="block text-slate-400 mb-1">Conferma Nuova Password</label>
+          <label class="block text-slate-400 mb-1">Confirm New Password</label>
           <input type="password" id="changePassConfirm" required minlength="8" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white">
         </div>
         <div class="pt-2 flex justify-end gap-2">
-          <button type="button" onclick="app.closeChangePasswordModal()" class="px-3 py-2 bg-slate-800 rounded-xl text-slate-300">Annulla</button>
-          <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold">Aggiorna</button>
+          <button type="button" onclick="app.closeChangePasswordModal()" class="px-3 py-2 bg-slate-800 rounded-xl text-slate-300">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold">Update</button>
         </div>
       </form>
     </div>
   </div>
 
   <!-- ========================================================================= -->
-  <!-- MODAL 7: IMPOSTAZIONI & GEMINI AI -->
+  <!-- MODAL 7: SETTINGS & GEMINI AI -->
   <!-- ========================================================================= -->
   <div id="settingsModal" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md hidden" onclick="if(event.target===this)app.closeSettingsModal()">
     <div class="solid-modal w-full sm:max-w-lg max-h-[92dvh] flex flex-col rounded-t-3xl sm:rounded-2xl border-t sm:border border-slate-300 dark:border-slate-700 shadow-2xl p-5 mobile-sheet pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] overflow-hidden" onclick="event.stopPropagation()">
@@ -1564,8 +1416,8 @@
             <i data-lucide="settings" class="w-4 h-4"></i>
           </div>
           <div>
-            <h3 class="text-sm font-bold text-slate-900 dark:text-white" data-i18n="settings.title">Impostazioni & Vision AI</h3>
-            <p class="text-[11px] text-slate-500 dark:text-slate-400 font-mono" data-i18n="settings.subtitle">Chiave API personale e preferenze</p>
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white">Settings & Vision AI</h3>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400 font-mono">Personal API key & preferences</p>
           </div>
         </div>
         <button onclick="app.closeSettingsModal()" class="text-slate-400 hover:text-slate-700 dark:hover:text-white">
@@ -1574,61 +1426,27 @@
       </div>
 
       <form onsubmit="app.handleSaveSettings(event)" class="flex-1 overflow-y-auto space-y-4 text-xs pr-1 py-1">
-        <!-- 1. Interface Language (Top prominent section) -->
-        <div class="p-3.5 bg-slate-100 dark:bg-[#0b0f19] border border-slate-200 dark:border-slate-800 rounded-2xl space-y-2.5">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <div class="w-6 h-6 rounded-lg bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-                <i data-lucide="globe" class="w-3.5 h-3.5"></i>
-              </div>
-              <span class="font-bold text-slate-900 dark:text-white text-xs" data-i18n="settings.lang_label">Lingua Interfaccia</span>
-            </div>
-            <span class="text-[10px] text-slate-500 dark:text-slate-400" data-i18n="settings.lang_hint">Lingua per il tuo profilo</span>
-          </div>
-          <div class="grid grid-cols-4 gap-2">
-            <button type="button" onclick="i18n.setLanguage('en')" id="settingsLangBtn_en" class="lang-pill py-2.5 rounded-xl font-bold flex flex-col items-center justify-center gap-1 border border-slate-300/80 dark:border-slate-700 bg-white dark:bg-slate-900 transition" title="English">
-              <span class="text-base">🇬🇧</span><span class="text-[11px]">English</span>
-            </button>
-            <button type="button" onclick="i18n.setLanguage('it')" id="settingsLangBtn_it" class="lang-pill py-2.5 rounded-xl font-bold flex flex-col items-center justify-center gap-1 border border-slate-300/80 dark:border-slate-700 bg-white dark:bg-slate-900 transition" title="Italiano">
-              <span class="text-base">🇮🇹</span><span class="text-[11px]">Italiano</span>
-            </button>
-            <button type="button" onclick="i18n.setLanguage('fr')" id="settingsLangBtn_fr" class="lang-pill py-2.5 rounded-xl font-bold flex flex-col items-center justify-center gap-1 border border-slate-300/80 dark:border-slate-700 bg-white dark:bg-slate-900 transition" title="Français">
-              <span class="text-base">🇫🇷</span><span class="text-[11px]">Français</span>
-            </button>
-            <button type="button" onclick="i18n.setLanguage('es')" id="settingsLangBtn_es" class="lang-pill py-2.5 rounded-xl font-bold flex flex-col items-center justify-center gap-1 border border-slate-300/80 dark:border-slate-700 bg-white dark:bg-slate-900 transition" title="Español">
-              <span class="text-base">🇪🇸</span><span class="text-[11px]">Español</span>
-            </button>
-          </div>
-          <select id="settingsLanguage" onchange="i18n.setLanguage(this.value)" class="hidden">
-            <option value="en">English</option>
-            <option value="it">Italiano</option>
-            <option value="fr">Français</option>
-            <option value="es">Español</option>
-          </select>
-        </div>
-
-        <!-- 2. Google Gemini Vision API Settings -->
+        <!-- 1. Google Gemini Vision API Settings -->
         <div class="p-3 bg-slate-100 dark:bg-[#0b0f19] border border-slate-200 dark:border-slate-800 rounded-2xl space-y-1.5">
           <div class="flex items-center justify-between">
-            <span class="font-bold text-slate-900 dark:text-white" data-i18n="settings.gemini_title">Google Gemini Vision API (Personale)</span>
-            <span id="settingsGeminiBadge" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-950 text-amber-400 border border-amber-800" data-i18n="settings.not_configured">
-              Non configurata
+            <span class="font-bold text-slate-900 dark:text-white">Google Gemini Vision API (Personal)</span>
+            <span id="settingsGeminiBadge" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-950 text-amber-400 border border-amber-800">
+              Not configured
             </span>
           </div>
-          <p class="text-[11px] text-slate-600 dark:text-slate-400" data-i18n="settings.gemini_desc">
-            Abilita l'estrazione automatica di brand, materiale, colore e barcode dalle foto delle etichette per il tuo account.
+          <p class="text-[11px] text-slate-600 dark:text-slate-400">
+            Enables automatic extraction of brand, material, color, and barcode from spool label photos for your account.
           </p>
         </div>
 
-        <!-- 3. API Key Input -->
+        <!-- 2. API Key Input -->
         <div>
-          <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1" data-i18n="settings.api_key_label">Chiave API Google Gemini</label>
+          <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Google Gemini API Key</label>
           <div class="relative">
             <input
               type="password"
               id="settingsGeminiApiKey"
-              placeholder="Incolla chiave API..."
-              data-i18n-placeholder="settings.api_key_placeholder"
+              placeholder="Paste API key..."
               class="w-full px-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl font-mono text-white text-xs"
             />
           </div>
@@ -1636,39 +1454,39 @@
           <div class="mt-2 p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 text-[11px] text-slate-300 space-y-1.5">
             <div class="flex items-center gap-1.5 font-bold text-white">
               <i data-lucide="info" class="w-3.5 h-3.5 text-indigo-400"></i>
-              <span data-i18n="settings.guide_title">Come ottenere la chiave gratuita:</span>
+              <span>How to get a free API key:</span>
             </div>
             <ol class="list-decimal list-inside space-y-1 text-slate-300">
-              <li><span data-i18n="settings.guide_step1">Accedi a Google AI Studio con il tuo account Google.</span> (<a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" class="text-indigo-400 underline font-semibold hover:text-indigo-300">Google AI Studio</a>)</li>
-              <li><span data-i18n="settings.guide_step2">Clicca su "Create API key".</span></li>
-              <li><span data-i18n="settings.guide_step3">Copia la chiave generata e incollala qui sopra.</span></li>
+              <li><span>Sign in to Google AI Studio with your Google account.</span> (<a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" class="text-indigo-400 underline font-semibold hover:text-indigo-300">Google AI Studio</a>)</li>
+              <li><span>Click "Create API key".</span></li>
+              <li><span>Copy the generated key and paste it above.</span></li>
             </ol>
-            <p class="text-[10px] text-slate-400" data-i18n="settings.guide_footer">Il piano gratuito offre fino a 15 richieste al minuto, ampiamente sufficiente per la scansione delle bobine.</p>
+            <p class="text-[10px] text-slate-400">The free tier provides up to 15 requests per minute, plenty for scanning spools.</p>
           </div>
         </div>
 
-        <!-- 4. Model Selection -->
+        <!-- 3. Model Selection -->
         <div>
-          <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1" data-i18n="settings.model_label">Modello Gemini</label>
+          <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Gemini Model</label>
           <select id="settingsGeminiModel" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs">
-            <option value="gemini-3.5-flash-lite" data-i18n="settings.model_35_flash_lite" selected>gemini-3.5-flash-lite (Consigliato - Ultra Veloce e Preciso)</option>
-            <option value="gemini-flash-lite-latest" data-i18n="settings.model_flash_lite_latest">gemini-flash-lite-latest (Automatico Lite)</option>
-            <option value="gemini-3.8-flash" data-i18n="settings.model_38_flash">gemini-3.8-flash (Gemini 3.8 Flash)</option>
-            <option value="gemini-2.5-flash" data-i18n="settings.model_25_flash">gemini-2.5-flash (Legacy)</option>
+            <option value="gemini-3.5-flash-lite" selected>gemini-3.5-flash-lite (Recommended - Ultra Fast & Accurate)</option>
+            <option value="gemini-flash-lite-latest">gemini-flash-lite-latest (Auto Lite)</option>
+            <option value="gemini-3.8-flash">gemini-3.8-flash (Gemini 3.8 Flash)</option>
+            <option value="gemini-2.5-flash">gemini-2.5-flash (Legacy)</option>
           </select>
         </div>
 
-        <!-- 5. Modal Footer / Action Buttons -->
+        <!-- 4. Modal Footer / Action Buttons -->
         <div class="pt-3 flex items-center justify-between gap-2 border-t border-slate-200 dark:border-slate-800 shrink-0">
           <button type="button" id="settingsClearKeyBtn" onclick="app.handleClearGeminiKey()" class="hidden px-3 py-2 bg-rose-950/80 hover:bg-rose-900 border border-rose-800 text-rose-200 rounded-xl font-semibold text-xs">
-            <span data-i18n="settings.remove_key">Rimuovi chiave</span>
+            <span>Remove key</span>
           </button>
           <div class="flex items-center gap-2 ml-auto">
             <button type="button" onclick="app.closeSettingsModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-semibold">
-              <span data-i18n="settings.cancel">Annulla</span>
+              <span>Cancel</span>
             </button>
             <button type="submit" id="settingsSaveBtn" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold shadow-md">
-              <span data-i18n="settings.save">Salva Impostazioni</span>
+              <span>Save Settings</span>
             </button>
           </div>
         </div>
@@ -1698,9 +1516,9 @@
       </div>
 
       <!-- Title & Step -->
-      <h3 class="text-base font-bold text-white mb-1.5 tracking-wide">Analisi Neurale Etichetta</h3>
+      <h3 class="text-base font-bold text-white mb-1.5 tracking-wide">Neural Label Analysis</h3>
       <p id="aiLoadingStepText" class="text-xs text-indigo-300 font-medium min-h-[36px] flex items-center justify-center transition-all duration-300">
-        Connessione a Google Gemini Vision...
+        Connecting to Google Gemini Vision...
       </p>
 
       <!-- Progress bar -->
@@ -1712,16 +1530,16 @@
       <div class="flex items-center justify-center gap-2 mb-3">
         <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/90 border border-slate-700 text-[11px] font-mono font-semibold text-slate-300">
           <i data-lucide="timer" class="w-3.5 h-3.5 text-indigo-400"></i>
-          Tempo trascorso: <span id="aiLoadingTimer" class="text-indigo-400">0.0s</span>
+          Elapsed time: <span id="aiLoadingTimer" class="text-indigo-400">0.0s</span>
         </span>
       </div>
 
       <p class="text-[11px] text-slate-400 leading-relaxed mb-4">
-        L'IA sta estraendo brand, materiale, finitura, colore esatto e barcode. L'elaborazione neurale richiede tipicamente da 3 a 8 secondi.
+        AI is extracting brand, material, finish, exact color, and barcode. Neural processing typically takes 3 to 8 seconds.
       </p>
 
       <button type="button" onclick="app.cancelAiAnalysis()" class="px-4 py-1.5 text-xs text-slate-400 hover:text-rose-300 border border-slate-800 hover:border-rose-900 rounded-xl transition-all">
-        Annulla operazione
+        Cancel operation
       </button>
     </div>
   </div>
@@ -1734,7 +1552,7 @@
       <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
         <h3 id="shoppingItemModalTitle" class="font-bold text-base text-white flex items-center gap-2">
           <i data-lucide="plus-circle" class="w-4 h-4 text-amber-500"></i>
-          Nuovo Filamento da Acquistare
+          New Filament to Buy
         </h3>
         <button type="button" onclick="app.closeShoppingItemModal()" class="text-slate-400 hover:text-white">
           <i data-lucide="x" class="w-5 h-5"></i>
@@ -1747,12 +1565,12 @@
         <!-- Brand & Material -->
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block font-semibold text-slate-300 mb-1">Brand / Produttore *</label>
+            <label class="block font-semibold text-slate-300 mb-1">Brand / Manufacturer *</label>
             <input
               type="text"
               id="shoppingItemBrand"
               required
-              placeholder="es. Bambu Lab, Sunlu..."
+              placeholder="e.g. Bambu Lab, Sunlu..."
               list="shoppingBrandPresets"
               class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs"
             />
@@ -1771,12 +1589,12 @@
           </div>
 
           <div>
-            <label class="block font-semibold text-slate-300 mb-1">Materiale *</label>
+            <label class="block font-semibold text-slate-300 mb-1">Material *</label>
             <input
               type="text"
               id="shoppingItemMaterial"
               required
-              placeholder="es. PLA, PETG, ABS, TPU..."
+              placeholder="e.g. PLA, PETG, ABS, TPU..."
               list="shoppingMaterialPresets"
               class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs"
             />
@@ -1797,22 +1615,22 @@
         <!-- Subtype & Color Name -->
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block font-semibold text-slate-300 mb-1">Finitura / Sottotipo</label>
+            <label class="block font-semibold text-slate-300 mb-1">Finish / Subtype</label>
             <input
               type="text"
               id="shoppingItemSubtype"
-              placeholder="es. Matte, Silk, Basic, Tough..."
+              placeholder="e.g. Matte, Silk, Basic, Tough..."
               class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs"
             />
           </div>
 
           <div>
-            <label class="block font-semibold text-slate-300 mb-1">Nome Colore *</label>
+            <label class="block font-semibold text-slate-300 mb-1">Color Name *</label>
             <input
               type="text"
               id="shoppingItemColorName"
               required
-              placeholder="es. Charcoal, Matt Black, White..."
+              placeholder="e.g. Charcoal, Matte Black, White..."
               class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs"
             />
           </div>
@@ -1820,7 +1638,7 @@
 
         <!-- Color Hex Preview & Picker -->
         <div>
-          <label class="block font-semibold text-slate-300 mb-1">Colore (HEX)</label>
+          <label class="block font-semibold text-slate-300 mb-1">Color (HEX)</label>
           <div class="flex items-center gap-2">
             <input
               type="color"
@@ -1843,7 +1661,7 @@
         <!-- Quantity, Weight, Price -->
         <div class="grid grid-cols-3 gap-2">
           <div>
-            <label class="block font-semibold text-slate-300 mb-1">Quantità</label>
+            <label class="block font-semibold text-slate-300 mb-1">Quantity</label>
             <input
               type="number"
               id="shoppingItemQuantity"
@@ -1855,7 +1673,7 @@
             />
           </div>
           <div>
-            <label class="block font-semibold text-slate-300 mb-1">Peso (g)</label>
+            <label class="block font-semibold text-slate-300 mb-1">Weight (g)</label>
             <input
               type="number"
               id="shoppingItemWeight"
@@ -1867,7 +1685,7 @@
             />
           </div>
           <div>
-            <label class="block font-semibold text-slate-300 mb-1">Prezzo (€)</label>
+            <label class="block font-semibold text-slate-300 mb-1">Price (€)</label>
             <input
               type="number"
               id="shoppingItemPrice"
@@ -1881,22 +1699,22 @@
 
         <!-- Store URL Link -->
         <div>
-          <label class="block font-semibold text-slate-300 mb-1">Link Negozio / Offerta (opzionale)</label>
+          <label class="block font-semibold text-slate-300 mb-1">Store / Deal Link (optional)</label>
           <input
             type="url"
             id="shoppingItemStoreUrl"
-            placeholder="https://eu.store.bambulab.com/... o Amazon"
+            placeholder="https://eu.store.bambulab.com/... or Amazon"
             class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs"
           />
         </div>
 
         <!-- Notes -->
         <div>
-          <label class="block font-semibold text-slate-300 mb-1">Note (opzionale)</label>
+          <label class="block font-semibold text-slate-300 mb-1">Notes (optional)</label>
           <textarea
             id="shoppingItemNotes"
             rows="2"
-            placeholder="es. Da prendere con sconto bundle, per progetto scatola..."
+            placeholder="e.g. Buy with bundle discount, for enclosure project..."
             class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs resize-none"
           ></textarea>
         </div>
@@ -1904,10 +1722,10 @@
         <!-- Buttons -->
         <div class="pt-2 flex items-center justify-end gap-2 border-t border-slate-800">
           <button type="button" onclick="app.closeShoppingItemModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-semibold">
-            Annulla
+            Cancel
           </button>
           <button type="submit" id="shoppingItemSaveBtn" class="px-5 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-bold shadow-md shadow-amber-950/30">
-            Salva nella Lista
+            Save to List
           </button>
         </div>
       </form>
@@ -1917,8 +1735,7 @@
   <!-- Toast Notification Container -->
   <div id="toastContainer" class="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
-  <!-- Internationalization & Application Logic -->
-  <script src="/static/js/i18n.js?v=1.9"></script>
-  <script src="/static/js/app.js?v=1.9"></script>
+  <!-- Application Logic -->
+  <script src="/static/js/app.js?v=2.0"></script>
 </body>
 </html>

@@ -59,7 +59,7 @@ def login(
         )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Credenziali non valide o utente disattivato",
+            detail="Invalid credentials or disabled user account",
         )
 
     # Success: clear rate limit counter and log event
@@ -98,7 +98,7 @@ def login(
         "username": user["username"],
         "role": user["role"],
         "language": user["language"] if "language" in user.keys() and user["language"] else "en",
-        "message": "Login effettuato con successo",
+        "message": "Logged in successfully",
     }
 
 
@@ -111,7 +111,7 @@ def logout(response: Response) -> dict[str, str]:
         httponly=True,
         samesite="lax",
     )
-    return {"message": "Logout effettuato con successo"}
+    return {"message": "Logged out successfully"}
 
 
 @router.get("/me")
@@ -137,7 +137,7 @@ def change_password(
     if current_user.get("auth_type") == "api_key":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Impossibile modificare la password utente tramite autenticazione con API Key",
+            detail="Cannot change user password when authenticated via API Key",
         )
 
     client_ip = get_client_ip(request)
@@ -150,7 +150,7 @@ def change_password(
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Utente non trovato",
+            detail="User not found",
         )
 
     if not verify_password(user["password_hash"], req.current_password):
@@ -164,7 +164,7 @@ def change_password(
         )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="La password attuale non è corretta",
+            detail="Current password is incorrect",
         )
 
     new_hash = hash_password(req.new_password)
@@ -179,8 +179,8 @@ def change_password(
         client_ip,
         current_user["username"],
         "PASSWORD_CHANGE",
-        "Password modificata con successo",
+        "Password updated successfully",
         is_auth_fail=False,
     )
 
-    return {"message": "Password aggiornata con successo"}
+    return {"message": "Password updated successfully"}

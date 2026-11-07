@@ -32,7 +32,7 @@ SYSTEM_PROMPT = (
     "- brand: string (e.g. 'Sunlu', 'Bambu Lab', 'eSUN', 'Polymaker', 'Prusament', 'Elegoo', 'Creality', 'Anycubic', or '' if unknown)\n"
     "- material: string (uppercase: 'PLA', 'PLA+', 'PETG', 'ABS', 'ASA', 'TPU', 'PA', 'PA-CF', 'PC', 'PVA', or '' if unknown)\n"
     "- subtype: string (e.g. '2.0', 'Basic', 'Matte', 'Silk', 'CF', 'HF', 'Meta', 'High Speed', or '')\n"
-    "- color_name: string (exact color name read from label, e.g. 'Fuchsia', 'Charcoal', 'Jade White', or inferred color name in English/Italian)\n"
+    "- color_name: string (exact color name read from label, e.g. 'Fuchsia', 'Charcoal', 'Jade White', or inferred color name in English)\n"
     "- color_hex: string (accurate '#RRGGBB' hex code matching the color name and/or visible filament in the photo, e.g. '#d946ef' for Fuchsia)\n"
     "- initial_net_weight_g: number (e.g. 1000 for 1kg, 250 for 250g, default 1000)\n"
     "- nozzle_temp_min: integer or null (e.g. 200)\n"
@@ -86,7 +86,7 @@ async def analyze_spool_image(
     if not clean_key or clean_key in placeholder_keys:
         logger.info("Gemini Vision API called without a configured user API key.")
         return {
-            "error": "GEMINI_API_KEY non configurata sul tuo profilo.",
+            "error": "GEMINI_API_KEY not configured on your profile.",
             "configured": False,
             "success": False,
         }
@@ -120,7 +120,7 @@ async def analyze_spool_image(
         },
     }
 
-    last_error = "Servizio Gemini temporaneamente occupato"
+    last_error = "Gemini service temporarily busy"
     used_model = ""
 
     async with httpx.AsyncClient(timeout=18.0) as client:
@@ -130,7 +130,7 @@ async def analyze_spool_image(
                 resp = await client.post(url, json=payload)
                 if resp.status_code != 200:
                     logger.warning(f"Gemini model {model_name} returned HTTP {resp.status_code}: {resp.text[:200]}")
-                    last_error = f"HTTP {resp.status_code} su {model_name}"
+                    last_error = f"HTTP {resp.status_code} on {model_name}"
                     continue
 
                 data = resp.json()
@@ -156,7 +156,7 @@ async def analyze_spool_image(
                 continue
         else:
             return {
-                "error": f"Impossibile analizzare l'immagine ({last_error})",
+                "error": f"Unable to analyze image ({last_error})",
                 "configured": True,
                 "success": False,
             }
