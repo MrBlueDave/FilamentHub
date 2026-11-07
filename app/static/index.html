@@ -50,7 +50,7 @@
   <script src="https://unpkg.com/lucide@latest"></script>
 
   <!-- Custom Adaptive Tech Styles -->
-  <link rel="stylesheet" href="/static/css/styles.css?v=1.6">
+  <link rel="stylesheet" href="/static/css/styles.css?v=1.8">
 </head>
 <body class="bg-slate-50 dark:bg-[#0a0f1d] text-slate-900 dark:text-slate-100 h-[100dvh] w-full overflow-hidden flex flex-col antialiased selection:bg-indigo-600 selection:text-white">
 
@@ -73,7 +73,7 @@
             <h1 class="text-base sm:text-lg font-black tracking-tight text-slate-900 dark:text-white leading-none">
               FilamentHub
             </h1>
-            <p id="topbarSubtitle" class="text-[10px] text-slate-500 dark:text-slate-400 font-mono">Spool Database • v1.7</p>
+            <p id="topbarSubtitle" class="text-[10px] text-slate-500 dark:text-slate-400 font-mono">Spool Database • v1.8</p>
           </div>
         </div>
 
@@ -453,6 +453,36 @@
       <!-- Group 1: Core Tools (iOS Settings Card) -->
       <div class="rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 divide-y divide-slate-200 dark:divide-slate-800 overflow-hidden">
         
+        <!-- Interface Language Switcher Card -->
+        <div class="p-3.5 space-y-2.5 bg-indigo-50/40 dark:bg-indigo-950/20">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+              <div class="w-7 h-7 rounded-lg bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                <i data-lucide="globe" class="w-4 h-4"></i>
+              </div>
+              <div>
+                <div class="text-sm font-bold text-slate-800 dark:text-slate-100" data-i18n="menu.language_title">Lingua Interfaccia</div>
+                <div class="text-[10px] text-slate-500 dark:text-slate-400" data-i18n="menu.language_subtitle">Seleziona la lingua preferita</div>
+              </div>
+            </div>
+            <span id="menuCurrentLangBadge" class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">EN</span>
+          </div>
+          <div class="grid grid-cols-4 gap-1.5 p-1 bg-slate-100 dark:bg-slate-950/80 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
+            <button type="button" onclick="i18n.setLanguage('en')" id="menuLangBtn_en" class="lang-pill py-2 rounded-lg font-bold flex flex-col items-center justify-center gap-0.5 transition" title="English">
+              <span class="text-base">🇬🇧</span><span class="text-[10px]">EN</span>
+            </button>
+            <button type="button" onclick="i18n.setLanguage('it')" id="menuLangBtn_it" class="lang-pill py-2 rounded-lg font-bold flex flex-col items-center justify-center gap-0.5 transition" title="Italiano">
+              <span class="text-base">🇮🇹</span><span class="text-[10px]">IT</span>
+            </button>
+            <button type="button" onclick="i18n.setLanguage('fr')" id="menuLangBtn_fr" class="lang-pill py-2 rounded-lg font-bold flex flex-col items-center justify-center gap-0.5 transition" title="Français">
+              <span class="text-base">🇫🇷</span><span class="text-[10px]">FR</span>
+            </button>
+            <button type="button" onclick="i18n.setLanguage('es')" id="menuLangBtn_es" class="lang-pill py-2 rounded-lg font-bold flex flex-col items-center justify-center gap-0.5 transition" title="Español">
+              <span class="text-base">🇪🇸</span><span class="text-[10px]">ES</span>
+            </button>
+          </div>
+        </div>
+
         <!-- Lista Acquisti Filamenti -->
         <button onclick="app.closeMobileMenuSheet(); app.switchActiveView('shopping');" class="w-full p-3.5 flex items-center justify-between text-left hover:bg-slate-100 dark:hover:bg-slate-800/60 transition group">
           <div class="flex items-center gap-3">
@@ -547,7 +577,7 @@
 
       <!-- App Version Info -->
       <div class="text-center pt-2">
-        <p class="text-[11px] text-slate-400 dark:text-slate-500 font-mono">FilamentHub 3D v1.5</p>
+        <p class="text-[11px] text-slate-400 dark:text-slate-500 font-mono">FilamentHub 3D v1.8</p>
       </div>
     </div>
   </div>
@@ -557,12 +587,28 @@
   <!-- ========================================================================= -->
   <div id="loginModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md hidden">
     <div class="solid-modal max-w-sm w-full rounded-2xl p-6 border border-slate-800 shadow-2xl">
-      <div class="text-center mb-6">
+      <div class="text-center mb-5">
         <img src="/static/icon.svg" alt="Logo" class="w-14 h-14 mx-auto mb-3">
         <h2 class="text-xl font-bold bg-gradient-to-r from-indigo-400 to-emerald-400 bg-clip-text text-transparent">
           FilamentHub 3D
         </h2>
-        <p class="text-xs text-slate-400 mt-1">Accesso riservato</p>
+        <p class="text-xs text-slate-400 mt-1" data-i18n="login.subtitle">Accesso riservato</p>
+      </div>
+
+      <!-- Modern Centered Segmented Language Selector -->
+      <div class="flex items-center justify-center p-1 bg-slate-950 border border-slate-800 rounded-2xl mb-5 max-w-[270px] mx-auto shadow-inner">
+        <button type="button" onclick="i18n.setLanguage('en')" id="loginLangBtn_en" class="lang-pill flex-1 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 text-slate-400 hover:text-white" title="English">
+          <span>🇬🇧</span><span>EN</span>
+        </button>
+        <button type="button" onclick="i18n.setLanguage('it')" id="loginLangBtn_it" class="lang-pill flex-1 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 text-slate-400 hover:text-white" title="Italiano">
+          <span>🇮🇹</span><span>IT</span>
+        </button>
+        <button type="button" onclick="i18n.setLanguage('fr')" id="loginLangBtn_fr" class="lang-pill flex-1 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 text-slate-400 hover:text-white" title="Français">
+          <span>🇫🇷</span><span>FR</span>
+        </button>
+        <button type="button" onclick="i18n.setLanguage('es')" id="loginLangBtn_es" class="lang-pill flex-1 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 text-slate-400 hover:text-white" title="Español">
+          <span>🇪🇸</span><span>ES</span>
+        </button>
       </div>
 
       <div id="loginRateLimitAlert" class="hidden mb-4 p-3 rounded-xl bg-red-950/60 border border-red-800 text-xs text-red-300 flex items-start gap-2">
@@ -576,7 +622,7 @@
 
       <form id="loginForm" onsubmit="app.handleLogin(event)" class="space-y-4">
         <div>
-          <label class="block text-xs font-medium text-slate-400 mb-1">Nome Utente</label>
+          <label class="block text-xs font-medium text-slate-400 mb-1" data-i18n="login.username_label">Nome Utente</label>
           <input
             type="text"
             id="loginUsername"
@@ -587,7 +633,7 @@
           />
         </div>
         <div>
-          <label class="block text-xs font-medium text-slate-400 mb-1">Password</label>
+          <label class="block text-xs font-medium text-slate-400 mb-1" data-i18n="login.password_label">Password</label>
           <input
             type="password"
             id="loginPassword"
@@ -604,17 +650,6 @@
         >
           <span data-i18n="login.submit_btn">Accedi all'inventario</span>
         </button>
-
-        <!-- Quick Language Selector on Login Screen -->
-        <div class="pt-3 border-t border-slate-800 flex items-center justify-between gap-2 text-xs">
-          <span class="text-[11px] text-slate-400 font-semibold" data-i18n="login.select_lang">Lingua:</span>
-          <div class="flex items-center gap-1 bg-slate-950 border border-slate-800 rounded-xl p-1 text-[11px]">
-            <button type="button" onclick="i18n.setLanguage('it')" class="px-2 py-0.5 rounded-lg hover:bg-slate-800 text-slate-300 font-bold" title="Italiano">🇮🇹 IT</button>
-            <button type="button" onclick="i18n.setLanguage('en')" class="px-2 py-0.5 rounded-lg hover:bg-slate-800 text-slate-300 font-bold" title="English">🇬🇧 EN</button>
-            <button type="button" onclick="i18n.setLanguage('fr')" class="px-2 py-0.5 rounded-lg hover:bg-slate-800 text-slate-300 font-bold" title="Français">🇫🇷 FR</button>
-            <button type="button" onclick="i18n.setLanguage('es')" class="px-2 py-0.5 rounded-lg hover:bg-slate-800 text-slate-300 font-bold" title="Español">🇪🇸 ES</button>
-          </div>
-        </div>
       </form>
     </div>
   </div>
@@ -1522,15 +1557,15 @@
   <!-- MODAL 7: IMPOSTAZIONI & GEMINI AI -->
   <!-- ========================================================================= -->
   <div id="settingsModal" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md hidden" onclick="if(event.target===this)app.closeSettingsModal()">
-    <div class="solid-modal w-full sm:max-w-lg rounded-t-3xl sm:rounded-2xl border-t sm:border border-slate-300 dark:border-slate-700 shadow-2xl p-5 space-y-4 mobile-sheet pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]" onclick="event.stopPropagation()">
-      <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
-        <div class="flex items-center gap-2">
-          <div class="w-8 h-8 rounded-lg bg-emerald-600/20 text-emerald-500 dark:text-emerald-400 flex items-center justify-center">
-            <i data-lucide="sparkles" class="w-4 h-4"></i>
+    <div class="solid-modal w-full sm:max-w-lg max-h-[92dvh] flex flex-col rounded-t-3xl sm:rounded-2xl border-t sm:border border-slate-300 dark:border-slate-700 shadow-2xl p-5 mobile-sheet pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] overflow-hidden" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 shrink-0">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-indigo-600/20 text-indigo-500 dark:text-indigo-400 flex items-center justify-center">
+            <i data-lucide="settings" class="w-4 h-4"></i>
           </div>
           <div>
-            <h3 class="text-sm font-bold text-slate-900 dark:text-white">Impostazioni & Gemini AI</h3>
-            <p class="text-[11px] text-slate-500 dark:text-slate-400 font-mono">Chiave API personale per il tuo profilo</p>
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white" data-i18n="settings.title">Impostazioni & Vision AI</h3>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400 font-mono" data-i18n="settings.subtitle">Chiave API personale e preferenze</p>
           </div>
         </div>
         <button onclick="app.closeSettingsModal()" class="text-slate-400 hover:text-slate-700 dark:hover:text-white">
@@ -1538,26 +1573,62 @@
         </button>
       </div>
 
-      <form onsubmit="app.handleSaveSettings(event)" class="space-y-3.5 text-xs">
-        <div class="p-3 bg-slate-900 dark:bg-[#0b0f19] border border-slate-800 rounded-xl space-y-1.5">
+      <form onsubmit="app.handleSaveSettings(event)" class="flex-1 overflow-y-auto space-y-4 text-xs pr-1 py-1">
+        <!-- 1. Interface Language (Top prominent section) -->
+        <div class="p-3.5 bg-slate-100 dark:bg-[#0b0f19] border border-slate-200 dark:border-slate-800 rounded-2xl space-y-2.5">
           <div class="flex items-center justify-between">
-            <span class="font-bold text-white">Google Gemini Vision API (Personale)</span>
-            <span id="settingsGeminiBadge" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-950 text-amber-400 border border-amber-800">
+            <div class="flex items-center gap-2">
+              <div class="w-6 h-6 rounded-lg bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                <i data-lucide="globe" class="w-3.5 h-3.5"></i>
+              </div>
+              <span class="font-bold text-slate-900 dark:text-white text-xs" data-i18n="settings.lang_label">Lingua Interfaccia</span>
+            </div>
+            <span class="text-[10px] text-slate-500 dark:text-slate-400" data-i18n="settings.lang_hint">Lingua per il tuo profilo</span>
+          </div>
+          <div class="grid grid-cols-4 gap-2">
+            <button type="button" onclick="i18n.setLanguage('en')" id="settingsLangBtn_en" class="lang-pill py-2.5 rounded-xl font-bold flex flex-col items-center justify-center gap-1 border border-slate-300/80 dark:border-slate-700 bg-white dark:bg-slate-900 transition" title="English">
+              <span class="text-base">🇬🇧</span><span class="text-[11px]">English</span>
+            </button>
+            <button type="button" onclick="i18n.setLanguage('it')" id="settingsLangBtn_it" class="lang-pill py-2.5 rounded-xl font-bold flex flex-col items-center justify-center gap-1 border border-slate-300/80 dark:border-slate-700 bg-white dark:bg-slate-900 transition" title="Italiano">
+              <span class="text-base">🇮🇹</span><span class="text-[11px]">Italiano</span>
+            </button>
+            <button type="button" onclick="i18n.setLanguage('fr')" id="settingsLangBtn_fr" class="lang-pill py-2.5 rounded-xl font-bold flex flex-col items-center justify-center gap-1 border border-slate-300/80 dark:border-slate-700 bg-white dark:bg-slate-900 transition" title="Français">
+              <span class="text-base">🇫🇷</span><span class="text-[11px]">Français</span>
+            </button>
+            <button type="button" onclick="i18n.setLanguage('es')" id="settingsLangBtn_es" class="lang-pill py-2.5 rounded-xl font-bold flex flex-col items-center justify-center gap-1 border border-slate-300/80 dark:border-slate-700 bg-white dark:bg-slate-900 transition" title="Español">
+              <span class="text-base">🇪🇸</span><span class="text-[11px]">Español</span>
+            </button>
+          </div>
+          <select id="settingsLanguage" onchange="i18n.setLanguage(this.value)" class="hidden">
+            <option value="en">English</option>
+            <option value="it">Italiano</option>
+            <option value="fr">Français</option>
+            <option value="es">Español</option>
+          </select>
+        </div>
+
+        <!-- 2. Google Gemini Vision API Settings -->
+        <div class="p-3 bg-slate-100 dark:bg-[#0b0f19] border border-slate-200 dark:border-slate-800 rounded-2xl space-y-1.5">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-slate-900 dark:text-white" data-i18n="settings.gemini_title">Google Gemini Vision API (Personale)</span>
+            <span id="settingsGeminiBadge" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-950 text-amber-400 border border-amber-800" data-i18n="settings.not_configured">
               Non configurata
             </span>
           </div>
-          <p class="text-[11px] text-slate-300 dark:text-slate-400">
+          <p class="text-[11px] text-slate-600 dark:text-slate-400" data-i18n="settings.gemini_desc">
             Abilita l'estrazione automatica di brand, materiale, colore e barcode dalle foto delle etichette per il tuo account.
           </p>
         </div>
 
+        <!-- 3. API Key Input -->
         <div>
-          <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Chiave API Google Gemini</label>
+          <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1" data-i18n="settings.api_key_label">Chiave API Google Gemini</label>
           <div class="relative">
             <input
               type="password"
               id="settingsGeminiApiKey"
               placeholder="Incolla chiave API..."
+              data-i18n-placeholder="settings.api_key_placeholder"
               class="w-full px-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl font-mono text-white text-xs"
             />
           </div>
@@ -1565,17 +1636,18 @@
           <div class="mt-2 p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 text-[11px] text-slate-300 space-y-1.5">
             <div class="flex items-center gap-1.5 font-bold text-white">
               <i data-lucide="info" class="w-3.5 h-3.5 text-indigo-400"></i>
-              <span>Come ottenere la chiave gratuita:</span>
+              <span data-i18n="settings.guide_title">Come ottenere la chiave gratuita:</span>
             </div>
             <ol class="list-decimal list-inside space-y-1 text-slate-300">
-              <li>Accedi a <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" class="text-indigo-400 underline font-semibold hover:text-indigo-300">Google AI Studio</a> con il tuo account Google.</li>
-              <li>Clicca su <strong class="text-white">"Create API key"</strong>.</li>
-              <li>Copia la chiave generata e incollala qui sopra.</li>
+              <li><span data-i18n="settings.guide_step1">Accedi a Google AI Studio con il tuo account Google.</span> (<a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" class="text-indigo-400 underline font-semibold hover:text-indigo-300">Google AI Studio</a>)</li>
+              <li><span data-i18n="settings.guide_step2">Clicca su "Create API key".</span></li>
+              <li><span data-i18n="settings.guide_step3">Copia la chiave generata e incollala qui sopra.</span></li>
             </ol>
-            <p class="text-[10px] text-slate-400">Il piano gratuito offre fino a 15 richieste al minuto, ampiamente sufficiente per la scansione delle bobine.</p>
+            <p class="text-[10px] text-slate-400" data-i18n="settings.guide_footer">Il piano gratuito offre fino a 15 richieste al minuto, ampiamente sufficiente per la scansione delle bobine.</p>
           </div>
         </div>
 
+        <!-- 4. Model Selection -->
         <div>
           <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1" data-i18n="settings.model_label">Modello Gemini</label>
           <select id="settingsGeminiModel" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs">
@@ -1586,23 +1658,18 @@
           </select>
         </div>
 
-        <div>
-          <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1" data-i18n="settings.lang_label">Lingua Interfaccia</label>
-          <select id="settingsLanguage" onchange="i18n.setLanguage(this.value)" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs">
-            <option value="it">🇮🇹 Italiano (Predefinito)</option>
-            <option value="en">🇬🇧 English</option>
-            <option value="fr">🇫🇷 Français</option>
-            <option value="es">🇪🇸 Español</option>
-          </select>
-        </div>
-
-        <div class="pt-2 flex items-center justify-between gap-2 border-t border-slate-200 dark:border-slate-800">
+        <!-- 5. Modal Footer / Action Buttons -->
+        <div class="pt-3 flex items-center justify-between gap-2 border-t border-slate-200 dark:border-slate-800 shrink-0">
           <button type="button" id="settingsClearKeyBtn" onclick="app.handleClearGeminiKey()" class="hidden px-3 py-2 bg-rose-950/80 hover:bg-rose-900 border border-rose-800 text-rose-200 rounded-xl font-semibold text-xs">
-            Rimuovi chiave
+            <span data-i18n="settings.remove_key">Rimuovi chiave</span>
           </button>
           <div class="flex items-center gap-2 ml-auto">
-            <button type="button" onclick="app.closeSettingsModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-semibold">Annulla</button>
-            <button type="submit" id="settingsSaveBtn" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold shadow-md">Salva Impostazioni</button>
+            <button type="button" onclick="app.closeSettingsModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-semibold">
+              <span data-i18n="settings.cancel">Annulla</span>
+            </button>
+            <button type="submit" id="settingsSaveBtn" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold shadow-md">
+              <span data-i18n="settings.save">Salva Impostazioni</span>
+            </button>
           </div>
         </div>
       </form>
@@ -1851,7 +1918,7 @@
   <div id="toastContainer" class="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
   <!-- Internationalization & Application Logic -->
-  <script src="/static/js/i18n.js?v=1.7"></script>
-  <script src="/static/js/app.js?v=1.7"></script>
+  <script src="/static/js/i18n.js?v=1.8"></script>
+  <script src="/static/js/app.js?v=1.8"></script>
 </body>
 </html>

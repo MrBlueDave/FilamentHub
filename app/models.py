@@ -25,7 +25,7 @@ class UserOut(BaseModel):
     username: str
     role: Literal["viewer", "editor", "admin"]
     is_active: bool
-    language: str = "it"
+    language: str = "en"
     created_at: str
 
     model_config = ConfigDict(from_attributes=True)
@@ -39,7 +39,7 @@ class UserCreateRequest(BaseModel):
     username: str = Field(..., min_length=3, max_length=50)
     password: str = Field(..., min_length=6, max_length=128)
     role: str = "editor"
-    language: Optional[str] = "it"
+    language: Optional[str] = "en"
 
 
 UserCreate = UserCreateRequest
@@ -98,7 +98,7 @@ class SettingsOut(BaseModel):
     gemini_api_key_masked: str
     gemini_model: str
     show_ams_cockpit: bool
-    language: str = "it"
+    language: str = "en"
 
 
 SystemSettingsOut = SettingsOut

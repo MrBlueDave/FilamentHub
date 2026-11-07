@@ -512,9 +512,13 @@ class FilamentHubApp {
     if (modelSelect && this.settings.gemini_model) {
       modelSelect.value = this.settings.gemini_model;
     }
+    const currentLang = window.i18n ? window.i18n.getLanguage() : (this.user?.language || 'en');
     const langSelect = document.getElementById('settingsLanguage');
-    if (langSelect && window.i18n) {
-      langSelect.value = window.i18n.getLanguage();
+    if (langSelect) {
+      langSelect.value = currentLang;
+    }
+    if (window.i18n) {
+      window.i18n.updateActiveLanguageUi();
     }
 
     const modal = document.getElementById('settingsModal');
@@ -532,7 +536,7 @@ class FilamentHubApp {
     e.preventDefault();
     const keyInput = document.getElementById('settingsGeminiApiKey')?.value.trim();
     const model = document.getElementById('settingsGeminiModel')?.value || 'gemini-3.5-flash-lite';
-    const lang = document.getElementById('settingsLanguage')?.value || 'it';
+    const lang = (window.i18n ? window.i18n.getLanguage() : document.getElementById('settingsLanguage')?.value) || 'en';
     const saveBtn = document.getElementById('settingsSaveBtn');
 
     if (keyInput && keyInput.length < 12) {

@@ -69,9 +69,9 @@ def create_user(
     client_ip = get_client_ip(request)
     username_clean = req.username.strip()
     normalized_role = _normalize_role(req.role) if req.role is not None else None
-    lang_clean = (req.language or "it").strip().lower()
+    lang_clean = (req.language or "en").strip().lower()
     if lang_clean not in ("it", "en", "fr", "es"):
-        lang_clean = "it"
+        lang_clean = "en"
 
     # Check unique username
     cursor = db.execute("SELECT id FROM users WHERE username = ?;", (username_clean,))
@@ -398,7 +398,7 @@ def _build_user_settings_out(db: sqlite3.Connection, user_id: int) -> dict[str, 
     row = cur.fetchone()
     gemini_key = (row["gemini_api_key"] if row and row["gemini_api_key"] else "").strip()
     gemini_model = (row["gemini_model"] if row and row["gemini_model"] else "").strip() or "gemini-3.5-flash-lite"
-    language = (row["language"] if row and "language" in row.keys() and row["language"] else "it").strip() or "it"
+    language = (row["language"] if row and "language" in row.keys() and row["language"] else "en").strip() or "en"
     is_configured = _is_valid_gemini_key_format(gemini_key)
 
     return {

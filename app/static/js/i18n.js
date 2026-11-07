@@ -100,6 +100,10 @@
 
       // Settings Modal
       'settings.title': 'Vision AI e preferenze',
+      'settings.subtitle': 'Chiave API personale e preferenze',
+      'settings.lang_hint': 'Lingua per il tuo profilo',
+      'menu.language_title': 'Lingua Interfaccia',
+      'menu.language_subtitle': 'Seleziona la lingua preferita',
       'settings.gemini_title': 'Google Gemini Vision API (Personale)',
       'settings.gemini_desc': 'Abilita l\'estrazione automatica di brand, materiale, colore e barcode dalle foto delle etichette per il tuo account.',
       'settings.configured': 'Configurata',
@@ -249,6 +253,10 @@
 
       // Settings Modal
       'settings.title': 'Vision AI & Preferences',
+      'settings.subtitle': 'Personal API key and preferences',
+      'settings.lang_hint': 'Language for your profile',
+      'menu.language_title': 'Interface Language',
+      'menu.language_subtitle': 'Select your preferred language',
       'settings.gemini_title': 'Google Gemini Vision API (Personal)',
       'settings.gemini_desc': 'Enables automatic extraction of brand, material, color, and barcode from spool label photos for your account.',
       'settings.configured': 'Configured',
@@ -398,6 +406,10 @@
 
       // Settings Modal
       'settings.title': 'Vision IA et préférences',
+      'settings.subtitle': 'Clé API personnelle et préférences',
+      'settings.lang_hint': 'Langue pour votre profil',
+      'menu.language_title': 'Langue de l\'interface',
+      'menu.language_subtitle': 'Sélectionnez votre langue préférée',
       'settings.gemini_title': 'Google Gemini Vision API (Personnel)',
       'settings.gemini_desc': 'Active l\'extraction automatique de marque, matière, couleur et code-barres à partir des photos d\'étiquettes pour votre compte.',
       'settings.configured': 'Configurée',
@@ -547,6 +559,10 @@
 
       // Settings Modal
       'settings.title': 'Visión IA y preferencias',
+      'settings.subtitle': 'Clave API personal y preferencias',
+      'settings.lang_hint': 'Idioma para tu perfil',
+      'menu.language_title': 'Idioma de la interfaz',
+      'menu.language_subtitle': 'Selecciona tu idioma preferido',
       'settings.gemini_title': 'Google Gemini Vision API (Personal)',
       'settings.gemini_desc': 'Habilita la extracción automática de marca, material, color y código de barras a partir de fotos de etiquetas para tu cuenta.',
       'settings.configured': 'Configurada',
@@ -610,8 +626,9 @@
 
   class I18nEngine {
     constructor() {
-      this.currentLang = 'it';
-      this.supportedLanguages = ['it', 'en', 'fr', 'es'];
+      this.defaultLang = 'en';
+      this.currentLang = 'en';
+      this.supportedLanguages = ['en', 'it', 'fr', 'es'];
     }
 
     init() {
@@ -620,17 +637,13 @@
       if (stored && this.supportedLanguages.includes(stored)) {
         this.currentLang = stored;
       } else {
-        // 2. Auto-detect browser language
-        const navLang = (navigator.language || navigator.userLanguage || '').toLowerCase().slice(0, 2);
-        if (this.supportedLanguages.includes(navLang)) {
-          this.currentLang = navLang;
-        } else {
-          this.currentLang = 'it';
-        }
-        localStorage.setItem('filamenthub_lang', this.currentLang);
+        // Default to English as explicitly requested
+        this.currentLang = 'en';
+        localStorage.setItem('filamenthub_lang', 'en');
       }
 
       this.applyTranslations();
+      this.updateActiveLanguageUi();
       return this.currentLang;
     }
 
@@ -648,6 +661,7 @@
       document.documentElement.setAttribute('lang', lang);
 
       this.applyTranslations();
+      this.updateActiveLanguageUi();
 
       // Dispatch global event for reactive UI updates
       window.dispatchEvent(new CustomEvent('languagechange', { detail: { lang } }));
@@ -659,8 +673,8 @@
     }
 
     t(key, params = {}) {
-      const dict = translations[this.currentLang] || translations.it;
-      let val = dict[key] || translations.it[key] || key;
+      const dict = translations[this.currentLang] || translations.en;
+      let val = dict[key] || translations.en[key] || translations.it[key] || key;
 
       // Replace interpolated variables: {varName}
       if (params && typeof params === 'object') {
@@ -669,6 +683,48 @@
         });
       }
       return val;
+    }
+
+    updateActiveLanguageUi() {
+      const lang = this.currentLang;
+
+      // Update Login pills, Menu pills, and Settings pills
+      this.supportedLanguages.forEach(l => {
+        const loginBtn = document.getElementById(`loginLangBtn_${l}`);
+        const menuBtn = document.getElementById(`menuLangBtn_${l}`);
+        const settingsBtn = document.getElementById(`settingsLangBtn_${l}`);
+        const isActive = (l === lang);
+
+        if (loginBtn) {
+          loginBtn.className = isActive
+            ? 'lang-pill flex-1 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 bg-indigo-600 text-white shadow-md shadow-indigo-600/40 scale-[1.02] active'
+            : 'lang-pill flex-1 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 text-slate-400 hover:text-white';
+        }
+
+        if (menuBtn) {
+          menuBtn.className = isActive
+            ? 'lang-pill py-2 rounded-xl font-bold flex flex-col items-center justify-center gap-0.5 bg-indigo-600 text-white shadow-md shadow-indigo-600/30 scale-[1.02] border border-indigo-400/50 active'
+            : 'lang-pill py-2 rounded-xl font-bold flex flex-col items-center justify-center gap-0.5 bg-slate-200/60 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700/80 transition';
+        }
+
+        if (settingsBtn) {
+          settingsBtn.className = isActive
+            ? 'lang-pill py-2.5 rounded-xl font-bold flex flex-col items-center justify-center gap-1 bg-indigo-600 text-white shadow-md shadow-indigo-600/30 scale-[1.02] border border-indigo-400/50 active'
+            : 'lang-pill py-2.5 rounded-xl font-bold flex flex-col items-center justify-center gap-1 bg-slate-200/50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 border border-slate-300/60 dark:border-slate-700/60 hover:bg-slate-300/70 dark:hover:bg-slate-700/70 transition';
+        }
+      });
+
+      // Update Settings dropdown & any select
+      const settingsSelect = document.getElementById('settingsLanguage');
+      if (settingsSelect) {
+        settingsSelect.value = lang;
+      }
+
+      // Update Menu badge
+      const badge = document.getElementById('menuCurrentLangBadge');
+      if (badge) {
+        badge.textContent = lang.toUpperCase();
+      }
     }
 
     applyTranslations(root = document) {

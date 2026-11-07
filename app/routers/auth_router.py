@@ -97,7 +97,7 @@ def login(
         "id": user["id"],
         "username": user["username"],
         "role": user["role"],
-        "language": user["language"] if "language" in user.keys() and user["language"] else "it",
+        "language": user["language"] if "language" in user.keys() and user["language"] else "en",
         "message": "Login effettuato con successo",
     }
 
@@ -121,7 +121,7 @@ def get_me(current_user: dict[str, Any] = Depends(get_current_user)) -> dict[str
         "id": current_user["id"],
         "username": current_user["username"],
         "role": current_user["role"],
-        "language": current_user.get("language", "it"),
+        "language": current_user.get("language", "en"),
         "auth_type": current_user["auth_type"],
     }
 
