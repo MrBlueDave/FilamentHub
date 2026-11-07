@@ -1,68 +1,71 @@
 <div align="center">
 
 # 🧵 FilamentHub 3D
-### Progressive Web App per la Gestione Bobine di Filamento 3D, Calibrazioni Slicer & Stampa Etichette
+### Progressive Web App for 3D Filament Spool Management, Slicer Calibrations & Label Printing
 
-[![Version](https://img.shields.io/badge/version-1.8-emerald.svg?style=for-the-badge)](https://github.com/MrBlueDave/FilamentHub)
+[![Version](https://img.shields.io/badge/version-1.9-emerald.svg?style=for-the-badge)](https://github.com/MrBlueDave/FilamentHub)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688.svg?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Python](https://img.shields.io/badge/Python-3.12+-3776AB.svg?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?style=for-the-badge&logo=docker&logoColor=white)](https://docker.com)
 [![Proxmox LXC](https://img.shields.io/badge/Proxmox_LXC-Optimized-E57000.svg?style=for-the-badge&logo=proxmox&logoColor=white)](https://proxmox.com)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
 
 <p align="center">
-  <b>FilamentHub 3D</b> è una PWA multi-utente moderna, mobile-first e desktop-ready creata per maker e professionisti della stampa 3D FDM. Permette a ciascun utente di gestire il proprio archivio personale di bobine, parametri di calibrazione avanzati per Slicer (K-Factor, Flow Ratio, Max Volumetric Speed), generare etichette termiche ad alto contrasto (Brother Bluetooth & Laser A4) e analizzare etichette e colori con la propria chiave personale <b>Gemini Vision AI</b>.
+  <b>FilamentHub 3D</b> is a modern, mobile-first, and desktop-ready multi-user Progressive Web App (PWA) crafted for FDM 3D printing makers and print farm operators. It allows each user to manage their private spool inventory, slicer calibration parameters (K-Factor, Flow Ratio, Max Volumetric Speed), generate high-contrast thermal labels (Brother-compatible PNGs and 24-label A4 sheets), plan future spool purchases via a dedicated Wishlist, and extract label specs automatically using their own personal <b>Google Gemini Vision AI</b> key.
 </p>
 
 </div>
 
 ---
 
-## ⚡ Caratteristiche Principali
+## ⚡ Key Features
 
-- 👤 **Archivio Personale Multi-Utente & Chiave Gemini Personale:** Ogni utente registrato dispone del proprio inventario bobine privato e può configurare la propria API Key Google Gemini personale direttamente dalle Impostazioni.
-- ⚖️ **Calcolo Dinamico dei Pesi & Quick Weigh:** Mai più calcoli a mano. Inserisci il peso lordo della bobina sulla bilancia: il sistema deduce la tara salvata e traccia lo storico esatto del consumo in grammi.
-- 🤖 **Riconoscimento Etichette con Gemini Flash:** Inquadra o fotografa l'etichetta del produttore: l'intelligenza artificiale estrae brand, materiale (PLA, PETG, ASA, TPU...), temperature ottimali, colore, tara consigliata e barcode EAN.
-- 🎨 **Campionatore Colore Filamento:** Tocca qualsiasi punto del filamento nella foto per estrarre il codice HEX esatto `#RRGGBB` e visualizzarlo nell'interfaccia.
-- 🏷️ **Modulo Stampa Etichette Brother & A4 Laser:**
-  - **Brother Bluetooth (12mm, 18mm, 24mm):** Generazione lato server di PNG monocromatici 1-bit a 300 DPI con Barcode Code128 o QR code + 3 righe di parametri tecnici. Condivisione diretta con l'app mobile Brother via Web Share API.
-  - **Foglio Laser Adesivo A4:** Generatore di griglie personalizzate con selettore "Salva-Foglio" per riutilizzare etichette residue.
-- 📱 **PWA Mobile-First & Azioni Rapide NFC/QR (`/s/{uid_code}`):** Vista ultraleggera per smartphone e tag NFC posizionati sulle bobine: aggiorna il peso o lo stato della bobina con un solo tocco.
-- 🔒 **Sicurezza Enterprise per Esposizione Online:**
-  - Zero registrazione pubblica (gestione utenti e reset password da Admin con Argon2id).
-  - Due ruoli chiari: **Utente Standard** (archivio personale) e **Amministratore** (gestione utenti, tare e log).
-  - Cookie di sessione `HttpOnly; SameSite=Lax` con token JWT.
-  - Rate limiting sliding-window anti brute-force integrato (compatibile CrowdSec / Fail2ban).
-  - Security headers HTTP (`nosniff`, `SAMEORIGIN`, `strict-origin-when-cross-origin`).
+- 👤 **Multi-User Isolation & Personal Gemini API Keys:** Each registered user maintains an isolated spool database and can configure their own personal Google Gemini API key directly from Settings.
+- ⚖️ **Dynamic Weight & Consumption Tracking:** Automatic remaining net weight calculation (`net = max(0, gross - tare)`). Keep a database of brand spool tare weights and track usage history automatically.
+- 🤖 **Vision AI Label Recognition (Gemini Flash):** Snap or upload a photo of a spool label. Neural AI extracts brand, material (PLA, PETG, ASA, TPU, PA-CF, etc.), recommended printing temperatures, color, tare weight, and EAN/code barcodes.
+- 🎨 **Filament Color Eyedropper:** Tap directly on the photo canvas to sample the exact `#RRGGBB` hex color and apply it to the spool record.
+- 🛒 **Filament Shopping List (Wishlist):** Dedicated section to track future spool purchases, view estimated budget totals, and convert bought items into active inventory spools with 1 tap.
+- 🏷️ **Thermal & Laser Label Printing:**
+  - **Thermal Printers (Brother PT-P710BT Cube Plus, QL-800, etc.):** Server-side generation of high-contrast 1-bit monochrome 300 DPI PNG labels (12mm, 18mm, 24mm tape widths) with Code128 barcodes or QR codes + 3 lines of technical specs. Native export and mobile sharing via Web Share API directly to **Brother iPrint&Label** or **P-Touch Design&Print**.
+  - **A4 Adhesive Laser Sheets:** 24-label grid sheet generator (`/print-a4`) with an interactive label picker to reuse partially printed sticker sheets.
+- 🌐 **Multilingual Interface:** Native support for English (default), Italian, French, and Spanish with real-time switching across all screens and user profile persistence.
+- 📱 **Mobile-First PWA:** Native-feeling touch gestures, swipeable cards, dark tech theme, and quick mobile action views.
+- 🔒 **Enterprise-Grade Security:**
+  - Zero public sign-up: accounts are created strictly by Administrators.
+  - Dual roles: **Standard User** (isolated inventory) and **Administrator** (user management, tare dictionary, security audit logs).
+  - Session cookies configured as `HttpOnly; SameSite=Lax` with signed JWT tokens.
+  - Sliding-window rate limiting against brute-force attacks with structured security logging (`[AUTH_FAIL]`) compatible with CrowdSec and Fail2ban.
+  - Strict HTTP security headers (`nosniff`, `SAMEORIGIN`, `strict-origin-when-cross-origin`).
 
 ---
 
-## 🚀 Installazione Rapida
+## 🚀 Quick Installation
 
-Puoi installare **FilamentHub 3D v1.8** scegliendo tra due modalità: **Container Nativo Proxmox LXC** oppure **Docker & Docker Compose**.
+You can install **FilamentHub 3D v1.9** using either a **Native Proxmox LXC Container** or **Docker & Docker Compose**.
 
-### Opzione 1: Container Proxmox LXC (Debian 12 / Ubuntu 22.04-24.04) — *Consigliata*
+### Option 1: Proxmox LXC Container (Debian 12 / Ubuntu 22.04–24.04) — *Recommended*
 
-Crea un container LXC unprivileged su Proxmox con Debian 12 o Ubuntu, accedi alla console ed esegui:
+Create an unprivileged LXC container on Proxmox VE, open the console, and run:
 
 ```bash
-# Clone e avvio dell'installatore automatico
+# Clone repository and launch the automated installer
 git clone https://github.com/MrBlueDave/FilamentHub.git /opt/filamenthub
 cd /opt/filamenthub
 sudo bash scripts/install_lxc.sh
 ```
 
-Lo script installerà i pacchetti minimi di sistema, creerà il virtualenv Python, configurerà il file `.env` con credenziali personalizzate o sicure generate al volo e avvierà il servizio di sistema **systemd** `filamenthub.service`.
+The script installs system dependencies, creates a Python virtual environment, generates a secure `.env` file, and configures the systemd service `filamenthub.service`.
 
-#### Aggiornamento Rapido LXC:
+#### Fast LXC Update:
 ```bash
 cd /opt/filamenthub && sudo bash scripts/install_lxc.sh --update
 ```
 
 ---
 
-### Opzione 2: Docker & Docker Compose
+### Option 2: Docker & Docker Compose
 
-Se disponi già di Docker su qualsiasi host Linux, NAS o macchina virtuale:
+If you are running Docker on Linux, a NAS (Synology, TrueNAS, unRAID), or a VM:
 
 ```bash
 git clone https://github.com/MrBlueDave/FilamentHub.git
@@ -70,77 +73,78 @@ cd FilamentHub
 bash scripts/install_docker.sh
 ```
 
-Oppure manualmente tramite compose:
+Or manually using Docker Compose:
 
 ```bash
 cp .env.example .env
-# Modifica .env inserendo una SECRET_KEY sicura a 64 caratteri
+# Edit .env with a secure 64-character SECRET_KEY
 docker compose up -d --build
 ```
 
-#### Aggiornamento Rapido Docker:
+#### Fast Docker Update:
 ```bash
 bash scripts/install_docker.sh --update
 ```
 
 ---
 
-### Script Master Unificato (`install.sh`)
+### Master Installation Script (`install.sh`)
 
-Puoi anche eseguire lo script principale nella root per scegliere interattivamente la modalità:
+You can also run the root installer script to choose the installation mode interactively:
 
 ```bash
 bash install.sh
 ```
 
-Flag disponibili:
-- `bash install.sh --lxc` (Forza installazione LXC)
-- `bash install.sh --docker` (Forza installazione Docker)
-- `bash install.sh --update` (Aggiorna l'installazione rilevata)
+Supported flags:
+- `bash install.sh --lxc` (Force LXC installation)
+- `bash install.sh --docker` (Force Docker installation)
+- `bash install.sh --update` (Update the detected installation)
 
 ---
 
-## ⚙️ Configurazione (`.env`)
+## ⚙️ Configuration (`.env`)
 
-Tutte le impostazioni di base del server sono nel file `.env` (puoi prendere come modello `.env.example`):
+Base server configuration is stored in the `.env` file (see `.env.example` as a template):
 
 ```ini
 APP_PORT=8085
-SECRET_KEY=inserisci_una_chiave_esadecimale_casuale_di_64_caratteri
+SECRET_KEY=your_random_64_character_hex_secret_key
 COOKIE_SECURE=false
 
-# Credenziali del primo utente Admin creato al primo avvio
+# Initial Administrator account created on first startup if database is empty
 INITIAL_ADMIN_USER=admin
-INITIAL_ADMIN_PASSWORD=CambiaSubitoQuestaPassword123!
+INITIAL_ADMIN_PASSWORD=ChangeThisPasswordPromptly123!
 ```
 
 > [!TIP]
-> Ogni utente può inserire o rimuovere la propria chiave **Google Gemini Vision API** gratuita direttamente nell'app dal menu **Impostazioni & Gemini AI**:
-> 1. Vai su [Google AI Studio](https://aistudio.google.com/app/apikey)
-> 2. Clicca su **Create API key** e copia la chiave generata.
-> 3. Incollala nelle Impostazioni del tuo profilo su FilamentHub.
+> Each user can configure their free **Google Gemini Vision API** key directly within the app under **Settings & Vision AI**:
+> 1. Visit [Google AI Studio](https://aistudio.google.com/app/apikey).
+> 2. Click **Create API key** and copy the generated key.
+> 3. Paste it into your personal Settings in FilamentHub.
 
 ---
 
-## 🏷️ Stampa Etichette Termiche Brother
+## 🏷️ Brother Thermal Label Printing
 
-FilamentHub supporta la stampa rapida su etichettatrici termiche Brother (**PT-P710BT Cube Plus, PT-P750W, PT-P900W, QL-800, ecc.**):
-1. Dalla scheda dettaglio della bobina, tocca **Etichetta**.
-2. Seleziona la larghezza del nastro caricato (**12mm, 18mm, 24mm**).
-3. Tocca **Invia a Brother Bluetooth / Scarica PNG**: su smartphone si aprirà automaticamente il menu di condivisione nativo (Web Share API) inviando l'immagine PNG monocromatica ad alta risoluzione direttamente a **Brother iPrint&Label** o **P-Touch Design&Print**!
-
----
-
-## 🛡️ Architettura & Sicurezza
-
-- **Backend:** Python 3.12+, FastAPI, SQLite 3 nativo in modalità **WAL** (`PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;`).
-- **Autenticazione:** Password hashate con **Argon2id**, sessioni via Cookie JWT `HttpOnly; SameSite=Lax`.
-- **Isolamento Dati:** Archivio bobine e chiave Gemini API isolati per singolo utente.
-- **Rate Limiting:** Protezione anti brute-force integrata con ban automatico di 15 minuti dopo 5 tentativi falliti e registrazione strutturata `[AUTH_FAIL]` compatibile con CrowdSec / Fail2ban.
+FilamentHub streamlines label creation for Brother thermal printers (**PT-P710BT Cube Plus, PT-P750W, PT-P900W, QL-800, etc.**):
+1. In the spool details card, tap **Label**.
+2. Select your installed tape width (**12mm, 18mm, 24mm**).
+3. Tap **Share / Download PNG**: on mobile devices, the native share sheet opens to send the high-resolution monochrome 1-bit image directly to **Brother iPrint&Label** or **P-Touch Design&Print**.
 
 ---
 
-## 📄 Licenza
+## 🛡️ Architecture & Tech Stack
 
-Rilasciato sotto licenza MIT. Libero per uso personale e commerciale.
-Progetto sviluppato con dedizione per la community della stampa 3D.
+- **Backend:** Python 3.12+, FastAPI, Uvicorn, native SQLite 3 in **WAL** mode (`PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;`).
+- **Authentication:** Password hashing with **Argon2id**, JWT sessions in `HttpOnly; SameSite=Lax` cookies.
+- **Frontend:** Lightweight Single Page Application (HTML5, modular ES6+ JavaScript, Tailwind CSS, Lucide Icons, html5-qrcode).
+- **Internationalization:** Standalone client-side translation engine supporting English, Italian, French, and Spanish.
+- **Data Isolation:** User inventories, wishlists, and Gemini API keys are strictly partitioned per user ID.
+
+---
+
+## 📄 License
+
+Released under the MIT License. Free for personal and commercial use.
+Crafted with passion for the 3D printing community.

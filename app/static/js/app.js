@@ -117,6 +117,8 @@ class FilamentHubApp {
         : window.i18n.t('topbar.subtitle_shopping');
     }
 
+    this.updateSettingsUi();
+    this.populateBrandFilter();
     this.updateShoppingBadges();
     if (isSpools) {
       this.renderSpoolViews();
@@ -437,10 +439,11 @@ class FilamentHubApp {
     if (settingsBadge) {
       if (isConfigured) {
         settingsBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-950 text-emerald-400 border border-emerald-800';
-        settingsBadge.textContent = `Attiva (${this.settings.gemini_api_key_masked || 'Configurata'})`;
+        const activeText = window.i18n ? window.i18n.t('settings.configured') : 'Attiva';
+        settingsBadge.textContent = `${activeText} (${this.settings.gemini_api_key_masked || ''})`;
       } else {
         settingsBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-950 text-amber-400 border border-amber-800';
-        settingsBadge.textContent = 'Non configurata';
+        settingsBadge.textContent = window.i18n ? window.i18n.t('settings.not_configured') : 'Non configurata';
       }
     }
 
@@ -454,10 +457,10 @@ class FilamentHubApp {
     if (menuBadge) {
       if (isConfigured) {
         menuBadge.className = 'text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800';
-        menuBadge.textContent = 'Attiva';
+        menuBadge.textContent = window.i18n ? window.i18n.t('settings.configured') : 'Attiva';
       } else {
         menuBadge.className = 'text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800';
-        menuBadge.textContent = 'Non attiva';
+        menuBadge.textContent = window.i18n ? window.i18n.t('settings.not_configured') : 'Non attiva';
       }
     }
 
@@ -522,7 +525,10 @@ class FilamentHubApp {
     }
 
     const modal = document.getElementById('settingsModal');
-    if (modal) modal.classList.remove('hidden');
+    if (modal) {
+      if (window.i18n) window.i18n.applyTranslations(modal);
+      modal.classList.remove('hidden');
+    }
     document.body.classList.add('overflow-hidden');
   }
 
@@ -983,7 +989,8 @@ class FilamentHubApp {
     if (!select) return;
     const brands = Array.from(new Set(this.spools.map(s => s.brand).filter(Boolean))).sort();
     const currentVal = this.brandFilter;
-    select.innerHTML = '<option value="">Tutti i Brand</option>' +
+    const allBrandsText = window.i18n ? window.i18n.t('filters.all_brands') : 'Tutti i Brand';
+    select.innerHTML = `<option value="" data-i18n="filters.all_brands">${allBrandsText}</option>` +
       brands.map(b => `<option value="${this.escapeHtml(b)}"${b === currentVal ? ' selected' : ''}>${this.escapeHtml(b)}</option>`).join('');
   }
 
@@ -1118,6 +1125,9 @@ class FilamentHubApp {
   openFiltersSheet() {
     const sheet = document.getElementById('filtersSheet');
     if (!sheet) return;
+
+    this.populateBrandFilter();
+    if (window.i18n) window.i18n.applyTranslations(sheet);
 
     const matSelect = document.getElementById('materialFilter');
     const brandSelect = document.getElementById('brandFilter');

@@ -50,7 +50,7 @@
   <script src="https://unpkg.com/lucide@latest"></script>
 
   <!-- Custom Adaptive Tech Styles -->
-  <link rel="stylesheet" href="/static/css/styles.css?v=1.8">
+  <link rel="stylesheet" href="/static/css/styles.css?v=1.9">
 </head>
 <body class="bg-slate-50 dark:bg-[#0a0f1d] text-slate-900 dark:text-slate-100 h-[100dvh] w-full overflow-hidden flex flex-col antialiased selection:bg-indigo-600 selection:text-white">
 
@@ -73,7 +73,7 @@
             <h1 class="text-base sm:text-lg font-black tracking-tight text-slate-900 dark:text-white leading-none">
               FilamentHub
             </h1>
-            <p id="topbarSubtitle" class="text-[10px] text-slate-500 dark:text-slate-400 font-mono">Spool Database • v1.8</p>
+            <p id="topbarSubtitle" class="text-[10px] text-slate-500 dark:text-slate-400 font-mono">Spool Database • v1.9</p>
           </div>
         </div>
 
@@ -164,7 +164,7 @@
               id="filterStatusAll"
               class="segmented-btn py-1.5 text-center font-bold active"
             >
-              Tutte (<span id="countTotal">0</span>)
+              <span data-i18n="topbar.tab_all">Tutte</span> (<span id="countTotal">0</span>)
             </button>
             <button
               type="button"
@@ -172,7 +172,7 @@
               id="filterStatusOpened"
               class="segmented-btn py-1.5 text-center font-bold text-emerald-400"
             >
-              🟢 Aperte (<span id="countOpened">0</span>)
+              🟢 <span data-i18n="topbar.tab_opened">Aperte</span> (<span id="countOpened">0</span>)
             </button>
             <button
               type="button"
@@ -180,7 +180,7 @@
               id="filterStatusNew"
               class="segmented-btn py-1.5 text-center font-bold text-blue-400"
             >
-              📦 Nuove (<span id="countNew">0</span>)
+              📦 <span data-i18n="topbar.tab_new">Nuove</span> (<span id="countNew">0</span>)
             </button>
           </div>
         </div>
@@ -216,7 +216,7 @@
               id="shoppingTabPending"
               class="segmented-btn py-1.5 text-center font-bold active"
             >
-              Da Comprare (<span id="shoppingCountPending">0</span>)
+              <span data-i18n="topbar.shopping_tab_pending">Da Comprare</span> (<span id="shoppingCountPending">0</span>)
             </button>
             <button
               type="button"
@@ -224,7 +224,7 @@
               id="shoppingTabBought"
               class="segmented-btn py-1.5 text-center font-bold text-emerald-400"
             >
-              Ordinati (<span id="shoppingCountBought">0</span>)
+              <span data-i18n="topbar.shopping_tab_bought">Ordinati</span> (<span id="shoppingCountBought">0</span>)
             </button>
             <button
               type="button"
@@ -232,7 +232,7 @@
               id="shoppingTabAll"
               class="segmented-btn py-1.5 text-center font-bold"
             >
-              Tutti (<span id="shoppingCountAll">0</span>)
+              <span data-i18n="topbar.shopping_tab_all">Tutti</span> (<span id="shoppingCountAll">0</span>)
             </button>
           </div>
         </div>
@@ -253,7 +253,7 @@
       <div id="spoolsViewContainer" class="space-y-3">
         <!-- Active Filter Indicators (if any brand/material filter applied) -->
         <div id="activeFilterTagsBar" class="hidden flex items-center gap-2 overflow-x-auto no-scrollbar text-xs py-1">
-          <span class="text-slate-400 text-[11px]">Filtri attivi:</span>
+          <span class="text-slate-400 text-[11px]" data-i18n="filters.active_filters">Filtri attivi:</span>
           <span id="activeBrandTag" class="hidden px-2 py-0.5 rounded-lg bg-indigo-950 text-indigo-300 border border-indigo-800 font-mono flex items-center gap-1">
             <span id="activeBrandTagText">Brand</span>
             <button onclick="app.setBrandFilter('')" class="hover:text-white">✕</button>
@@ -374,7 +374,7 @@
       <div class="flex items-center justify-between border-b border-slate-800 pb-3">
         <h4 class="font-bold text-white text-sm flex items-center gap-2">
           <i data-lucide="sliders-horizontal" class="w-4 h-4 text-indigo-400"></i>
-          <span>Filtri & Ordinamento</span>
+          <span data-i18n="filters.title">Filtri & Ordinamento</span>
         </h4>
         <button onclick="app.closeFiltersSheet()" class="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition">
           <i data-lucide="x" class="w-5 h-5"></i>
@@ -383,9 +383,9 @@
 
       <div class="space-y-3">
         <div>
-          <label class="block font-semibold text-slate-300 mb-1">Materiale</label>
+          <label class="block font-semibold text-slate-300 mb-1" data-i18n="filters.material_label">Materiale</label>
           <select id="materialFilter" onchange="app.setMaterialFilter(this.value)" class="w-full bg-slate-900 border border-slate-700 text-xs text-slate-100 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500">
-            <option value="">Tutti i Materiali</option>
+            <option value="" data-i18n="filters.all_materials">Tutti i Materiali</option>
             <option value="PLA">PLA</option>
             <option value="PETG">PETG</option>
             <option value="ABS">ABS</option>
@@ -399,32 +399,32 @@
         </div>
 
         <div>
-          <label class="block font-semibold text-slate-300 mb-1">Marca / Produttore</label>
+          <label class="block font-semibold text-slate-300 mb-1" data-i18n="filters.brand_label">Marca / Produttore</label>
           <select id="brandFilter" onchange="app.setBrandFilter(this.value)" class="w-full bg-slate-900 border border-slate-700 text-xs text-slate-100 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500">
-            <option value="">Tutti i Brand</option>
+            <option value="" data-i18n="filters.all_brands">Tutti i Brand</option>
           </select>
         </div>
 
         <div>
-          <label class="block font-semibold text-slate-300 mb-1">Ordina Per</label>
+          <label class="block font-semibold text-slate-300 mb-1" data-i18n="filters.sort_label">Ordina Per</label>
           <select id="sortSelector" onchange="app.setSorting(this.value)" class="w-full bg-slate-900 border border-slate-700 text-xs text-slate-100 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500">
-            <option value="in_use_desc">In Uso / Aperte prima</option>
-            <option value="status_desc">Stato (In Uso -> Aperte -> Nuove)</option>
-            <option value="net_desc">Grammi Residui (Massimo)</option>
-            <option value="net_asc">Grammi Residui (Minimo)</option>
-            <option value="brand_asc">Brand (A-Z)</option>
-            <option value="material_asc">Materiale (A-Z)</option>
-            <option value="uid_asc">UID (Crescente)</option>
+            <option value="in_use_desc" data-i18n="filters.sort_in_use">In Uso / Aperte prima</option>
+            <option value="status_desc" data-i18n="filters.sort_status">Stato (In Uso -> Aperte -> Nuove)</option>
+            <option value="net_desc" data-i18n="filters.sort_net_desc">Grammi Residui (Massimo)</option>
+            <option value="net_asc" data-i18n="filters.sort_net_asc">Grammi Residui (Minimo)</option>
+            <option value="brand_asc" data-i18n="filters.sort_brand_asc">Brand (A-Z)</option>
+            <option value="material_asc" data-i18n="filters.sort_material_asc">Materiale (A-Z)</option>
+            <option value="uid_asc" data-i18n="filters.sort_uid_asc">UID (Crescente)</option>
           </select>
         </div>
       </div>
 
       <div class="pt-2 flex items-center justify-between gap-2 border-t border-slate-800">
         <button onclick="app.resetDropdownFilters(); app.closeFiltersSheet();" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-medium">
-          Reimposta
+          <span data-i18n="filters.reset">Reimposta</span>
         </button>
         <button onclick="app.closeFiltersSheet()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold">
-          Applica Filtri
+          <span data-i18n="filters.apply">Applica Filtri</span>
         </button>
       </div>
     </div>
@@ -577,7 +577,7 @@
 
       <!-- App Version Info -->
       <div class="text-center pt-2">
-        <p class="text-[11px] text-slate-400 dark:text-slate-500 font-mono">FilamentHub 3D v1.8</p>
+        <p class="text-[11px] text-slate-400 dark:text-slate-500 font-mono">FilamentHub 3D v1.9</p>
       </div>
     </div>
   </div>
@@ -1651,10 +1651,10 @@
         <div>
           <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1" data-i18n="settings.model_label">Modello Gemini</label>
           <select id="settingsGeminiModel" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs">
-            <option value="gemini-3.5-flash-lite" selected>gemini-3.5-flash-lite (Consigliato - Ultra Veloce e Preciso)</option>
-            <option value="gemini-flash-lite-latest">gemini-flash-lite-latest (Automatico Lite)</option>
-            <option value="gemini-3.8-flash">gemini-3.8-flash (Gemini 3.8 Flash)</option>
-            <option value="gemini-2.5-flash">gemini-2.5-flash (Legacy)</option>
+            <option value="gemini-3.5-flash-lite" data-i18n="settings.model_35_flash_lite" selected>gemini-3.5-flash-lite (Consigliato - Ultra Veloce e Preciso)</option>
+            <option value="gemini-flash-lite-latest" data-i18n="settings.model_flash_lite_latest">gemini-flash-lite-latest (Automatico Lite)</option>
+            <option value="gemini-3.8-flash" data-i18n="settings.model_38_flash">gemini-3.8-flash (Gemini 3.8 Flash)</option>
+            <option value="gemini-2.5-flash" data-i18n="settings.model_25_flash">gemini-2.5-flash (Legacy)</option>
           </select>
         </div>
 
@@ -1918,7 +1918,7 @@
   <div id="toastContainer" class="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
   <!-- Internationalization & Application Logic -->
-  <script src="/static/js/i18n.js?v=1.8"></script>
-  <script src="/static/js/app.js?v=1.8"></script>
+  <script src="/static/js/i18n.js?v=1.9"></script>
+  <script src="/static/js/app.js?v=1.9"></script>
 </body>
 </html>
